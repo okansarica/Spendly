@@ -1,0 +1,1 @@
+namespace Spendly.Shared.Enums;

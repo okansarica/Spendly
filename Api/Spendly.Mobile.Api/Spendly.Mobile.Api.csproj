@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AspectCore.Extensions.DependencyInjection" Version="2.4.0" />
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Spendly.Mobile.BusinessLayer\Spendly.Mobile.BusinessLayer.csproj" />
+      <ProjectReference Include="..\Spendly.Mobile.ViewModels\Spendly.Mobile.ViewModels.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.Core\Spendly.Shared.Core.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.Enums\Spendly.Shared.Enums.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.Localization\Spendly.Shared.Localization.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.ViewModels\Spendly.Shared.ViewModels.csproj" />
+    </ItemGroup>
+
+</Project>

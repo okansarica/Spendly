@@ -1,0 +1,143 @@
+// using Amazon;
+// using Amazon.Lambda;
+// using Amazon.Runtime;
+// using Amazon.SQS;
+using AspectCore.Configuration;
+using AspectCore.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
+using Serilog;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
+using Spendly.Mobile.Api.Infrastructure;
+using Spendly.Mobile.Api.Infrastructure.Aop;
+using Spendly.Shared.Core.Bootstrap;
+using Spendly.Shared.Core.Interception;
+using Spendly.Shared.Entities.LocaleManagement;
+using Spendly.Shared.Localization;
+using Spendly.Shared.ViewModels.Settings;
+
+var app = AppBootstrapper
+	.Create("SimplePay.Seller.Api", args)
+	.WithServiceScanning([
+		typeof(Constants).Assembly,
+		//typeof(SharedCo).Assembly,
+		typeof(TranslationService).Assembly
+	])
+	.ConfigureServices((services, config) =>
+	{
+		// ----------------------------
+		// DI / business dependencies, AWS, validators, controllers, filters, etc.
+		// ----------------------------
+
+		//services.AddTransient<MethodLoggingInterceptor>();
+		services.AddTransient<CacheableMethodInterceptor>();
+		services.AddMemoryCache();
+		services.AddHttpContextAccessor();
+		services.AddReportRepositories(config);
+		// services.AddSingleton<IAmazonSQS>(sp =>
+		// {
+		// 	var awsSettings = sp.GetRequiredService<AwsSettings>();
+		// 	var credentials = new BasicAWSCredentials(awsSettings.AccessKeyId, awsSettings.SecretAccessKey);
+		// 	var region = RegionEndpoint.GetBySystemName(awsSettings.Region);
+		// 	return new AmazonSQSClient(credentials, region);
+		// });
+		
+		// Changed to scoped so it can consume scoped RequestContextViewModel
+		services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
+		
+		// Register IAmazonLambda using AwsSettings for Payment services
+		// services.AddSingleton<IAmazonLambda>(sp =>
+		// {
+		// 	var awsSettings = sp.GetRequiredService<AwsSettings>();
+		// 	var credentials = new BasicAWSCredentials(awsSettings.AccessKeyId, awsSettings.SecretAccessKey);
+		// 	var region = RegionEndpoint.GetBySystemName(awsSettings.Region);
+		// 	return new AmazonLambdaClient(credentials, region);
+		// });
+	})
+	.ConfigureCors((services, config) =>
+	{
+		// Bunu istediğin yerden okuyabilirsin: config, sabit array, environment, vs.
+		var angularOrigins = new[]
+		{
+			"http://localhost:4200",
+			"https://localhost:4200",
+			"http://localhost:4300",
+			"https://localhost:4300",
+			//"https://local.simplesell.io"
+		};
+
+		services.AddCors(options =>
+		{
+			options.AddPolicy("AngularClient", policy =>
+			{
+				policy.WithOrigins(angularOrigins)
+					.AllowAnyHeader()
+					.AllowAnyMethod()
+					.AllowCredentials();
+			});
+		});
+	})
+	.BuildWebApi(configureBuilder: builder =>
+	{
+		// builder.Host.UseServiceProviderFactory(new DynamicProxyServiceProviderFactory());
+		// builder.Services.ConfigureDynamicProxy(config =>
+		// {
+		// 	config.Interceptors.AddTyped<MethodLoggingInterceptor>();
+		// 	config.Interceptors.AddTyped<CacheableMethodInterceptor>();
+		// });
+		
+		builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+		{
+			options.Filters.Add<LoggingActionFilter>();
+			options.Filters.Add<CacheControlHeaderFilter>();
+			options.Filters.Add<RequestContextFilter>();
+		});
+		// Ensure FluentValidation runs for API models and discover validators in API assembly
+		builder.Services.AddFluentValidationAutoValidation();
+		builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+		builder.Services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = ControllerExtensions.InvalidModelStateResponse;
+        });
+		
+	});
+
+// ----------------------------
+// Middleware pipeline
+// ----------------------------
+
+// Localization middleware
+var supportedCultures = LocaleData.Languages.Select(p => p.Code).ToList();
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+	DefaultRequestCulture = new RequestCulture("en"),
+	SupportedCultures = supportedCultures.Select(c => new CultureInfo(c)).ToList(),
+	SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList()
+});
+
+// Enable CORS for Angular client before authentication/authorization/endpoints
+app.UseCors("AngularClient");
+
+// Add request session middleware early so SessionId is available to logging
+app.UseMiddleware<RequestSessionMiddleware>();
+app.UseMiddleware<SerilogContextEnricherMiddleware>();
+
+// Serilog request logging
+app.UseSerilogRequestLogging(opts =>
+{
+	opts.EnrichDiagnosticContext = (diagCtx, httpCtx) =>
+	{
+		var sid = RequestSession.Get(httpCtx);
+		if (!string.IsNullOrEmpty(sid))
+		{
+			diagCtx.Set("SessionId", sid);
+		}
+	};
+
+});
+
+
+app.Run();

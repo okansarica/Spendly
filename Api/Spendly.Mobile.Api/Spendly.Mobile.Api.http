@@ -1,0 +1,6 @@
+@Spendly.Mobile.Api_HostAddress = http://localhost:5259
+
+GET {{Spendly.Mobile.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

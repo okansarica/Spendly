@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Spendly.Shared.Entities\Spendly.Shared.Entities.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.ViewModels\Spendly.Shared.ViewModels.csproj" />
+    </ItemGroup>
+
+</Project>
