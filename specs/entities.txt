@@ -1,0 +1,120 @@
+bu entityleri olustur, tek asamada tek currency olacak Pound. hersey ona bagli olacak
+
+public class Account:BaseEntity
+{
+ public ObjectId CurrencyId { get; set; }      // "GBP", "USD", "EUR"
+    public ObjectId UserId { get; set; }
+
+    public string Name { get; set; }          // "HSBC Kredi Kartı"
+    public string Provider { get; set; }      // "HSBC", "Revolut", "Enpara"
+    public AccountType Type { get; set; }          // "bank", "credit_card", "cash"
+  
+}
+
+public class Category:BaseEntity
+{
+    public ObjectId UserId { get; set; }   // null = system category, user custom için filled
+	public ObjectId ParentId { get; set; } // null = top-level
+
+    public string Name { get; set; }     // "Market", "Eğlence", "Yakıt"
+   
+}
+
+public class CategorytMontlyExpense:BaseEntity{
+    public ObjectId MerchantId  { get; set; }  
+    public int TransactionCount  { get; set; }  
+    public decimal TransactionAmount { get; set; }  
+    public int Year { get; set; }  
+    public int Month { get; set; }  
+}
+
+
+//Bu bankadan gelen ham data
+public class RawTransaction:BaseEntity
+{
+    public ObjectId UserId { get; set; }
+    public ObjectId AccountId { get; set; }
+
+    public DateTime DateTime { get; set; }
+    public string? Description { get; set; }
+    public decimal Amount { get; set; }
+
+    public string RawCategory { get; set; }
+    public string RawMerchant { get; set; }
+
+}
+
+//bu bizim bankadan gelen veriyi cevirdigimiz data
+public class NormalizedTransaction:BaseEntity
+{
+    public ObjectId RawTransactionId { get; set; }
+    public ObjectId UserId { get; set; }
+    public ObjectId AccountId { get; set; }
+
+    public DateTime Date { get; set; }
+    public decimal Amount { get; set; } 
+
+    public ObjectId? CategoryId { get; set; } // eslestirilmemis olabilir o nedenle bos kalabilir
+    public ObjectId? SubCategoryId { get; set; } // optional
+
+    public ObjectId MerchantId { get; set; }
+}
+
+public class Merchant:BaseEntity
+{
+	public ObjectId CategoryId{ get; set; }
+    public string Name { get; set; }           // "Tesco", "Amazon", "Uber"
+    public int TransactionCount  { get; set; }  
+    public decimal TransactionAmount  { get; set; }  
+}
+
+public class MerchantMontlyExpense:BaseEntity{
+    public ObjectId MerchantId  { get; set; }  
+    public int TransactionCount  { get; set; }  
+    public decimal TransactionAmount { get; set; }  
+    public int Year { get; set; }  
+    public int Month { get; set; }  
+}
+
+
+
+public class DailyUserSummary : BaseEntity
+{
+    public ObjectId UserId { get; set; }
+
+    public DateOnly DateUtc { get; set; }   // sadece date part önemli
+
+    public decimal TotalAmount { get; set; }
+}
+
+public class DailyCategorySummary : BaseEntity
+{
+    public ObjectId UserId { get; set; }
+
+    public DateTime DateUtc { get; set; }
+
+    public ObjectId CategoryId { get; set; }
+
+    public decimal TotalAmount { get; set; }
+}   
+
+public class DailyAccountSummary : BaseEntity
+{
+    public ObjectId UserId { get; set; }
+
+    public DateTime DateUtc { get; set; }
+
+    public ObjectId AccountId { get; set; }
+
+    public decimal TotalAmount { get; set; }
+}
+
+public class MonthlyUserSummary : BaseEntity
+{
+    public ObjectId UserId { get; set; }
+
+    public int Year { get; set; }
+    public int Month { get; set; }
+
+    public decimal TotalAmount { get; set; }
+}
