@@ -11,4 +11,12 @@
       <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Spendly.Shared.Enums\Spendly.Shared.Enums.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Spendly.Shared.Enums\Spendly.Shared.Enums.csproj" />
+    </ItemGroup>
+
 </Project>

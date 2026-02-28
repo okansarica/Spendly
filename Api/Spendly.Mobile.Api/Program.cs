@@ -1,11 +1,15 @@
+// CHANGED_BY_AI: 2026-02-28 - Added JWT authentication and HttpClient registration
 // using Amazon;
 // using Amazon.Lambda;
 // using Amazon.Runtime;
 // using Amazon.SQS;
 using AspectCore.Configuration;
 using AspectCore.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
+using System.Text;
 using Serilog;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -47,6 +51,26 @@ var app = AppBootstrapper
 		
 		// Changed to scoped so it can consume scoped RequestContextViewModel
 		services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
+
+		services.AddHttpClient();
+
+		var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>()!;
+		services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+			.AddJwtBearer(options =>
+			{
+				options.TokenValidationParameters = new TokenValidationParameters
+				{
+					ValidateIssuer = true,
+					ValidIssuer = jwtSettings.Issuer,
+					ValidateAudience = true,
+					ValidAudience = jwtSettings.Audience,
+					ValidateLifetime = true,
+					ValidateIssuerSigningKey = true,
+					IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+					ClockSkew = TimeSpan.Zero
+				};
+			});
+		services.AddAuthorization();
 		
 		// Register IAmazonLambda using AwsSettings for Payment services
 		// services.AddSingleton<IAmazonLambda>(sp =>
