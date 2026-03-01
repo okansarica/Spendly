@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const isValid = email.length > 0 && password.length > 0;
 
   useEffect(() => {
-    GoogleSignin.configure();
+    //TODO GoogleSignin.configure();
   }, []);
 
   const handleLogin = async () => {

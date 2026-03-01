@@ -6,6 +6,10 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, min_ios_version_supported
+
+# 🔹 Node versiyonunu sabitle (Node 20.19.6)
+ENV['NODE_BINARY'] = '/Users/okan/.nvm/versions/node/v20.19.6/bin/node'
+
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
