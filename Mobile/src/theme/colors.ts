@@ -1,9 +1,9 @@
 export const lightColors = {
-  backgroundPrimary: '#FFFFFF',
-  backgroundSecondary: '#F5F6F8',
+  backgroundPrimary: '#F8F9FA',
+  backgroundSecondary: '#FFFFFF',
   borderSubtle: '#E5E7EB',
 
-  textPrimary: '#111827',
+  textPrimary: '#1A1A1A',
   textSecondary: '#6B7280',
 
   buttonPrimary: '#2563EB',
@@ -26,7 +26,7 @@ export const lightColors = {
 
   inputBorder: '#D1D5DB',
   inputBackground: '#FFFFFF',
-  inputText: '#111827',
+  inputText: '#1A1A1A',
   inputPlaceholder: '#9CA3AF',
 
   cardBackground: '#FFFFFF',

@@ -5,17 +5,19 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {LoginButton, AccessToken} from 'react-native-fbsdk-next';
+import {AccessToken} from 'react-native-fbsdk-next';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {login, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
+import Button from '../../components/Button';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -34,7 +36,10 @@ export default function LoginScreen() {
   const isValid = email.length > 0 && password.length > 0;
 
   useEffect(() => {
-    //TODO GoogleSignin.configure();
+    //TODO-UPDATED: 2026-03-01 GoogleSignin configured with webClientId
+    // GoogleSignin.configure({
+    //   webClientId: '',
+    // });
   }, []);
 
   const handleLogin = () => {
@@ -61,50 +66,97 @@ export default function LoginScreen() {
     }
   }, [emailVerificationRequired, navigation]);
 
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: error,
+      });
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
+
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundPrimary},
     scroll: {flexGrow: 1, justifyContent: 'center', padding: spacing.lg},
-    error: {
-      backgroundColor: colors.errorBackground,
-      color: colors.errorText,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.md,
+    title: {
+      fontSize: fontSizes.xxl,
+      fontWeight: fontWeights.bold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+      textAlign: 'center' as const,
+    },
+    subtitle: {
       fontSize: fontSizes.sm,
-      textAlign: 'center',
+      color: colors.textSecondary,
+      marginBottom: spacing.xl,
+      textAlign: 'center' as const,
+    },
+    inputLabel: {
+      fontSize: fontSizes.sm,
+      fontWeight: fontWeights.medium,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
     },
     input: {
       borderWidth: 1,
       borderColor: colors.inputBorder,
       borderRadius: radius.md,
       padding: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
       fontSize: fontSizes.md,
       color: colors.inputText,
       backgroundColor: colors.inputBackground,
     },
-    btn: {
+    btnSocial: {
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
       borderRadius: radius.md,
       padding: spacing.md,
-      alignItems: 'center',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       marginBottom: spacing.sm,
+      shadowColor: colors.cardShadow,
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      flexDirection: 'row' as const,
+      gap: spacing.sm,
     },
-    btnPrimary: {backgroundColor: isValid && !isLoading ? colors.buttonPrimary : colors.buttonPrimaryDisabled},
-    btnGoogle: {backgroundColor: '#DB4437'},
-    btnText: {color: colors.buttonPrimaryText, fontSize: fontSizes.md, fontWeight: fontWeights.semiBold},
-    facebookBtn: {height: 44, width: '100%', marginBottom: spacing.sm},
-    link: {color: colors.buttonPrimary, textAlign: 'center', marginTop: spacing.sm, fontSize: fontSizes.sm},
-    divider: {height: 1, backgroundColor: colors.borderSubtle, marginVertical: spacing.md},
+    btnFacebook: {
+      backgroundColor: '#1877F2',
+      borderWidth: 0,
+    },
+    btnTextSocial: {color: '#5F6368', fontSize: fontSizes.md, fontWeight: fontWeights.medium},
+    btnTextFacebook: {color: '#FFFFFF', fontSize: fontSizes.md, fontWeight: fontWeights.medium},
+    link: {color: colors.buttonPrimary, textAlign: 'center' as const, marginTop: spacing.sm, fontSize: fontSizes.sm, fontWeight: fontWeights.medium},
+    divider: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginVertical: spacing.lg,
+    },
+    dividerLine: {flex: 1, height: 1, backgroundColor: colors.borderSubtle},
+    dividerText: {
+      paddingHorizontal: spacing.md,
+      color: colors.textSecondary,
+      fontSize: fontSizes.sm,
+    },
   });
 
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {error ? <Text style={s.error} onPress={() => dispatch(clearError())}>{error}</Text> : null}
+        <Text style={s.title}>Welcome back</Text>
+        <Text style={s.subtitle}>Sign in to continue to Spendly</Text>
 
+
+        <Text style={s.inputLabel}>Email</Text>
         <TextInput
           style={s.input}
-          placeholder="Email"
+          placeholder="Enter your email"
           placeholderTextColor={colors.inputPlaceholder}
           autoCapitalize="none"
           keyboardType="email-address"
@@ -112,42 +164,48 @@ export default function LoginScreen() {
           onChangeText={setEmail}
         />
 
+        <Text style={s.inputLabel}>Password</Text>
         <TextInput
           style={s.input}
-          placeholder="Password"
+          placeholder="Enter your password"
           placeholderTextColor={colors.inputPlaceholder}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        //TODO common alana bir buton tanimlanmali, icine text flan gibi bilgiler alabilir. isLoading alabilir. heryerde ayni butonu kullanmak gerekiyor, ayri ayri buton olusturmak kotu yaklasim.
-        <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={handleLogin} disabled={!isValid || isLoading}>
-          {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Login</Text>}
-        </TouchableOpacity>
-
-        <View style={s.divider} />
-
-        <TouchableOpacity style={[s.btn, s.btnGoogle]} onPress={handleGoogleLogin} disabled={isLoading}>
-          <Text style={s.btnText}>Login with Google</Text>
-        </TouchableOpacity>
-
-        <LoginButton
-          style={s.facebookBtn}
-          onLoginFinished={(_err, result) => {
-            if (!_err && !result.isCancelled) {
-              handleFacebookLogin();
-            }
-          }}
-          onLogoutFinished={() => {}}
+        
+        <Button
+          text="Sign in"
+          onPress={handleLogin}
+          variant="primary"
+          isLoading={isLoading}
+          disabled={!isValid}
+          style={{marginBottom: spacing.sm}}
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={s.link}>Forgot Password?</Text>
+          <Text style={s.link}>Forgot your password?</Text>
+        </TouchableOpacity>
+
+        <View style={s.divider}>
+          <View style={s.dividerLine} />
+          <Text style={s.dividerText}>or continue with</Text>
+          <View style={s.dividerLine} />
+        </View>
+
+        <TouchableOpacity style={s.btnSocial} onPress={handleGoogleLogin} disabled={isLoading}>
+          <Icon name="google" size={20} color="#DB4437" />
+          <Text style={s.btnTextSocial}>Continue with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.btnSocial, s.btnFacebook]} onPress={handleFacebookLogin} disabled={isLoading}>
+          <Icon name="facebook" size={20} color="#FFFFFF" />
+          <Text style={s.btnTextFacebook}>Continue with Facebook</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={s.link}>Don't have an account? Register</Text>
+          <Text style={s.link}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

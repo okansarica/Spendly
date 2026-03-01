@@ -290,7 +290,7 @@ public class AppBootstrapper
 			var cur = AppContext.BaseDirectory;
 			for (int i = 0; i < 10 && !string.IsNullOrEmpty(cur); i++)
 			{
-				var candidate = Path.Combine(cur, "local.shared.json");
+				var candidate = Path.Combine(cur, "shared.local.json");
 				if (File.Exists(candidate))
 					return candidate;
 
@@ -301,7 +301,7 @@ public class AppBootstrapper
 			}
 
 			// Also try current working directory as a last resort
-			var cwdCandidate = Path.Combine(Directory.GetCurrentDirectory(), "local.shared.json");
+			var cwdCandidate = Path.Combine(Directory.GetCurrentDirectory(), "shared.local.json");
 			if (File.Exists(cwdCandidate))
 				return cwdCandidate;
 

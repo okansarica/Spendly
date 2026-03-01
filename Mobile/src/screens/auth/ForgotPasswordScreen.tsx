@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {forgotPassword, clearError} from '../../store/authStore';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -23,24 +24,31 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error,
+      });
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
+
   const handleSubmit = async () => {
     const result = await dispatch(forgotPassword(email));
     if (forgotPassword.fulfilled.match(result)) {
       setSubmitted(true);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'If the email exists, a reset link has been sent.',
+      });
     }
   };
 
   return (
     <View style={styles.container}>
-      {error ? (
-        <Text style={styles.error} onPress={() => dispatch(clearError())}>
-          {error}
-        </Text>
-      ) : null}
-
-      {submitted ? (
-        <Text style={styles.success}>If the email exists, a reset link has been sent.</Text>
-      ) : null}
 
       <TextInput
         style={styles.input}
@@ -76,6 +84,4 @@ const styles = StyleSheet.create({
   button: {backgroundColor: '#4A90E2', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 12},
   buttonText: {color: '#fff', fontSize: 16, fontWeight: '600'},
   link: {color: '#4A90E2', textAlign: 'center', marginTop: 8, fontSize: 14},
-  error: {color: '#D32F2F', backgroundColor: '#FFEBEE', borderRadius: 6, padding: 10, marginBottom: 12, textAlign: 'center'},
-  success: {color: '#388E3C', backgroundColor: '#E8F5E9', borderRadius: 6, padding: 10, marginBottom: 12, textAlign: 'center'},
 });

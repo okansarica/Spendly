@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {LoginButton, AccessToken} from 'react-native-fbsdk-next';
+import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {register, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
@@ -35,11 +36,22 @@ export default function RegisterScreen() {
 
   const isValid = name.length > 0 && surname.length > 0 && email.length > 0 && password.length > 0;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (emailVerificationRequired) {
       navigation.navigate('Verification');
     }
   }, [emailVerificationRequired, navigation]);
+
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Registration Failed',
+        text2: error,
+      });
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleRegister = () => {
     dispatch(register({name, surname, email, password}));
@@ -62,15 +74,6 @@ export default function RegisterScreen() {
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundPrimary},
     scroll: {flexGrow: 1, justifyContent: 'center', padding: spacing.lg},
-    error: {
-      backgroundColor: colors.errorBackground,
-      color: colors.errorText,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.md,
-      fontSize: fontSizes.sm,
-      textAlign: 'center',
-    },
     input: {
       borderWidth: 1,
       borderColor: colors.inputBorder,
@@ -98,7 +101,6 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {error ? <Text style={s.error} onPress={() => dispatch(clearError())}>{error}</Text> : null}
 
         <TextInput
           style={s.input}

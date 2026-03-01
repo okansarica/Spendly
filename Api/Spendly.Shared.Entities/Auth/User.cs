@@ -1,5 +1,6 @@
 namespace Spendly.Shared.Entities.Auth;
 
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Spendly.Shared.Entities.Core;
 using Spendly.Shared.Enums;
@@ -35,3 +36,10 @@ public class UserLoginProvider
     public string? ProviderUserId { get; set; }
 }
 
+
+public class UserRefreshToken:BaseEntity
+{
+    public ObjectId UserId { get; set; }
+    public string Token { get; set; } = string.Empty;
+    public DateTime ExpireDateTime { get; set; }
+}

@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {verifyEmail, resendCode, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
@@ -26,6 +27,17 @@ export default function VerificationScreen() {
   ];
 
   const isValid = digits.every(d => d.length === 1) && !!userId;
+
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Verification Failed',
+        text2: error,
+      });
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleDigit = (value: string, index: number) => {
     const next = [...digits];
@@ -94,15 +106,6 @@ export default function VerificationScreen() {
     btnPrimary: {backgroundColor: isValid && !isLoading ? colors.buttonPrimary : colors.buttonPrimaryDisabled},
     btnText: {color: colors.buttonPrimaryText, fontSize: fontSizes.md, fontWeight: fontWeights.semiBold},
     link: {color: colors.buttonPrimary, textAlign: 'center', marginTop: spacing.sm, fontSize: fontSizes.sm},
-    error: {
-      backgroundColor: colors.errorBackground,
-      color: colors.errorText,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginBottom: spacing.md,
-      fontSize: fontSizes.sm,
-      textAlign: 'center',
-    },
   });
 
   return (
@@ -110,7 +113,6 @@ export default function VerificationScreen() {
       <Text style={s.title}>Verify your email</Text>
       <Text style={s.subtitle}>Enter the 4-digit code sent to your email address.</Text>
 
-      {error ? <Text style={s.error} onPress={() => dispatch(clearError())}>{error}</Text> : null}
 
       <View style={s.codeRow}>
         {digits.map((d, i) => (

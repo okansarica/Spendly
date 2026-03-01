@@ -17,8 +17,9 @@ using Spendly.Shared.ViewModels.Settings;
 
 public class AuthService(
     IRepository<User> userRepository,
+    IRepository<UserRefreshToken> refreshTokenRepository,
     JwtSettings jwtSettings,
-    IHttpClientFactory httpClientFactory) : IAuthService
+    IHttpClientFactory httpClientFactory)
 {
     private const int MaxVerificationAttempts = 5;
     private const int VerificationCodeExpiryHours = 24;
@@ -61,18 +62,21 @@ public class AuthService(
             });
         }
 
-        var (accessToken, refreshToken) = GenerateTokens(user);
+        var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiry = refreshTokenExpiry;
         user.UpdatedAt = DateTime.UtcNow;
         await userRepository.UpdateAsync(user);
+        await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
         return FunctionResponse.Success(new AuthResponseViewModel
         {
             Id = user.Id.ToString(),
             Email = user.Email,
             AccessToken = accessToken,
+            AccessTokenExpire = accessTokenExpiry,
             RefreshToken = refreshToken,
+            RefreshTokenExpire = refreshTokenExpiry,
             EmailVerificationRequired = false
         });
     }
@@ -123,18 +127,21 @@ public class AuthService(
             }
         }
 
-        var (accessToken, refreshToken) = GenerateTokens(user);
+        var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
         user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        user.RefreshTokenExpiry = refreshTokenExpiry;
         user.UpdatedAt = DateTime.UtcNow;
         await userRepository.UpdateAsync(user);
+        await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
         return FunctionResponse.Success(new AuthResponseViewModel
         {
             Id = user.Id.ToString(),
             Email = user.Email,
             AccessToken = accessToken,
+            AccessTokenExpire = accessTokenExpiry,
             RefreshToken = refreshToken,
+            RefreshTokenExpire = refreshTokenExpiry,
             EmailVerificationRequired = false
         });
     }
@@ -156,11 +163,13 @@ public class AuthService(
         return FunctionResponse.Success();
     }
 
-    //TODO refresh token db de tutulmali
-    private (string accessToken, string refreshToken) GenerateTokens(User user)
+    private (string accessToken, DateTime accessTokenExpiry, string refreshToken, DateTime refreshTokenExpiry) GenerateTokens(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var accessTokenExpiry = DateTime.UtcNow.AddHours(1);
+        var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
         var claims = new[]
         {
@@ -174,13 +183,24 @@ public class AuthService(
             issuer: jwtSettings.Issuer,
             audience: jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
+            expires: accessTokenExpiry,
             signingCredentials: creds);
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
-        return (accessToken, refreshToken);
+        return (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry);
+    }
+
+    private async Task SaveRefreshTokenAsync(MongoDB.Bson.ObjectId userId, string refreshToken, DateTime expiry)
+    {
+        var tokenEntity = new UserRefreshToken
+        {
+            UserId = userId,
+            Token = refreshToken,
+            ExpireDateTime = expiry
+        };
+        await refreshTokenRepository.InsertAsync(tokenEntity);
     }
 
     private static string GenerateVerificationCode() =>

@@ -7,7 +7,7 @@ using Spendly.Mobile.ViewModels.Auth;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-public class AuthController(IAuthService authService) : ControllerBase
+public class AuthController(AuthService authService) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestViewModel request)

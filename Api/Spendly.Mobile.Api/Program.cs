@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.Api.Infrastructure.Aop;
+using Spendly.Mobile.BusinessLayer.Services.Auth;
 using Spendly.Shared.Core.Bootstrap;
 using Spendly.Shared.Core.Interception;
 using Spendly.Shared.Entities.LocaleManagement;
@@ -24,10 +25,10 @@ using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels.Settings;
 
 var app = AppBootstrapper
-	.Create("SimplePay.Seller.Api", args)
+	.Create("Spendly.Mobile.Api", args)
 	.WithServiceScanning([
 		typeof(Constants).Assembly,
-		//typeof(SharedCo).Assembly,
+		typeof(AuthService).Assembly,
 		typeof(TranslationService).Assembly
 	])
 	.ConfigureServices((services, config) =>
@@ -36,7 +37,7 @@ var app = AppBootstrapper
 		// DI / business dependencies, AWS, validators, controllers, filters, etc.
 		// ----------------------------
 
-		//services.AddTransient<MethodLoggingInterceptor>();
+		services.AddTransient<MethodLoggingInterceptor>();
 		services.AddTransient<CacheableMethodInterceptor>();
 		services.AddMemoryCache();
 		services.AddHttpContextAccessor();
@@ -81,37 +82,26 @@ var app = AppBootstrapper
 		// 	return new AmazonLambdaClient(credentials, region);
 		// });
 	})
-	.ConfigureCors((services, config) =>
+	.ConfigureCors((services, _) =>
 	{
-		// Bunu istediğin yerden okuyabilirsin: config, sabit array, environment, vs.
-		var angularOrigins = new[]
-		{
-			"http://localhost:4200",
-			"https://localhost:4200",
-			"http://localhost:4300",
-			"https://localhost:4300",
-			//"https://local.simplesell.io"
-		};
-
 		services.AddCors(options =>
 		{
-			options.AddPolicy("AngularClient", policy =>
+			options.AddPolicy("MobileClient", policy =>
 			{
-				policy.WithOrigins(angularOrigins)
+				policy.AllowAnyOrigin()
 					.AllowAnyHeader()
-					.AllowAnyMethod()
-					.AllowCredentials();
+					.AllowAnyMethod();
 			});
 		});
 	})
 	.BuildWebApi(configureBuilder: builder =>
 	{
-		// builder.Host.UseServiceProviderFactory(new DynamicProxyServiceProviderFactory());
-		// builder.Services.ConfigureDynamicProxy(config =>
-		// {
-		// 	config.Interceptors.AddTyped<MethodLoggingInterceptor>();
-		// 	config.Interceptors.AddTyped<CacheableMethodInterceptor>();
-		// });
+		builder.Host.UseServiceProviderFactory(new DynamicProxyServiceProviderFactory());
+		builder.Services.ConfigureDynamicProxy(config =>
+		{
+			config.Interceptors.AddTyped<MethodLoggingInterceptor>();
+			config.Interceptors.AddTyped<CacheableMethodInterceptor>();
+		});
 		
 		builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 		{
@@ -142,8 +132,8 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 	SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList()
 });
 
-// Enable CORS for Angular client before authentication/authorization/endpoints
-app.UseCors("AngularClient");
+// Enable CORS for mobile client before authentication/authorization/endpoints
+app.UseCors("MobileClient");
 
 // Add request session middleware early so SessionId is available to logging
 app.UseMiddleware<RequestSessionMiddleware>();

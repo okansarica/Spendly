@@ -31,28 +31,40 @@ export type AuthResponse = {
   id: string;
   email: string;
   accessToken?: string;
-  //TODO access token ve refresh token expire date timelari da donmeli apiden
-  //TODO kullanici name surname de apiden donmeli ve session bilgileri ile kaydedilmeli. bunu ilerde kullanici ekranlarinda gosterecegiz
+  accessTokenExpire?: string;
   refreshToken?: string;
+  refreshTokenExpire?: string;
   emailVerificationRequired: boolean;
 };
 
 export const authService = {
   login: (data: LoginRequest) =>
-    apiClient.post<AuthResponse>(ApiEndpoints.Auth.Login, data),
+    apiClient.post<AuthResponse>(ApiEndpoints.Auth.Login, data, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 
   socialLogin: (data: SocialLoginRequest) =>
-    apiClient.post<AuthResponse>(ApiEndpoints.Auth.SocialLogin, data),
+    apiClient.post<AuthResponse>(ApiEndpoints.Auth.SocialLogin, data, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 
   forgotPassword: (data: ForgotPasswordRequest) =>
-    apiClient.post(ApiEndpoints.Auth.ForgotPassword, data),
+    apiClient.post(ApiEndpoints.Auth.ForgotPassword, data, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 
   register: (data: RegisterRequest) =>
-    apiClient.post<AuthResponse>(ApiEndpoints.Auth.Register, data),
+    apiClient.post<AuthResponse>(ApiEndpoints.Auth.Register, data, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 
   verifyEmail: (data: VerifyEmailRequest) =>
-    apiClient.post<AuthResponse>(ApiEndpoints.Auth.VerifyEmail, data),
+    apiClient.post<AuthResponse>(ApiEndpoints.Auth.VerifyEmail, data, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 
   resendCode: (userId: string) =>
-    apiClient.post(ApiEndpoints.Auth.ResendCode, {userId}),
+    apiClient.post(ApiEndpoints.Auth.ResendCode, {userId}, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 };
