@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,12 +10,11 @@ import {
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {LoginButton, AccessToken} from 'react-native-fbsdk-next';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {register, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
+import SocialLoginButtons from '../../components/SocialLoginButtons';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -57,23 +55,26 @@ export default function RegisterScreen() {
     dispatch(register({name, surname, email, password}));
   };
 
-  const handleGoogleRegister = async () => {
-    await GoogleSignin.hasPlayServices();
-    await GoogleSignin.signIn();
-    const tokens = await GoogleSignin.getTokens();
-    dispatch(socialLogin({provider: 'google', token: tokens.idToken}));
-  };
-
-  const handleFacebookRegister = async () => {
-    const data = await AccessToken.getCurrentAccessToken();
-    if (data) {
-      dispatch(socialLogin({provider: 'facebook', token: data.accessToken}));
-    }
+  const handleSocialLogin = (provider: 'google' | 'facebook', token: string) => {
+    dispatch(socialLogin({provider, token}));
   };
 
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundPrimary},
     scroll: {flexGrow: 1, justifyContent: 'center', padding: spacing.lg},
+    title: {
+      fontSize: fontSizes.xxl,
+      fontWeight: fontWeights.bold,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: fontSizes.sm,
+      color: colors.textSecondary,
+      marginBottom: spacing.xl,
+      textAlign: 'center',
+    },
     input: {
       borderWidth: 1,
       borderColor: colors.inputBorder,
@@ -91,16 +92,15 @@ export default function RegisterScreen() {
       marginBottom: spacing.sm,
     },
     btnPrimary: {backgroundColor: isValid && !isLoading ? colors.buttonPrimary : colors.buttonPrimaryDisabled},
-    btnGoogle: {backgroundColor: '#DB4437'},
     btnText: {color: colors.buttonPrimaryText, fontSize: fontSizes.md, fontWeight: fontWeights.semiBold},
-    facebookBtn: {height: 44, width: '100%', marginBottom: spacing.sm},
     link: {color: colors.buttonPrimary, textAlign: 'center', marginTop: spacing.sm, fontSize: fontSizes.sm},
-    divider: {height: 1, backgroundColor: colors.borderSubtle, marginVertical: spacing.md},
   });
 
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        <Text style={s.title}>Create your account</Text>
+        <Text style={s.subtitle}>Sign up to start managing your expenses</Text>
 
         <TextInput
           style={s.input}
@@ -141,20 +141,10 @@ export default function RegisterScreen() {
           {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Register</Text>}
         </TouchableOpacity>
 
-        <View style={s.divider} />
-
-        <TouchableOpacity style={[s.btn, s.btnGoogle]} onPress={handleGoogleRegister} disabled={isLoading}>
-          <Text style={s.btnText}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <LoginButton
-          style={s.facebookBtn}
-          onLoginFinished={(_err, result) => {
-            if (!_err && !result.isCancelled) {
-              handleFacebookRegister();
-            }
-          }}
-          onLogoutFinished={() => {}}
+        <SocialLoginButtons
+          onGoogleLogin={token => handleSocialLogin('google', token)}
+          onFacebookLogin={token => handleSocialLogin('facebook', token)}
+          disabled={isLoading}
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>

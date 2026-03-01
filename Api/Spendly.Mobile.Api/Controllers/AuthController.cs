@@ -35,7 +35,40 @@ public class AuthController(AuthService authService) : ControllerBase
             return this.BadRequestFrom(response);
         return Ok(new { success = true });
     }
-    
-    //TODO register endpointi eklenmemis
-}
 
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequestViewModel request)
+    {
+        var response = await authService.RegisterAsync(request);
+        if (!response.IsSuccess)
+            return this.BadRequestFrom(response);
+        return Ok(response.Data);
+    }
+
+    [HttpPost("refresh-access-token")]
+    public async Task<IActionResult> RefreshAccessToken([FromBody] RefreshTokenRequestViewModel request)
+    {
+        var response = await authService.RefreshAccessTokenAsync(request);
+        if (!response.IsSuccess)
+            return this.BadRequestFrom(response);
+        return Ok(response.Data);
+    }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequestViewModel request)
+    {
+        var response = await authService.VerifyEmailAsync(request);
+        if (!response.IsSuccess)
+            return this.BadRequestFrom(response);
+        return Ok(response.Data);
+    }
+
+    [HttpPost("resend-verification")]
+    public async Task<IActionResult> ResendVerification([FromBody] ResendCodeRequestViewModel request)
+    {
+        var response = await authService.ResendCodeAsync(request);
+        if (!response.IsSuccess)
+            return this.BadRequestFrom(response);
+        return Ok(new { success = true });
+    }
+}

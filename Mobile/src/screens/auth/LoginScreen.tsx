@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -10,14 +9,12 @@ import {
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import {AccessToken} from 'react-native-fbsdk-next';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {login, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import Button from '../../components/Button';
+import SocialLoginButtons from '../../components/SocialLoginButtons';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -46,18 +43,8 @@ export default function LoginScreen() {
     dispatch(login({email, password}));
   };
 
-  const handleGoogleLogin = async () => {
-    await GoogleSignin.hasPlayServices();
-    await GoogleSignin.signIn();
-    const tokens = await GoogleSignin.getTokens();
-    dispatch(socialLogin({provider: 'google', token: tokens.idToken}));
-  };
-
-  const handleFacebookLogin = async () => {
-    const data = await AccessToken.getCurrentAccessToken();
-    if (data) {
-      dispatch(socialLogin({provider: 'facebook', token: data.accessToken}));
-    }
+  const handleSocialLogin = (provider: 'google' | 'facebook', token: string) => {
+    dispatch(socialLogin({provider, token}));
   };
 
   useEffect(() => {
@@ -109,41 +96,7 @@ export default function LoginScreen() {
       color: colors.inputText,
       backgroundColor: colors.inputBackground,
     },
-    btnSocial: {
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderRadius: radius.md,
-      padding: spacing.md,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      marginBottom: spacing.sm,
-      shadowColor: colors.cardShadow,
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      flexDirection: 'row' as const,
-      gap: spacing.sm,
-    },
-    btnFacebook: {
-      backgroundColor: '#1877F2',
-      borderWidth: 0,
-    },
-    btnTextSocial: {color: '#5F6368', fontSize: fontSizes.md, fontWeight: fontWeights.medium},
-    btnTextFacebook: {color: '#FFFFFF', fontSize: fontSizes.md, fontWeight: fontWeights.medium},
     link: {color: colors.buttonPrimary, textAlign: 'center' as const, marginTop: spacing.sm, fontSize: fontSizes.sm, fontWeight: fontWeights.medium},
-    divider: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      marginVertical: spacing.lg,
-    },
-    dividerLine: {flex: 1, height: 1, backgroundColor: colors.borderSubtle},
-    dividerText: {
-      paddingHorizontal: spacing.md,
-      color: colors.textSecondary,
-      fontSize: fontSizes.sm,
-    },
   });
 
   return (
@@ -188,21 +141,11 @@ export default function LoginScreen() {
           <Text style={s.link}>Forgot your password?</Text>
         </TouchableOpacity>
 
-        <View style={s.divider}>
-          <View style={s.dividerLine} />
-          <Text style={s.dividerText}>or continue with</Text>
-          <View style={s.dividerLine} />
-        </View>
-
-        <TouchableOpacity style={s.btnSocial} onPress={handleGoogleLogin} disabled={isLoading}>
-          <Icon name="google" size={20} color="#DB4437" />
-          <Text style={s.btnTextSocial}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[s.btnSocial, s.btnFacebook]} onPress={handleFacebookLogin} disabled={isLoading}>
-          <Icon name="facebook" size={20} color="#FFFFFF" />
-          <Text style={s.btnTextFacebook}>Continue with Facebook</Text>
-        </TouchableOpacity>
+        <SocialLoginButtons
+          onGoogleLogin={token => handleSocialLogin('google', token)}
+          onFacebookLogin={token => handleSocialLogin('facebook', token)}
+          disabled={isLoading}
+        />
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={s.link}>Don't have an account? Sign up</Text>

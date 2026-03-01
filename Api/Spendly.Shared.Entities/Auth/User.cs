@@ -7,6 +7,8 @@ using Spendly.Shared.Enums;
 
 public class User : BaseEntity
 {
+    public string Name { get; set; } = null!;
+    public string Surname { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string? PasswordHash { get; set; }
     public EmailVerification EmailVerification { get; set; } = new();

@@ -37,6 +37,8 @@ async function apiCall<T>(request: () => Promise<AxiosResponse<T>>): Promise<Api
 On 400 response: return `{ isSuccess: false, errorMessage: response.data.message }`
 On 500 response: return `{ isSuccess: false, errorMessage: 'An unexpected error occurred' }`
 
+
+
 ## Response Handling Pattern
 
 All callers check `isSuccess` before proceeding:
