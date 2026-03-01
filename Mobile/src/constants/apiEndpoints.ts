@@ -7,6 +7,9 @@ export const ApiEndpoints = {
     VerifyEmail: '/api/v1/auth/verify-email',
     ResendCode: '/api/v1/auth/resend-verification',
   },
+  Homepage: {
+    Get: '/api/v1/homepage',
+  },
 };
 
 

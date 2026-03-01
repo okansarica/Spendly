@@ -99,3 +99,6 @@ export const ApiEndpoints = {
 - 500 errors: show generic message ('Something went wrong, please try again')
 - Display errors in-screen (inline message or toast) - do not use console.error in production
 
+## Localization
+
+- All user-facing strings must be localized
