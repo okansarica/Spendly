@@ -12,7 +12,7 @@ export type AuthStackParamList = {
   Verification: undefined;
 };
 
-const Stack = createNativeStackNavigator<AuthStackParamList>();
+const Stack = createNativeStackNavigator();
 
 export default function AuthNavigator() {
   return (

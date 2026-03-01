@@ -1,86 +1,225 @@
-import {create} from 'zustand';
+import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import * as Keychain from 'react-native-keychain';
-import {authService, LoginRequest, SocialLoginRequest} from '../services/authService';
+import {apiCall} from '../services/apiClient';
+import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
 
-interface AuthState {
-  userId: string | null;
-  email: string | null;
+type AuthState = {
+  userId: string | undefined;
+  email: string | undefined;
   isAuthenticated: boolean;
   isInitializing: boolean;
   isLoading: boolean;
-  error: string | null;
+  error: string | undefined;
   emailVerificationRequired: boolean;
-  checkAuth: () => Promise<void>;
-  login: (data: LoginRequest) => Promise<void>;
-  socialLogin: (data: SocialLoginRequest) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-}
+};
 
-export const useAuthStore = create<AuthState>((set) => ({
-  userId: null,
-  email: null,
+const initialState: AuthState = {
+  userId: undefined,
+  email: undefined,
   isAuthenticated: false,
   isInitializing: true,
   isLoading: false,
-  error: null,
+  error: undefined,
   emailVerificationRequired: false,
+};
 
-  checkAuth: async () => {
-    const creds = await Keychain.getGenericPassword({service: 'accessToken'});
-    set({isAuthenticated: !!creds, isInitializing: false});
+export const checkAuth = createAsyncThunk('auth/checkAuth', async () => {
+  const creds = await Keychain.getGenericPassword({service: 'accessToken'});
+  return !!creds;
+});
+
+export const login = createAsyncThunk(
+  'auth/login',
+  async (data: LoginRequest, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.login(data));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    const auth = response.data!;
+    if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
+      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
+      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+    }
+    return auth;
   },
+);
 
-  login: async (data) => {
-    set({isLoading: true, error: null});
-    try {
-      const res = await authService.login(data);
-      const auth = res.data;
-      if (auth.emailVerificationRequired) {
-        set({emailVerificationRequired: true, userId: auth.id, email: auth.email, isLoading: false});
-        return;
-      }
-      await Keychain.setGenericPassword('accessToken', auth.accessToken!, {service: 'accessToken'});
-      await Keychain.setGenericPassword('refreshToken', auth.refreshToken!, {service: 'refreshToken'});
-      set({userId: auth.id, email: auth.email, isAuthenticated: true, isLoading: false, emailVerificationRequired: false});
-    } catch (e: any) {
-      const msg = e.response?.data?.errors?.[0]?.message ?? 'Login failed';
-      set({error: msg, isLoading: false});
+export const socialLogin = createAsyncThunk(
+  'auth/socialLogin',
+  async (data: SocialLoginRequest, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.socialLogin(data));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    const auth = response.data!;
+    if (auth.accessToken && auth.refreshToken) {
+      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
+      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+    }
+    return auth;
+  },
+);
+
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email: string, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.forgotPassword({email}));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
     }
   },
+);
 
-  socialLogin: async (data) => {
-    set({isLoading: true, error: null});
-    try {
-      const res = await authService.socialLogin(data);
-      const auth = res.data;
-      await Keychain.setGenericPassword('accessToken', auth.accessToken!, {service: 'accessToken'});
-      await Keychain.setGenericPassword('refreshToken', auth.refreshToken!, {service: 'refreshToken'});
-      set({userId: auth.id, email: auth.email, isAuthenticated: true, isLoading: false});
-    } catch (e: any) {
-      const msg = e.response?.data?.errors?.[0]?.message ?? 'Social login failed';
-      set({error: msg, isLoading: false});
+export const logout = createAsyncThunk('auth/logout', async () => {
+  await Keychain.resetGenericPassword({service: 'accessToken'});
+  await Keychain.resetGenericPassword({service: 'refreshToken'});
+  //TODO burada apiye logout istegi yapilmali ve db de duran refresh token silinmeli
+});
+
+export const register = createAsyncThunk(
+  'auth/register',
+  async (data: RegisterRequest, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.register(data));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    return response.data!;
+  },
+);
+
+export const verifyEmail = createAsyncThunk(
+  'auth/verifyEmail',
+  async (data: VerifyEmailRequest, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.verifyEmail(data));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    const auth = response.data!;
+    if (auth.accessToken && auth.refreshToken) {
+      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
+      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+    }
+    return auth;
+  },
+);
+
+export const resendCode = createAsyncThunk(
+  'auth/resendCode',
+  async (userId: string, {rejectWithValue}) => {
+    const response = await apiCall(() => authService.resendCode(userId));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
     }
   },
+);
 
-  forgotPassword: async (email) => {
-    set({isLoading: true, error: null});
-    try {
-      await authService.forgotPassword({email});
-      set({isLoading: false});
-    } catch (e: any) {
-      const msg = e.response?.data?.errors?.[0]?.message ?? 'Request failed';
-      set({error: msg, isLoading: false});
-    }
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    clearError: state => {
+      state.error = undefined;
+    },
   },
-
-  logout: async () => {
-    await Keychain.resetGenericPassword({service: 'accessToken'});
-    await Keychain.resetGenericPassword({service: 'refreshToken'});
-    set({userId: null, email: null, isAuthenticated: false});
+  extraReducers: builder => {
+    builder
+      .addCase(checkAuth.fulfilled, (state, action) => {
+        state.isAuthenticated = action.payload;
+        state.isInitializing = false;
+      })
+      .addCase(login.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload.emailVerificationRequired) {
+          state.emailVerificationRequired = true;
+          state.userId = action.payload.id;
+          state.email = action.payload.email;
+        } else {
+          state.userId = action.payload.id;
+          state.email = action.payload.email;
+          state.isAuthenticated = true;
+          state.emailVerificationRequired = false;
+        }
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(socialLogin.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(socialLogin.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.userId = action.payload.id;
+        state.email = action.payload.email;
+        state.isAuthenticated = true;
+      })
+      .addCase(socialLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(forgotPassword.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(forgotPassword.fulfilled, state => {
+        state.isLoading = false;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(logout.fulfilled, state => {
+        state.userId = undefined;
+        state.email = undefined;
+        state.isAuthenticated = false;
+      })
+      .addCase(register.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(register.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.emailVerificationRequired = true;
+        state.userId = action.payload.id;
+        state.email = action.payload.email;
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(verifyEmail.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(verifyEmail.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.userId = action.payload.id;
+        state.email = action.payload.email;
+        state.isAuthenticated = true;
+        state.emailVerificationRequired = false;
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(resendCode.pending, state => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(resendCode.fulfilled, state => {
+        state.isLoading = false;
+      })
+      .addCase(resendCode.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
+});
 
-  clearError: () => set({error: null}),
-}));
-
+export const {clearError} = authSlice.actions;
+export default authSlice.reducer;

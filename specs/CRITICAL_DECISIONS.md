@@ -6,47 +6,16 @@ Use this document to record decisions. Copy relevant section, fill in, and commi
 
 ## 1️⃣ MOBILE FRAMEWORK (BLOCKING)
 
-**Status:** ❌ UNDECIDED
-
-**Question:** What framework will we use for the mobile app?
-
-**Options:**
-```
-A) Flutter (Dart)
-   - Pros: Single codebase iOS/Android, fast, good ecosystem
-   - Cons: Dart learning curve, smaller community than React Native
-   - Effort: Medium (3-4 weeks setup + learning)
-
-B) React Native (JavaScript/TypeScript)
-   - Pros: JS community, can share code with web if needed
-   - Cons: Performance concerns, bridge overhead, community fragmented
-   - Effort: Medium (similar to Flutter)
-
-C) Native (Swift iOS + Kotlin Android)
-   - Pros: Best performance, native feel, full platform capabilities
-   - Cons: Requires 2 separate teams, 2x development effort, 2x maintenance
-   - Effort: High (6-8 weeks per platform)
-
-D) Other: Xamarin, Ionic, NativeScript, etc.
-   - ⚠️ Must justify decision with team expertise
-```
+**Status:** ✅ DECIDED
 
 **Decision:**
 ```
-Chosen: [ ] A (Flutter)  [ ] B (React Native)  [ ] C (Native)  [ ] D (Other: _______)
-Date: _______________
-Owner: _______________
-Justification: _________________________________________
+Chosen: [X] B (React Native)
+Date: 2026-02-28
+Justification: React Native with TypeScript selected. Redux for state management (no Saga). Axios for HTTP with existing interceptor. React Navigation for routing.
 ```
 
-**Once Decided:** Update `/specs/04_MOBILE_SPEC.md` section "Technology Stack" with exact:
-- Framework name and version
-- UI framework (Material / Cupertino / custom)
-- State management (BLoC / Redux / Riverpod / Provider / etc.)
-- HTTP client (Dio / http / etc.)
-- Navigation (GoRouter / GetX / etc.)
-- Local storage (flutter_secure_storage / react-native-keychain / etc.)
-- Testing framework (flutter_test / Jest / etc.)
+**Spec Updated:** `/specs/04_MOBILE_SPEC.md` - Framework set to React Native (TypeScript), Redux for state management, Axios for HTTP, react-native-keychain for tokens.
 
 ---
 

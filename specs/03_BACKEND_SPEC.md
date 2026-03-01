@@ -9,7 +9,7 @@
 - **AOP:** AspectCore.Extensions.DependencyInjection (for method interception)
 - **DI:** Microsoft.Extensions.DependencyInjection (built-in)
 - **Caching:** Microsoft.Extensions.Caching.Memory (IMemoryCache)
-- **Testing:** No unit tesst required
+- **Testing:** No unit tests required
 - **Localization:** Custom TranslationService (Spendly.Shared.Localization)
 
 ## Project Structure
@@ -26,7 +26,7 @@ Api/
 │   └── Program.cs                   # Bootstrap via AppBootstrapper
 │
 ├── Spendly.Mobile.BusinessLayer/    # Application services & business logic
-│   └── Services/                    # IUserService, IExpenseService, etc.
+│   └── Services/                    # UserService, ExpenseService, etc. (no interfaces)
 │
 ├── Spendly.Mobile.ViewModels/       # API DTOs for this API
 │   └── [Feature]ViewModel.cs
@@ -41,7 +41,7 @@ Api/
 │
 ├── Spendly.Shared.DataLayer/        # Data access layer
 │   ├── Repository.cs                # Generic Repository<T> implementation
-│   ├── IRepository.cs               # Interface definition
+│   ├── IRepository.cs               # IRepository<T> interface - use this, never modify
 │   └── PagingParameter.cs           # Pagination helper
 │
 ├── Spendly.Shared.Entities/         # Domain models
@@ -52,6 +52,7 @@ Api/
 │   └── Enums.cs
 │
 ├── Spendly.Shared.Localization/     # Multi-language support
+│   ├── MessageCodes.cs              # All validation/error message codes as constants
 │   ├── TranslationService.cs
 │   └── Translations/                # JSON translation files
 │
@@ -71,7 +72,7 @@ var app = AppBootstrapper
     .WithServiceScanning(assemblies)
     .ConfigureServices((services, config) =>
     {
-        services.AddScoped<IMyService, MyService>();
+        services.AddScoped<UserService>();
         services.AddTransient<MyInterceptor>();
     })
     .ConfigureCors((services, config) => { /* ... */ })
@@ -81,37 +82,40 @@ app.Run();
 ```
 
 **DI Conventions:**
-- Register services in `ConfigureServices` callback
+- Register concrete service classes directly - do NOT create service interfaces
+- Services must NOT derive from interfaces (e.g., no IUserService)
 - Use `WithServiceScanning()` for auto-registration by convention
-- Scoped: Database repositories, RequestContextViewModel
-- Transient: Validators, Interceptors, stateless services
+- Scoped: Database repositories, RequestContextViewModel, Services
+- Transient: Validators, Interceptors
 - Singleton: Configuration, LoggerFactory, Cache managers
 
 ## Controllers & Request Handling
 
 **Rules:**
-- Controllers contain **only** request/response mapping and validation
+- Controllers contain **only** request/response mapping
 - No business logic in controllers
+- Controllers never access repositories directly
 - All logic in business layer services
-- Return `FunctionResponse<T>` or `FunctionResponse` (from Spendly.Shared.ViewModels)
+- On success: return `Ok(response.Data)`
+- On failure: return `this.BadRequestFrom(response)`
 - Use FluentValidation for input validation (auto via middleware)
 
 **Example:**
 ```csharp
 [ApiController]
 [Route("api/v1/[controller]")]
-public class UsersController(IUserService service, RequestContextViewModel context)
+public class CategoriesController(CategoryService categoryService)
 {
-[HttpPut]
-	public async Task<IActionResult> Update([FromBody] CategoryRequestViewModel categoryRequestViewModel)
-	{
-		var response = await categoryService.Update(categoryRequestViewModel);
-		if (!response.IsSuccess)
-		{
-			return this.BadRequestFrom(response);
-		}
-		return Ok(response.Data);
-	}
+    [HttpPut]
+    public async Task<IActionResult> Update([FromBody] CategoryRequestViewModel categoryRequestViewModel)
+    {
+        var response = await categoryService.Update(categoryRequestViewModel);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+        return Ok(response.Data);
+    }
 }
 ```
 
@@ -131,14 +135,17 @@ public interface IRepository<T> where T : BaseEntity
 }
 ```
 
-**Implementation:**
-- Generic `Repository<T>` in Spendly.Shared.DataLayer
+**Rules:**
+- IRepository<T> is defined in Spendly.Shared.DataLayer - use it as-is
+- Never modify the repository pattern or IRepository interface
+- Generic `Repository<T>` in Spendly.Shared.DataLayer implements IRepository<T>
 - MongoDB via MongoDB.Driver NuGet package
 - No migrations (schema-less), but enforce document structure in code
 - All operations async (ConfigureAwait(false))
+- Data ownership checks always performed in the service layer, never in controllers
 
 **Connection:**
-- Username/password from appsettings via DbSettings class
+- Username/password from shared.local.json via DbSettings class
 - Collation: "en" with secondary strength (case-insensitive)
 - Database: Name from DbSettings
 
@@ -162,37 +169,60 @@ public class CreateUserValidator : AbstractValidator<CreateUserRequest>
 {
     public CreateUserValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password).MinimumLength(8);
+        RuleFor(x => x.Email).NotEmpty().WithMessage(MessageCodes.Validation.EmailRequired);
+        RuleFor(x => x.Email).EmailAddress().WithMessage(MessageCodes.Validation.EmailInvalid);
     }
 }
 ```
 
-**Registration:**
+**Rules:**
+- All validation messages must come from `MessageCodes` constants (Spendly.Shared.Localization)
+- Do NOT perform length validation (no MaximumLength, MinimumLength checks)
 - Auto-discovered via `AddValidatorsFromAssemblyContaining<Program>()`
 - Invalid requests return 400 with error details (via ControllerExtensions.InvalidModelStateResponse)
+
+## Coding Conventions
+
+**Braces:** Always use `{}` for all scopes, even single-line blocks:
+```csharp
+if (condition)
+{
+    DoSomething();
+}
+```
+
+**Variable Declaration:** Always use `var` for object creation:
+```csharp
+var user = new User();
+var response = await userService.GetUser(id);
+```
+
+**Constants:** All constants grouped under a `Constants` class, organized by function. Never define constants directly in other classes:
+```csharp
+public static class Constants
+{
+    public static class Jwt
+    {
+        public const string Issuer = "spendly";
+    }
+    
+    public static class Cache
+    {
+        public const int DefaultExpiryMinutes = 60;
+    }
+}
+```
+
+**Sensitive Configuration:** All sensitive values (JWT secrets, DB passwords, connection strings) must be stored in `shared.local.json` (git-ignored). Never in appsettings.json or code.
 
 ## Logging
 
 **Framework:** Serilog structured logging
 
-**Configuration (Program.cs):**
-```csharp
-app.UseSerilogRequestLogging(opts =>
-{
-    opts.EnrichDiagnosticContext = (diagCtx, httpCtx) =>
-    {
-        diagCtx.Set("SessionId", RequestSession.Get(httpCtx));
-        diagCtx.Set("UserId", httpCtx.Items["UserId"]);
-    };
-});
-```
-
 **Rules:**
 - Log at `Information` or `Error` level
 - Never log PII (passwords, email addresses, tokens)
 - Structured logging: use named properties, not format strings
-- Example: `logger.LogInformation("User {UserId} created expense {ExpenseId}", userId, expenseId)`
 - SessionId injected automatically by SerilogContextEnricherMiddleware
 - Failed validations logged by LoggingActionFilter
 
@@ -204,7 +234,7 @@ No test required
 
 **Middleware (Program.cs order):**
 1. RequestLocalization - sets culture
-2. CORS - AngularClient policy
+2. CORS - MobileClient policy
 3. RequestSessionMiddleware - generates SessionId
 4. SerilogContextEnricherMiddleware - enriches logs
 5. SerilogRequestLogging - logs all requests
@@ -216,31 +246,27 @@ No test required
 
 ## Configuration
 
-**Source:** appsettings.json + appsettings.Development.json + environment variables
+**Source:** appsettings.json + appsettings.Development.json + shared.local.json
 
-**Standard settings:**
+**shared.local.json (git-ignored, sensitive overrides):**
 ```json
 {
-  "Logging": {
-    "LogLevel": { "Default": "Information" }
-  },
   "Db": {
-    "DatabaseName": "spendly",
-    "UserName": "admin",
-    "Password": "${DB_PASSWORD}"
+    "Password": "your-db-password"
+  },
+  "JwtSettings": {
+    "Secret": "your-jwt-secret"
   }
 }
 ```
 
-**Environment variables:** Use for secrets (DB_PASSWORD, JWT_SECRET, etc.)
-Use appsettings.development.json for shared settings and use shared.local.json for sensitive overrides (ignored in git)
+**Rules:** All sensitive information (JWT secrets, DB passwords, API keys) must be in `shared.local.json`. Never commit secrets to source control.
 
 ## Build & Run
 
 ```bash
 dotnet build Api/Spendly.sln              # Full build
 dotnet run -p Api/Spendly.Mobile.Api      # Run API
-dotnet test Api/Spendly.sln               # Run all tests
 ```
 
 API listens on `https://localhost:5001` (or configured port)

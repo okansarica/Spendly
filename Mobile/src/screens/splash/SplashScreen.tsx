@@ -1,15 +1,16 @@
 import React, {useEffect} from 'react';
 import {View, Text, ActivityIndicator, StyleSheet} from 'react-native';
 import {useTheme} from '../../theme/ThemeContext';
-import {useAuthStore} from '../../store/authStore';
+import {useAppDispatch} from '../../store/hooks';
+import {checkAuth} from '../../store/authStore';
 
 export default function SplashScreen() {
   const {colors, fontSizes, fontWeights} = useTheme();
-  const checkAuth = useAuthStore(s => s.checkAuth);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    dispatch(checkAuth());
+  }, [dispatch]);
 
   return (
     <View style={[styles.container, {backgroundColor: colors.backgroundPrimary}]}>
@@ -26,4 +27,3 @@ const styles = StyleSheet.create({
   logo: {},
   spinner: {marginTop: 24},
 });
-

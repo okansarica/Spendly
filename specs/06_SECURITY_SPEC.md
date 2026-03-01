@@ -2,22 +2,20 @@
 
 ## Secrets Management
 
-**Rule:** All secrets must be stored in environment variables, never committed to code.
+**Rule:** All sensitive values must be stored in `shared.local.json` (git-ignored), never committed to code.
 
 **Required Secrets:**
-- `DB_PASSWORD` - MongoDB database password
-- `JWT_SECRET` - Private key for JWT signing (minimum 256 bits / 32 bytes)
+- `Db.Password` - MongoDB database password
+- `JwtSettings.Secret` - Private key for JWT signing (minimum 256 bits / 32 bytes)
 - `GOOGLE_OAUTH_CLIENT_ID` - Google OAuth app ID
 - `GOOGLE_OAUTH_CLIENT_SECRET` - Google OAuth secret
 - `FACEBOOK_OAUTH_APP_ID` - Facebook OAuth app ID
 - `FACEBOOK_OAUTH_APP_SECRET` - Facebook OAuth secret
-- `EMAIL_SMTP_PASSWORD` - (if transactional emails needed)
-- `ENCRYPTION_KEY` - (if data encryption needed)
 
 **Configuration:**
-- Development: Use `.env` file (git-ignored)
-- Production: Same as dev
+- Development: `shared.local.json` at project root (git-ignored)
 - Never log secret values
+- Never put secrets in appsettings.json or code
 
 ## Authentication
 
@@ -83,57 +81,42 @@ Already implement in custom http interceptor dont change
 **Roles:**
 No role required
 
-**Implementation:**
-```csharp
-[HttpPost("api/v1/expenses")]
-public async Task<IActionResult> CreateExpense(CreateExpenseRequest request)
-{
-    // Only users with "user" role can access
-}
-```
-
 **Resource-level authorization:**
-Users can only access their own data:
+- Controllers NEVER access repositories directly
+- Data ownership checks ALWAYS performed in the service layer
+- Services verify that the requesting user owns the resource before any operation
+
 ```csharp
-[HttpGet("api/v1/expenses/{id}")]
-public async Task<IActionResult> GetExpense(string id)
+public async Task<FunctionResponse<ExpenseViewModel>> GetExpense(string id)
 {
-    var expense = await _repository.GetAsync(id);
-    if (expense.UserId != RequestContext.UserId)
-        throw new Exception($"User not authorized to access this expense. UserId: {RequestContext.UserId} ExpenseUserId: {expense.UserId}");
-    return Ok(expense);
+    var expense = await repository.GetAsync(id);
+    if (expense.UserId != requestContext.UserId)
+    {
+        return FunctionResponse<ExpenseViewModel>.Failure(MessageCodes.Auth.Forbidden);
+    }
+    return FunctionResponse<ExpenseViewModel>.Success(expense.ToViewModel());
 }
 ```
 
 ## CORS Policy
 
-**Frontend Origins (Allowed):**
-- Development: `http://localhost:4200`, `https://localhost:4200`, `http://localhost:4300`, `https://localhost:4300`
-- Staging: `https://staging.spendly.io`
-- Production: `https://app.spendly.io`
+**Client:** Mobile app (React Native) - no browser CORS required for native HTTP calls.
 
 **Configuration (Program.cs):**
 ```csharp
 services.AddCors(options =>
 {
-    options.AddPolicy("AngularClient", policy =>
+    options.AddPolicy("MobileClient", policy =>
     {
         policy
-            .WithOrigins(origins)
+            .AllowAnyOrigin()
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyMethod();
     });
 });
 ```
 
-**Allowed Methods:** GET, POST, PUT, DELETE, OPTIONS
-
-**Allowed Headers:** Content-Type, Authorization, Accept, Accept-Language
-
-**Credentials:** Allowed (for cookies if used)
-
-**Preflight:** Automatically handled
+**Note:** React Native apps do not send browser CORS preflight requests. The policy name `MobileClient` is used in middleware pipeline.
 
 ## Input Validation
 
@@ -143,6 +126,10 @@ services.AddCors(options =>
 
 **Strategy:** FluentValidation in ASP.NET Core
 
+**Rules:**
+- All validation messages must use `MessageCodes` constants (never hardcoded strings)
+- Do NOT perform length validation (no MaximumLength, MinimumLength)
+
 **Example:**
 ```csharp
 public class CreateUserValidator : AbstractValidator<CreateUserRequest>
@@ -150,26 +137,14 @@ public class CreateUserValidator : AbstractValidator<CreateUserRequest>
     public CreateUserValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Invalid email format")
-            .MaximumLength(255);
+            .NotEmpty().WithMessage(MessageCodes.Validation.EmailRequired)
+            .EmailAddress().WithMessage(MessageCodes.Validation.EmailInvalid);
 
         RuleFor(x => x.Password)
-            .NotEmpty()
-            .MinimumLength(8)
-            .Matches("[A-Z]").WithMessage("Password must contain uppercase")
-            .Matches("[a-z]").WithMessage("Password must contain lowercase")
-            .Matches("[0-9]").WithMessage("Password must contain digit");
+            .NotEmpty().WithMessage(MessageCodes.Validation.PasswordRequired);
     }
 }
 ```
-
-**Validation Rules:**
-- Email: Valid format, max 255 chars, unique in database
-- Password: Min 8 chars, 1 uppercase, 1 lowercase, 1 digit
-- Amount: Positive number, max 2 decimals
-- Date: Valid ISO 8601 format
-- Description: Max 500 chars, no HTML/script injection
 
 ## Password Hashing
 

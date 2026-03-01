@@ -9,9 +9,9 @@ All architectural decisions documented in `/specs/02_ARCHITECTURE.md` through `/
 
 ## Architecture Overview
 
-**Spendly** is a mobile expense tracking application with ASP.NET Core backend (.NET 10) and MongoDB persistence. Mobile frontend (Flutter/React Native - TBD). Stack: MongoDB (not relational), Serilog, FluentValidation, AspectCore, AppBootstrapper.
+**Spendly** is a mobile expense tracking application with ASP.NET Core backend (.NET 10) and MongoDB persistence. Mobile frontend: React Native (TypeScript). Stack: MongoDB (not relational), Serilog, FluentValidation, AspectCore, AppBootstrapper.
 
-Backend: Layered architecture (Controllers → Business Layer → Data Layer → MongoDB). All responses via `FunctionResponse<T>`. Request context via scoped DI (`RequestContextViewModel`). Middleware pipeline critical - order matters.
+Backend: Layered architecture (Controllers → Business Layer → Data Layer → MongoDB). All service responses via `FunctionResponse<T>`. Controllers return `Ok(response.Data)` on success or `BadRequestFrom(response)` on failure. Request context via scoped DI (`RequestContextViewModel`). Middleware pipeline critical - order matters.
 
 ## Must-Read Specs (In Order)
 
@@ -20,39 +20,55 @@ Backend: Layered architecture (Controllers → Business Layer → Data Layer →
 3. **03_BACKEND_SPEC.md** - Backend stack (tech exact, project structure, DI via AppBootstrapper)
 4. **05_API_CONTRACTS.md** - API design (versioning, response format, status codes, error codes)
 5. **06_SECURITY_SPEC.md** - Security (JWT, PBKDF2 hashing, CORS, OAuth, no secrets in code)
-6. **04_MOBILE_SPEC.md** - Mobile design (TBD: framework choice, project structure)
-7. **07_BACKGROUND_JOBS.md** - Async tasks (non-blocking, idempotent, mechanism TBD)
+6. **04_MOBILE_SPEC.md** - Mobile design (React Native, Redux, Axios, existing interceptor)
+7. **UI_ARCHITECTURE.md** - UI architecture decisions (no null, no try/catch, response pattern)
+8. **07_BACKGROUND_JOBS.md** - Async tasks (non-blocking, idempotent, mechanism TBD)
 
 ## Backend Project Structure
 
 ```
 Api/
 ├── Spendly.Mobile.Api/            # Controllers (request handlers only, no logic)
-├── Spendly.Mobile.BusinessLayer/  # Services (business logic)
+├── Spendly.Mobile.BusinessLayer/  # Services (business logic, no interfaces)
 ├── Spendly.Mobile.ViewModels/     # DTOs for this API
 ├── Spendly.Shared.Core/           # Bootstrap, Logging, Interception, Crypto
-├── Spendly.Shared.DataLayer/      # Repository<T> + MongoDB access
+├── Spendly.Shared.DataLayer/      # IRepository<T> + Repository<T> + MongoDB access
 ├── Spendly.Shared.Entities/       # Domain models (BaseEntity)
 ├── Spendly.Shared.Enums/          # Shared enumerations
-├── Spendly.Shared.Localization/   # TranslationService, i18n files
+├── Spendly.Shared.Localization/   # TranslationService, MessageCodes, i18n files
 └── Spendly.Shared.ViewModels/     # FunctionResponse<T>, RequestContextViewModel
 ```
 
-**Data Flow:** Controller receives request → calls service → service calls repository → repository queries MongoDB → response wrapped in FunctionResponse<T>.
+**Data Flow:** Controller receives request → calls service → service calls repository → repository queries MongoDB → service returns FunctionResponse<T> → controller returns Ok(data) or BadRequest.
 
 ## Key Technical Patterns
 
-### Response Format (All Endpoints)
+### Controller Response Pattern (All Endpoints)
 
-```json
-// Success (200/201)
-{ "success": true, "data": { /* payload */ }, "error": null }
+Controllers return data directly - NOT the FunctionResponse wrapper:
 
-// Error (400+)
-{ "success": false, "data": null, "error": { "code": "ERROR_CODE", "message": "..." } }
+```csharp
+[HttpPut]
+public async Task<IActionResult> Update([FromBody] CategoryRequestViewModel vm)
+{
+    var response = await categoryService.Update(vm);
+    if (!response.IsSuccess)
+    {
+        return this.BadRequestFrom(response);
+    }
+    return Ok(response.Data);
+}
 ```
 
-Implement with `FunctionResponse<T>.Success(data)` or `FunctionResponse<T>.Failure("ERROR_CODE")`.
+Success responses contain only the data payload. Error responses (400) contain error code and message.
+
+### Services
+
+- Services do NOT implement interfaces (no IUserService, IExpenseService, etc.)
+- Register concrete services directly: `services.AddScoped<UserService>()`
+- Services return `FunctionResponse<T>` internally
+- Data ownership validation always in service layer, never in controllers
+- Controllers never access repositories directly
 
 ### Request Context
 
@@ -60,7 +76,15 @@ Implement with `FunctionResponse<T>.Success(data)` or `FunctionResponse<T>.Failu
 
 ### Validation
 
-FluentValidation auto-discovered from API assembly. Invalid requests return 400 with validation details via `ControllerExtensions.InvalidModelStateResponse`. Create validators in API project, inherit `AbstractValidator<TRequest>`.
+FluentValidation auto-discovered from API assembly. Invalid requests return 400 with validation details via `ControllerExtensions.InvalidModelStateResponse`. Create validators in API project, inherit `AbstractValidator<TRequest>`. All validation messages from `MessageCodes` constants. No length validation rules.
+
+### Constants
+
+All constants in a `Constants` class organized by function. Never define constants directly in other classes.
+
+### Sensitive Configuration
+
+All sensitive values (JWT, DB password, etc.) in `shared.local.json` (git-ignored). Never in appsettings.json or code.
 
 ### Authentication
 
@@ -68,16 +92,22 @@ JWT tokens. Issued on login, validated server-side. Token format: `Authorization
 
 ### Database
 
-MongoDB (not SQL). Generic `Repository<T>` for CRUD. Entities inherit `BaseEntity` (has `Id` property). Connection: localhost:27017, credentials from `DbSettings`. No migrations (schema-less). Async/await with `ConfigureAwait(false)`.
+MongoDB (not SQL). IRepository<T> defined in Spendly.Shared.DataLayer - use as-is, never modify. Generic `Repository<T>` implements IRepository<T>. Entities inherit `BaseEntity` (has `Id` property). Connection credentials from `shared.local.json` via DbSettings. No migrations (schema-less). Async/await with `ConfigureAwait(false)`.
 
 ### Logging
 
 Serilog structured only. SessionId injected via `SerilogContextEnricherMiddleware`. Never log PII. Example: `logger.LogInformation("Expense created: {ExpenseId} by {UserId}", expenseId, userId)`.
 
+### Coding Style
+
+- Always use `{}` braces for all scopes (even single-line)
+- Always use `var` for object creation
+- Constants in `Constants` class only
+
 ## Middleware Pipeline (Critical Order)
 
 1. RequestLocalization (culture support)
-2. CORS (AngularClient policy)
+2. CORS (MobileClient policy)
 3. RequestSessionMiddleware (generates SessionId)
 4. SerilogContextEnricherMiddleware (enriches logs)
 5. SerilogRequestLogging
@@ -101,14 +131,14 @@ var app = AppBootstrapper
     .WithServiceScanning([typeof(SomeClass).Assembly])
     .ConfigureServices((services, config) =>
     {
-        services.AddScoped<IService, ServiceImpl>();
+        services.AddScoped<UserService>();
     })
     .ConfigureCors((services, config) => { /* ... */ })
     .BuildWebApi();
 app.Run();
 ```
 
-**Scopes:** Scoped = per-request (repositories, RequestContextViewModel), Transient = new each time (validators, interceptors).
+**Scopes:** Scoped = per-request (repositories, RequestContextViewModel, services), Transient = new each time (validators, interceptors).
 
 ## API Versioning & Contracts
 
@@ -116,36 +146,32 @@ app.Run();
 
 **Error Codes:** Catalog in 05_API_CONTRACTS.md (VALIDATION_ERROR, UNAUTHORIZED, USER_NOT_FOUND, etc.). Adding new codes requires spec update.
 
-**Status Codes:** 200 (OK), 201 (Created), 400 (validation), 401 (auth), 403 (forbidden), 404 (not found), 500 (error).
+**Status Codes:** 200 (OK), 201 (Created), 400 (validation/business error), 401 (auth), 403 (forbidden), 404 (not found), 500 (error).
 
 ## Security Requirements
 
-- **Secrets:** Environment variables only (DB_PASSWORD, JWT_SECRET, etc.), never in code
+- **Secrets:** `shared.local.json` only (DB password, JWT secret, etc.), never in code
 - **Passwords:** PBKDF2 with 600k iterations (PasswordHelper.cs)
-- **CORS:** AngularClient policy (localhost + staging/prod origins - configurable)
-- **Input Validation:** Server-side mandatory (FluentValidation)
+- **CORS:** MobileClient policy (React Native - AllowAnyOrigin)
+- **Input Validation:** Server-side mandatory (FluentValidation, MessageCodes, no length checks)
 - **PII:** Never log emails, passwords, tokens
 - **HTTPS:** Required in production
+- **Data Ownership:** Always checked in service layer, never in controllers
 
-## Building & Testing
+## Mobile Stack
 
-**Commands:**
-```bash
-dotnet build Api/Spendly.sln
-dotnet run -p Api/Spendly.Mobile.Api
-dotnet test Api/Spendly.sln
-```
-
-**Testing:** xUnit required. Tests in separate projects (*.Tests). Mock repositories. Test validation, business logic, API contracts.
+- Framework: React Native (TypeScript)
+- State: Redux (no Saga)
+- HTTP: Axios via existing `src/services/apiClient.ts` interceptor
+- Tokens: react-native-keychain
+- See UI_ARCHITECTURE.md for UI patterns (no null, no try/catch, response class)
 
 ## TBD (Pending Decisions)
 
-- **Mobile Framework:** Flutter vs React Native vs Native (see 04_MOBILE_SPEC.md)
 - **Background Jobs:** Hangfire vs SQS vs Hosted Service (see 07_BACKGROUND_JOBS.md)
 - **Refresh Tokens:** Implement or not (JWT alone sufficient?)
 - **Rate Limiting:** Enable or defer (see 05_API_CONTRACTS.md)
 - **Encryption at Rest:** Needed for sensitive fields?
-- **Offline Sync:** Required for mobile?
 
 ## When Uncertain
 

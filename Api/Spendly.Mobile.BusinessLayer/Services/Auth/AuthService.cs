@@ -156,6 +156,7 @@ public class AuthService(
         return FunctionResponse.Success();
     }
 
+    //TODO refresh token db de tutulmali
     private (string accessToken, string refreshToken) GenerateTokens(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey));

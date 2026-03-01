@@ -13,8 +13,18 @@ class AppDelegate: RCTAppDelegate {
     }
 
     override func sourceURL(for bridge: RCTBridge!) -> URL! {
+        return self.bundleURL()
+    }
+
+    func bundleURL() -> URL! {
 #if DEBUG
-        return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+        return RCTBundleURLProvider.jsBundleURL(
+            forBundleRoot: "index",
+            packagerHost: "localhost",
+            enableDev: true,
+            enableMinification: false,
+            inlineSourceMap: false
+        )
 #else
         return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif

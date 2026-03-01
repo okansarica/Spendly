@@ -35,5 +35,7 @@ public class AuthController(IAuthService authService) : ControllerBase
             return this.BadRequestFrom(response);
         return Ok(new { success = true });
     }
+    
+    //TODO register endpointi eklenmemis
 }
 

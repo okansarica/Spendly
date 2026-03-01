@@ -12,47 +12,37 @@
 ## Standard Response Format
 
 **Success Response (200, 201):**
+Returns the data payload directly (no wrapper):
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "email": "user@example.com",
-    "createdAt": "2026-02-27T10:00:00Z"
-  },
-  "error": null
+  "id": "507f1f77bcf86cd799439011",
+  "email": "user@example.com",
+  "createdAt": "2026-02-27T10:00:00Z"
 }
 ```
 
 **Error Response (400, 401, 403, 404, 500):**
 ```json
 {
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Email is required"
-  }
+  "message": "EmailIsRequired", // This code will come from MessageCodes
 }
 ```
 
-**List Response (paginated):**
+**List Response (no paging required):**
 ```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      { "id": "507f1f77bcf86cd799439011", "email": "user1@example.com" },
-      { "id": "507f1f77bcf86cd799439012", "email": "user2@example.com" }
-    ],
-    "total": 150,
-    "pageNumber": 1,
-    "pageSize": 10,
-    "totalPages": 15
-  },
-  "error": null
-}
+
+  [
+    { "id": "507f1f77bcf86cd799439011", "email": "user1@example.com" },
+    { "id": "507f1f77bcf86cd799439012", "email": "user2@example.com" }
+    ]
+
 ```
+
+## Mobile TODO
+
+- [ ] Define auth token storage strategy (react-native-keychain)
+- [ ] Define base API call function pattern (see UI_ARCHITECTURE.md)
+- [ ] Define error display strategy (toast vs modal)
 
 ## Authentication
 

@@ -13,7 +13,8 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {LoginButton, AccessToken} from 'react-native-fbsdk-next';
-import {useAuthStore} from '../../store/authStore';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {login, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
@@ -22,7 +23,10 @@ type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginNavProp>();
-  const {login, socialLogin, isLoading, error, emailVerificationRequired, clearError} = useAuthStore();
+  const dispatch = useAppDispatch();
+  const isLoading = useAppSelector(s => s.auth.isLoading);
+  const error = useAppSelector(s => s.auth.error);
+  const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,21 +37,21 @@ export default function LoginScreen() {
     GoogleSignin.configure();
   }, []);
 
-  const handleLogin = async () => {
-    await login({email, password});
+  const handleLogin = () => {
+    dispatch(login({email, password}));
   };
 
   const handleGoogleLogin = async () => {
     await GoogleSignin.hasPlayServices();
     await GoogleSignin.signIn();
     const tokens = await GoogleSignin.getTokens();
-    await socialLogin({provider: 'google', token: tokens.idToken});
+    dispatch(socialLogin({provider: 'google', token: tokens.idToken}));
   };
 
   const handleFacebookLogin = async () => {
     const data = await AccessToken.getCurrentAccessToken();
     if (data) {
-      await socialLogin({provider: 'facebook', token: data.accessToken});
+      dispatch(socialLogin({provider: 'facebook', token: data.accessToken}));
     }
   };
 
@@ -96,7 +100,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {error ? <Text style={s.error} onPress={clearError}>{error}</Text> : null}
+        {error ? <Text style={s.error} onPress={() => dispatch(clearError())}>{error}</Text> : null}
 
         <TextInput
           style={s.input}
@@ -117,6 +121,7 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
+        //TODO common alana bir buton tanimlanmali, icine text flan gibi bilgiler alabilir. isLoading alabilir. heryerde ayni butonu kullanmak gerekiyor, ayri ayri buton olusturmak kotu yaklasim.
         <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={handleLogin} disabled={!isValid || isLoading}>
           {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Login</Text>}
         </TouchableOpacity>

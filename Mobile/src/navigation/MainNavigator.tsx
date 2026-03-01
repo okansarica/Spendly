@@ -12,7 +12,7 @@ export type MainTabParamList = {
   User: undefined;
 };
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator();
 
 function TabIcon({label, focused, color}: {label: string; focused: boolean; color: string}) {
   const icons: Record<string, string> = {
@@ -28,7 +28,7 @@ export default function MainNavigator() {
 
   return (
     <Tab.Navigator
-      screenOptions={({route}) => ({
+      screenOptions={({route}: {route: {name: string}}) => ({
         headerShown: true,
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
@@ -44,7 +44,7 @@ export default function MainNavigator() {
         },
         headerStyle: {backgroundColor: colors.backgroundPrimary},
         headerTitleStyle: {color: colors.textPrimary, fontWeight: fontWeights.semiBold},
-        tabBarIcon: ({focused, color}) => (
+        tabBarIcon: ({focused, color}: {focused: boolean; color: string}) => (
           <TabIcon label={route.name} focused={focused} color={color} />
         ),
       })}>
@@ -54,4 +54,3 @@ export default function MainNavigator() {
     </Tab.Navigator>
   );
 }
-

@@ -1,6 +1,6 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {useAuthStore} from '../store/authStore';
+import {useAppSelector} from '../store/hooks';
 import SplashScreen from '../screens/splash/SplashScreen';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
@@ -11,10 +11,11 @@ export type RootStackParamList = {
   Main: undefined;
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
-  const {isAuthenticated, isInitializing} = useAuthStore();
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const isInitializing = useAppSelector(s => s.auth.isInitializing);
 
   return (
     <Stack.Navigator screenOptions={{headerShown: false, animation: 'fade'}}>

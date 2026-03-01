@@ -1,16 +1,140 @@
-import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React, {useState, useRef} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {verifyEmail, resendCode, clearError} from '../../store/authStore';
+import {useTheme} from '../../theme/ThemeContext';
 
 export default function VerificationScreen() {
+  const dispatch = useAppDispatch();
+  const userId = useAppSelector(s => s.auth.userId);
+  const isLoading = useAppSelector(s => s.auth.isLoading);
+  const error = useAppSelector(s => s.auth.error);
+  const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
+  const [digits, setDigits] = useState(['', '', '', '']);
+  const refs = [
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+  ];
+
+  const isValid = digits.every(d => d.length === 1) && !!userId;
+
+  const handleDigit = (value: string, index: number) => {
+    const next = [...digits];
+    next[index] = value.replace(/[^0-9]/g, '').slice(-1);
+    setDigits(next);
+    if (value && index < 3) {
+      refs[index + 1].current?.focus();
+    }
+  };
+
+  const handleKeyPress = (key: string, index: number) => {
+    if (key === 'Backspace' && !digits[index] && index > 0) {
+      refs[index - 1].current?.focus();
+    }
+  };
+
+  const handleVerify = () => {
+    if (!userId) return;
+    dispatch(verifyEmail({userId, code: digits.join('')}));
+  };
+
+  const handleResend = () => {
+    if (!userId) return;
+    dispatch(resendCode(userId));
+  };
+
+  const s = StyleSheet.create({
+    container: {flex: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.backgroundPrimary},
+    title: {
+      fontSize: fontSizes.xl,
+      fontWeight: fontWeights.semiBold,
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    subtitle: {
+      fontSize: fontSizes.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    codeRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    codeInput: {
+      width: 52,
+      height: 60,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: radius.md,
+      textAlign: 'center',
+      fontSize: fontSizes.xl,
+      fontWeight: fontWeights.semiBold,
+      color: colors.inputText,
+      backgroundColor: colors.inputBackground,
+    },
+    btn: {
+      borderRadius: radius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    btnPrimary: {backgroundColor: isValid && !isLoading ? colors.buttonPrimary : colors.buttonPrimaryDisabled},
+    btnText: {color: colors.buttonPrimaryText, fontSize: fontSizes.md, fontWeight: fontWeights.semiBold},
+    link: {color: colors.buttonPrimary, textAlign: 'center', marginTop: spacing.sm, fontSize: fontSizes.sm},
+    error: {
+      backgroundColor: colors.errorBackground,
+      color: colors.errorText,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.md,
+      fontSize: fontSizes.sm,
+      textAlign: 'center',
+    },
+  });
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Please verify your email to continue.</Text>
+    <View style={s.container}>
+      <Text style={s.title}>Verify your email</Text>
+      <Text style={s.subtitle}>Enter the 4-digit code sent to your email address.</Text>
+
+      {error ? <Text style={s.error} onPress={() => dispatch(clearError())}>{error}</Text> : null}
+
+      <View style={s.codeRow}>
+        {digits.map((d, i) => (
+          <TextInput
+            key={i}
+            ref={refs[i]}
+            style={s.codeInput}
+            value={d}
+            onChangeText={v => handleDigit(v, i)}
+            onKeyPress={({nativeEvent}) => handleKeyPress(nativeEvent.key, i)}
+            keyboardType="number-pad"
+            maxLength={1}
+            selectTextOnFocus
+          />
+        ))}
+      </View>
+
+      <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={handleVerify} disabled={!isValid || isLoading}>
+        {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Verify</Text>}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={handleResend} disabled={isLoading}>
+        <Text style={s.link}>Resend code</Text>
+      </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, padding: 24, justifyContent: 'center', backgroundColor: '#fff'},
-  text: {fontSize: 16, textAlign: 'center', color: '#333'},
-});
-

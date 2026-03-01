@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useAuthStore} from '../../store/authStore';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {forgotPassword, clearError} from '../../store/authStore';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -16,19 +17,23 @@ type ForgotPasswordNavProp = NativeStackNavigationProp<AuthStackParamList, 'Forg
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<ForgotPasswordNavProp>();
-  const {forgotPassword, isLoading, error, clearError} = useAuthStore();
+  const dispatch = useAppDispatch();
+  const isLoading = useAppSelector(s => s.auth.isLoading);
+  const error = useAppSelector(s => s.auth.error);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    await forgotPassword(email);
-    setSubmitted(true);
+    const result = await dispatch(forgotPassword(email));
+    if (forgotPassword.fulfilled.match(result)) {
+      setSubmitted(true);
+    }
   };
 
   return (
     <View style={styles.container}>
       {error ? (
-        <Text style={styles.error} onPress={clearError}>
+        <Text style={styles.error} onPress={() => dispatch(clearError())}>
           {error}
         </Text>
       ) : null}
@@ -74,4 +79,3 @@ const styles = StyleSheet.create({
   error: {color: '#D32F2F', backgroundColor: '#FFEBEE', borderRadius: 6, padding: 10, marginBottom: 12, textAlign: 'center'},
   success: {color: '#388E3C', backgroundColor: '#E8F5E9', borderRadius: 6, padding: 10, marginBottom: 12, textAlign: 'center'},
 });
-

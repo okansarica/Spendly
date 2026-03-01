@@ -50,7 +50,7 @@ MongoDB
 
 **Middleware Pipeline Order (Critical):**
 1. RequestLocalization (culture support)
-2. CORS (AngularClient policy)
+2. CORS (MobileClient policy)
 3. RequestSessionMiddleware (generates SessionId)
 4. SerilogContextEnricherMiddleware (enriches logs)
 5. SerilogRequestLogging
@@ -64,15 +64,18 @@ MongoDB
 
 ## Mobile Architecture
 
-**Pattern:** Clean Architecture with separation of concerns
-- UI Layer React Native
-- Domain Layer (entities, use cases)
-- Data Layer (repositories, API client)
+**Framework:** React Native (TypeScript)
+
+**Pattern:** Layered with Redux state management
+- Screens (UI)
+- Redux Store (state)
+- Services (API calls via Axios)
+- Navigation (React Navigation)
 
 **Rules:**
-- No direct API calls from UI (use service abstraction)
+- No direct API calls from screens (use service layer)
 - Secure token storage (platform keychain/keystore)
-- Graceful error & offline state handling
+- No Saga middleware - use Redux Thunk or plain Redux
 - Follow API_CONTRACTS strictly
 
 ## Data Layer Details
@@ -85,31 +88,65 @@ MongoDB
 - Serialization: BSON with custom serializers (Spendly.Shared.Core/MongoSerialization/)
 
 **Repository Pattern:**
-- Generic Repository<T> for CRUD operations
+- IRepository<T> defined in Spendly.Shared.DataLayer
+- Generic Repository<T> implements IRepository<T> for CRUD operations
 - T must inherit from BaseEntity (has Id property)
 - Async/await throughout (ConfigureAwait(false))
 - Expression-based filtering: `FindAsync(x => x.Status == "Active")`
 - No migrations - schema-less, but document structure must be maintained
+- Never modify the repository pattern
 
-## API Response Format (Mandatory)
+## Controller Response Pattern (Mandatory)
 
-All endpoints return:
-```json
-// Success
-{ "success": true, "data": { /* payload */ }, "error": null }
+All controller actions must follow this pattern:
+- On success: return `Ok(response.Data)`
+- On failure: return `this.BadRequestFrom(response)`
+- Never return FunctionResponse wrapper directly to client
 
-// Error
-{ "success": false, "data": null, "error": { "code": "ERROR_CODE", "message": "Human readable" } }
+```csharp
+[HttpPut]
+public async Task<IActionResult> Update([FromBody] CategoryRequestViewModel categoryRequestViewModel)
+{
+    var response = await categoryService.Update(categoryRequestViewModel);
+    if (!response.IsSuccess)
+    {
+        return this.BadRequestFrom(response);
+    }
+    return Ok(response.Data);
+}
 ```
 
-Implemented via `FunctionResponse<T>` class in Spendly.Shared.ViewModels.
+## API Response Format
+
+**Success (200/201):** Returns data object directly
+```json
+{ "id": "507f1f77bcf86cd799439011", "email": "user@example.com" }
+```
+
+**Error (400):**
+```json
+{ "code": "ERROR_CODE", "message": "Human readable message" }
+```
+
+## Dependency Injection Rules
+
+- Services are registered directly in DI without interfaces
+- Do NOT create service interfaces (e.g., IUserService)
+- Register concrete service classes directly:
+
+```csharp
+services.AddScoped<UserService>();
+services.AddScoped<ExpenseService>();
+```
 
 ## Architecture Rules
 
 - All architectural changes require ADR (Architectural Decision Record)
 - No direct coupling between mobile and database
 - No business logic in controllers
+- Controllers never access repositories directly
 - Request context must flow via DI, not headers or cookies
-- All data access through Repository<T> pattern
+- All data access through IRepository<T> (defined in Spendly.Shared.DataLayer)
 - Centralized exception handling via middleware
 - Request SessionId must be tracked for observability
+- Never modify the repository pattern
