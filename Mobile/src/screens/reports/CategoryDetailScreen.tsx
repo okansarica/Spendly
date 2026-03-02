@@ -1,6 +1,7 @@
+// CHANGED_BY_AI: 2026-03-02 - Use date picker in filter modal
 // CHANGED_BY_AI: 2026-03-02 - Add category detail screen
 import React, {useEffect, useMemo, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Modal} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform} from 'react-native';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadCategoryDetail} from '../../store/reportsStore';
@@ -10,6 +11,7 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import Header from '../../components/Header';
 import Button from '../../components/Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
 
 type Props = NativeStackScreenProps<ReportsStackParamList, 'CategoryDetail'>;
@@ -19,10 +21,14 @@ export default function CategoryDetailScreen({route}: Props) {
   const dispatch = useAppDispatch();
   const detail = useAppSelector(s => s.reports.categoryDetail);
   const isLoading = useAppSelector(s => s.reports.isLoadingCategoryDetail);
+  const today = new Date().toISOString().split('T')[0];
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [draftStartDate, setDraftStartDate] = useState(route.params.startDate ?? today);
+  const [draftEndDate, setDraftEndDate] = useState(route.params.endDate ?? today);
+  const [activePicker, setActivePicker] = useState<'start' | 'end' | null>(null);
 
-  const [startDate, setStartDate] = useState(route.params.startDate ?? '');
-  const [endDate, setEndDate] = useState(route.params.endDate ?? '');
+  const [startDate, setStartDate] = useState(route.params.startDate ?? today);
+  const [endDate, setEndDate] = useState(route.params.endDate ?? today);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
@@ -42,6 +48,14 @@ export default function CategoryDetailScreen({route}: Props) {
       })
     );
   }, [dispatch, route.params.categoryId, startDate, endDate, sortBy, sortDirection, page]);
+
+  useEffect(() => {
+    if (isFilterOpen) {
+      setDraftStartDate(startDate);
+      setDraftEndDate(endDate);
+      setActivePicker(null);
+    }
+  }, [isFilterOpen, startDate, endDate]);
 
   const transactions = detail?.transactions.items ?? [];
   const totalPages = detail?.transactions.totalPages ?? 1;
@@ -113,7 +127,39 @@ export default function CategoryDetailScreen({route}: Props) {
       borderColor: colors.borderSubtle,
     },
     modalTitle: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary, marginBottom: spacing.sm},
+    pickerSheet: {position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.lg},
+    pickerSheetCard: {
+      backgroundColor: colors.cardBackground,
+      borderTopLeftRadius: radius.lg,
+      borderTopRightRadius: radius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
   });
+
+  const formatDateValue = (date: Date): string => date.toISOString().split('T')[0];
+  const openPicker = (target: 'start' | 'end') => {
+    setActivePicker(target);
+  };
+  const onPickerChange = (_: unknown, selectedDate?: Date) => {
+    if (!selectedDate || !activePicker) {
+      if (Platform.OS === 'android') {
+        setActivePicker(null);
+      }
+      return;
+    }
+    const value = formatDateValue(selectedDate);
+    if (activePicker === 'start') {
+      setDraftStartDate(value);
+    }
+    if (activePicker === 'end') {
+      setDraftEndDate(value);
+    }
+    if (Platform.OS === 'android') {
+      setActivePicker(null);
+    }
+  };
 
   return (
     <View style={s.container}>
@@ -173,25 +219,67 @@ export default function CategoryDetailScreen({route}: Props) {
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>{translate('Filters')}</Text>
-            <TextInput
-              style={s.input}
-              placeholder={translate('StartDatePlaceholder')}
-              placeholderTextColor={colors.textSecondary}
-              value={startDate}
-              onChangeText={setStartDate}
-            />
-            <TextInput
-              style={s.input}
-              placeholder={translate('EndDatePlaceholder')}
-              placeholderTextColor={colors.textSecondary}
-              value={endDate}
-              onChangeText={setEndDate}
-            />
+            <TouchableOpacity style={s.input} onPress={() => openPicker('start')}>
+              <Text style={{color: draftStartDate ? colors.textPrimary : colors.textSecondary}}>
+                {draftStartDate || translate('StartDatePlaceholder')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.input} onPress={() => openPicker('end')}>
+              <Text style={{color: draftEndDate ? colors.textPrimary : colors.textSecondary}}>
+                {draftEndDate || translate('EndDatePlaceholder')}
+              </Text>
+            </TouchableOpacity>
             <View style={s.modalActions}>
-              <Button text={translate('Cancel')} onPress={() => setIsFilterOpen(false)} variant="secondary" style={{flex: 1}} />
-              <Button text={translate('ApplyFilters')} onPress={() => setIsFilterOpen(false)} variant="primary" style={{flex: 1}} />
+              <Button
+                text={translate('Cancel')}
+                onPress={() => {
+                  setIsFilterOpen(false);
+                  setActivePicker(null);
+                }}
+                variant="secondary"
+                style={{flex: 1}}
+              />
+              <Button
+                text={translate('ApplyFilters')}
+                onPress={() => {
+                  setStartDate(draftStartDate);
+                  setEndDate(draftEndDate);
+                  setIsFilterOpen(false);
+                  setActivePicker(null);
+                }}
+                variant="primary"
+                style={{flex: 1}}
+              />
             </View>
           </View>
+          {Platform.OS === 'ios' && activePicker ? (
+            <View style={s.pickerSheet}>
+              <View style={s.pickerSheetCard}>
+                <DateTimePicker
+                  value={
+                    activePicker === 'start'
+                      ? (draftStartDate ? new Date(draftStartDate) : new Date())
+                      : (draftEndDate ? new Date(draftEndDate) : new Date())
+                  }
+                  mode="date"
+                  display="spinner"
+                  onChange={onPickerChange}
+                />
+              </View>
+            </View>
+          ) : null}
+          {Platform.OS === 'android' && activePicker ? (
+            <DateTimePicker
+              value={
+                activePicker === 'start'
+                  ? (draftStartDate ? new Date(draftStartDate) : new Date())
+                  : (draftEndDate ? new Date(draftEndDate) : new Date())
+              }
+              mode="date"
+              display="default"
+              onChange={onPickerChange}
+            />
+          ) : null}
         </View>
       </Modal>
     </View>
