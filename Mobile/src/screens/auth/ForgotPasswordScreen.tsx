@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -11,6 +12,8 @@ import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {forgotPassword, clearError} from '../../store/authStore';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -49,6 +52,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={styles.container}>
+      <Header title={translate('ForgotPasswordTitle')} />
 
       <TextInput
         style={styles.input}

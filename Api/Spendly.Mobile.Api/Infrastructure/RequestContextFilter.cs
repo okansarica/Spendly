@@ -1,3 +1,5 @@
+// CHANGED_BY_AI: 2026-03-02 - Capture timezone header
+
 namespace Spendly.Mobile.Api.Infrastructure;
 
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -28,6 +30,10 @@ public class RequestContextFilter(RequestContextViewModel requestContextViewMode
         else
         {
             requestContextViewModel.SetUserId(idClaim?.Value);
+        }
+        if (httpContext.Request.Headers.TryGetValue("X-Timezone", out var timezone))
+        {
+            requestContextViewModel.Timezone = timezone.ToString();
         }
         requestContextViewModel.SessionId = Guid.Parse(httpContext.Request.Headers["X-session-id"]); //TODO 
     }

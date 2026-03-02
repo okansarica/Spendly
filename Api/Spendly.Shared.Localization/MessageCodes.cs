@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add report validation message codes
 // CHANGED_BY_AI: 2026-03-01 - Added register validation message codes
 namespace Spendly.Shared.Localization;
 
@@ -18,4 +19,12 @@ public class MessageCodes
 	public const string UserNotFound = "UserNotFound";
 	public const string VerificationCodeExpired = "VerificationCodeExpired";
 	public const string TooManyVerificationAttempts = "TooManyVerificationAttempts";
+	public const string InvalidDateRange = "InvalidDateRange";
+	public const string InvalidTimezone = "InvalidTimezone";
+	public const string InvalidSortBy = "InvalidSortBy";
+	public const string InvalidSortDirection = "InvalidSortDirection";
+	public const string InvalidPage = "InvalidPage";
+	public const string InvalidPageSize = "InvalidPageSize";
+	public const string InvalidCategoryId = "InvalidCategoryId";
+	public const string InvalidAccountId = "InvalidAccountId";
 }

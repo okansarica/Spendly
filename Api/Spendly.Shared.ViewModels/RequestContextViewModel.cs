@@ -1,3 +1,5 @@
+// CHANGED_BY_AI: 2026-03-02 - Add timezone to request context
+
 namespace Spendly.Shared.ViewModels;
 
 using System.Security.Authentication;
@@ -30,4 +32,5 @@ public class RequestContextViewModel
 	}
 
 	public Guid SessionId { get; set; }
+	public string Timezone { get; set; } = "Europe/London";
 }

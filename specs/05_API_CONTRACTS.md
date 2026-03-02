@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add reports contracts and timezone header
 // CHANGED_BY_AI: 2026-03-02 - Document homepage response contract
 # API CONTRACTS
 
@@ -154,6 +155,7 @@ Content-Type: application/json
 Accept: application/json
 Accept-Language: en   (for localization)
 User-Agent: Spendly-Mobile/1.0
+X-Timezone: Europe/London   (optional, IANA timezone)
 ```
 
 ## Common Response Headers
@@ -249,12 +251,149 @@ Cache-Control: no-cache, no-store, must-revalidate
 
 ### Report Endpoints (v1)
 
-**GET /api/v1/reports/summary**
+**GET /api/v1/reports/overview**
 - Auth: Required
-- Query: `startDate, endDate`
-- Response: `{ totalExpense, byCategory: { ... }, byMerchant: { ... } }`
+- Query: `startDate?, endDate?, timezone?`
+- Response:
+```json
+{
+  "summary": {
+    "currentMonthToDateTotal": 1200.5,
+    "previousMonthSamePeriodTotal": 980.25,
+    "differenceAmount": 220.25,
+    "percentageChange": 22.5,
+    "trend": "increase",
+    "isNewSpending": false
+  },
+  "topChangingCategories": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "currentMonthToDateTotal": 240.0,
+      "previousMonthSamePeriodTotal": 210.0,
+      "differenceAmount": 30.0,
+      "percentageChange": 14.2
+    }
+  ],
+  "categoryDistribution": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "currentMonthToDateTotal": 240.0,
+      "percentageOfTotal": 20.0
+    }
+  ],
+  "categories": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "currentMonthToDateTotal": 240.0,
+      "previousMonthSamePeriodTotal": 210.0,
+      "differenceAmount": 30.0,
+      "percentageChange": 14.2
+    }
+  ]
+}
+```
 
-### Homepage Endpoint (v1)
+**GET /api/v1/reports/category/{categoryId}**
+- Auth: Required
+- Query: `startDate?, endDate?, accountIds?, sortBy, sortDirection, page, pageSize, timezone?`
+- Response:
+```json
+{
+  "categorySummary": {
+    "categoryId": "507f1f77bcf86cd799439012",
+    "categoryName": "Groceries",
+    "totalAmount": 240.0
+  },
+  "transactions": {
+    "items": [
+      {
+        "transactionId": "507f1f77bcf86cd799439013",
+        "date": "2026-03-02T10:00:00Z",
+        "merchantName": "Tesco",
+        "accountName": "HSBC",
+        "amount": 32.5
+      }
+    ],
+    "total": 120,
+    "pageNumber": 1,
+    "pageSize": 10,
+    "totalPages": 12
+  }
+}
+```
+
+**GET /api/v1/reports/accounts/overview**
+- Auth: Required
+- Query: `startDate?, endDate?, timezone?`
+- Response:
+```json
+{
+  "summary": {
+    "currentMonthToDateTotal": 1200.5,
+    "previousMonthSamePeriodTotal": 980.25,
+    "differenceAmount": 220.25,
+    "percentageChange": 22.5,
+    "trend": "increase",
+    "isNewSpending": false
+  },
+  "accountDistribution": [
+    {
+      "accountId": "507f1f77bcf86cd799439011",
+      "accountName": "HSBC",
+      "currentMonthToDateTotal": 420.0,
+      "percentageOfTotal": 35.0
+    }
+  ],
+  "accounts": [
+    {
+      "accountId": "507f1f77bcf86cd799439011",
+      "accountName": "HSBC",
+      "currentMonthToDateTotal": 420.0,
+      "previousMonthSamePeriodTotal": 390.0,
+      "differenceAmount": 30.0,
+      "percentageChange": 7.7
+    }
+  ]
+}
+```
+
+**GET /api/v1/reports/accounts/{accountId}**
+- Auth: Required
+- Query: `startDate?, endDate?, timezone?`
+- Response:
+```json
+{
+  "accountSummary": {
+    "accountId": "507f1f77bcf86cd799439011",
+    "accountName": "HSBC",
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-31",
+    "totalAmount": 420.0,
+    "comparison": {
+      "previousMonthSamePeriodTotal": 390.0,
+      "differenceAmount": 30.0,
+      "percentageChange": 7.7,
+      "trend": "increase",
+      "isNewSpending": false
+    }
+  },
+  "categories": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "totalAmount": 240.0
+    }
+  ]
+}
+```
+
+**Notes:**
+- `timezone` uses IANA format (e.g., `Europe/London`). If omitted, the server default is `Europe/London`
+
+## Homepage Endpoint (v1)
 
 **GET /api/v1/homepage**
 - Auth: Required

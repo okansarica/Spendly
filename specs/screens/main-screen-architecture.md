@@ -242,8 +242,9 @@ When user taps **Reports**:
 
 A screen opens showing 2 report options:
 
--   Monthly Summary Report
+
 -   Category Distribution Report
+-  Account Report
 
 Each item:
 

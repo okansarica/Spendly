@@ -1,8 +1,11 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {logout} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
 
 export default function UserScreen() {
   const dispatch = useAppDispatch();
@@ -10,7 +13,8 @@ export default function UserScreen() {
   const {colors, fontSizes, fontWeights, spacing, radius} = useTheme();
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.backgroundSecondary}]}>
+    <View style={[styles.container, {backgroundColor: colors.backgroundSecondary}]}> 
+      <Header title={translate('UserTitle')} showBack={false} />
       <Text style={[styles.email, {color: colors.textPrimary, fontSize: fontSizes.md}]}>{email}</Text>
       <TouchableOpacity
         style={[styles.btn, {backgroundColor: colors.buttonPrimary, borderRadius: radius.md, padding: spacing.md}]}

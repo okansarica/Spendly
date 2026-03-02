@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header component rule
 # MOBILE SPECIFICATION
 
 ## Technology Stack
@@ -140,3 +141,10 @@ production:
 - No sensitive data in logs
 - No hardcoded credentials or API keys
 - All sensitive config in `shared.local.json` equivalent on mobile
+
+## Shared Header Component
+
+- Use `src/components/Header.tsx` on every screen
+- Back button shows only when `navigation.canGoBack()` is true or `showBack` is true
+- Header background color is the main app color (`colors.buttonPrimary`)
+- Navigation headers must be disabled in navigators

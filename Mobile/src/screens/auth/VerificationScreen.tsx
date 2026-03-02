@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
@@ -11,6 +12,8 @@ import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {verifyEmail, resendCode, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
 
 export default function VerificationScreen() {
   const dispatch = useAppDispatch();
@@ -110,6 +113,7 @@ export default function VerificationScreen() {
 
   return (
     <View style={s.container}>
+      <Header title={translate('VerificationTitle')} />
       <Text style={s.title}>Verify your email</Text>
       <Text style={s.subtitle}>Enter the 4-digit code sent to your email address.</Text>
 

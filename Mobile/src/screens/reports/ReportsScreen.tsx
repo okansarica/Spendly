@@ -1,6 +1,9 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {useTheme} from '../../theme/ThemeContext';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
 
 export default function ReportsScreen() {
   const {colors, spacing, fontSizes, fontWeights, radius} = useTheme();
@@ -15,16 +18,22 @@ export default function ReportsScreen() {
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.backgroundPrimary}]}>
+    <View style={[styles.container, {backgroundColor: colors.backgroundSecondary}]}> 
+      <Header title={translate('ReportsTitle')} showBack={false} />
       {reportOptions.map((report, index) => (
         <React.Fragment key={report.id}>
           <TouchableOpacity
             style={[
               styles.reportItem,
               {
-                backgroundColor: colors.backgroundSecondary,
+                backgroundColor: colors.cardBackground,
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.md,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: colors.borderSubtle,
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.lg,
               },
             ]}
             onPress={() => handleReportPress(report.id)}>
@@ -36,9 +45,7 @@ export default function ReportsScreen() {
             </View>
             <Text style={[styles.arrow, {color: colors.textSecondary, fontSize: fontSizes.lg}]}>›</Text>
           </TouchableOpacity>
-          {index < reportOptions.length - 1 && (
-            <View style={[styles.divider, {backgroundColor: colors.borderSubtle, marginHorizontal: spacing.lg}]} />
-          )}
+          {index < reportOptions.length - 1 && <View style={[styles.divider, {height: spacing.lg}]} />}
         </React.Fragment>
       ))}
     </View>
@@ -67,4 +74,3 @@ const styles = StyleSheet.create({
     height: 1,
   },
 });
-

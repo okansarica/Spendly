@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useEffect} from 'react';
 import {
   Text,
@@ -15,6 +16,9 @@ import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {register, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
+
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -98,6 +102,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Header title={translate('RegisterTitle')} />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Text style={s.title}>Create your account</Text>
         <Text style={s.subtitle}>Sign up to start managing your expenses</Text>

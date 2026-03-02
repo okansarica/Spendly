@@ -1,11 +1,12 @@
+// CHANGED_BY_AI: 2026-03-02 - Use shared header component
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import DashboardScreen from '../screens/main/DashboardScreen';
-import ReportsScreen from '../screens/main/ReportsScreen';
-import FinanceScreen from '../screens/main/FinanceScreen';
-import UserScreen from '../screens/main/UserScreen';
+import ReportsNavigator from './ReportsNavigator';
 import {useTheme} from '../theme/ThemeContext';
+import DashboardScreen from "../screens/dashboard/DashboardScreen.tsx";
+import UserScreen from "../screens/user/UserScreen.tsx";
+import FinanceScreen from "../screens/finance/FinanceScreen.tsx";
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -33,7 +34,7 @@ export default function MainNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({route}: {route: {name: string}}) => ({
-        headerShown: true,
+        headerShown: false,
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
@@ -53,7 +54,7 @@ export default function MainNavigator() {
         ),
       })}>
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Reports" component={ReportsNavigator} />
       <Tab.Screen name="Finance" component={FinanceScreen} />
       <Tab.Screen name="User" component={UserScreen} />
     </Tab.Navigator>

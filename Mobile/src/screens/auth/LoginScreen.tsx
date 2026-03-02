@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useEffect} from 'react';
 import {
   Text,
@@ -15,6 +16,9 @@ import {login, socialLogin, clearError} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import Button from '../../components/Button';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
+import Header from '../../components/Header';
+import {translate} from '../../utils/translations';
+
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
 
@@ -101,6 +105,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Header title={translate('LoginTitle')} showBack={false} />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Text style={s.title}>Welcome back</Text>
         <Text style={s.subtitle}>Sign in to continue to Spendly</Text>

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Use shared header component
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -16,7 +17,7 @@ const Stack = createNativeStackNavigator();
 
 export default function AuthNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Login" screenOptions={{headerShown: true}}>
+    <Stack.Navigator initialRouteName="Login" screenOptions={{headerShown: false}}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{title: 'Forgot Password'}} />
@@ -24,4 +25,3 @@ export default function AuthNavigator() {
     </Stack.Navigator>
   );
 }
-
