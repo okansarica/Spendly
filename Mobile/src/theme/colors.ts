@@ -32,6 +32,7 @@ export const lightColors = {
 
   cardBackground: '#FFFFFF',
   cardShadow: '#000000',
+  overlay: 'rgba(0,0,0,0.4)',
 
   errorBackground: '#FEE2E2',
   errorText: '#DC2626',
@@ -73,6 +74,7 @@ export const darkColors: typeof lightColors = {
 
   cardBackground: '#1F2937',
   cardShadow: '#000000',
+  overlay: 'rgba(0,0,0,0.4)',
 
   errorBackground: '#450A0A',
   errorText: '#FCA5A5',

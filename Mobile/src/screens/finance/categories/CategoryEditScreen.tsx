@@ -1,5 +1,5 @@
 // CHANGED_BY_AI: 2026-03-02 - Add category edit screen
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert} from 'react-native';
 import {useTheme} from '../../../theme/ThemeContext';
 import {translate} from '../../../utils/translations';
@@ -36,10 +36,35 @@ export default function CategoryEditScreen() {
   const merchantsByCategory = useAppSelector(state => state.categories.merchantsByCategory);
   const draftMerchantIds = useAppSelector(state => state.categories.draftMerchantIds);
   const merchantItems = useAppSelector(state => state.merchants.items);
+  const categories = useAppSelector(state => state.categories.items);
+
+  const usedColors = useMemo(() => {
+    const list = categories.map(item => item.color).filter(color => color !== undefined) as string[];
+    return new Set(list);
+  }, [categories]);
+
+  const availableColors = useMemo(() => {
+    const pool = CategoryColors.filter(colorItem => !usedColors.has(colorItem));
+    return pool.length > 0 ? pool : CategoryColors;
+  }, [usedColors]);
+
+  const pickRandomColor = (pool: string[]) => {
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
 
   const [name, setName] = useState(category?.name ?? '');
-  const [color, setColor] = useState(category?.color ?? CategoryColors[0]);
-  const [icon, setIcon] = useState(category?.icon ?? CategoryIcons[0]);
+  const [color, setColor] = useState(() => (mode === 'create' ? pickRandomColor(availableColors) : category?.color ?? CategoryColors[0]));
+  const [colorTouched, setColorTouched] = useState(false);
+  const [icon, setIcon] = useState(() => (mode === 'create' ? CategoryIcons[0] : category?.icon ?? CategoryIcons[0]));
+
+  useEffect(() => {
+    if (mode !== 'create' || colorTouched) {
+      return;
+    }
+    if (!availableColors.includes(color)) {
+      setColor(pickRandomColor(availableColors));
+    }
+  }, [mode, colorTouched, availableColors, color]);
 
   useFocusEffect(
     useCallback(() => {
@@ -274,7 +299,10 @@ export default function CategoryEditScreen() {
             <TouchableOpacity
               key={swatch}
               style={[s.colorSwatch, {backgroundColor: swatch, borderColor: color === swatch ? colors.buttonPrimary : colors.borderSubtle}]}
-              onPress={() => setColor(swatch)}
+              onPress={() => {
+                setColorTouched(true);
+                setColor(swatch);
+              }}
             />
           ))}
         </View>

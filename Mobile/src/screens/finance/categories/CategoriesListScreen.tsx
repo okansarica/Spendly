@@ -61,7 +61,7 @@ export default function CategoriesListScreen() {
       padding: spacing.lg,
     },
     listContent: {
-      paddingBottom: tabBarHeight + spacing.xl,
+      paddingBottom: tabBarHeight + spacing.xl + 50, //Required for scroll, dont move
     },
     searchRow: {
       flexDirection: 'row',
@@ -126,6 +126,16 @@ export default function CategoriesListScreen() {
       fontSize: fontSizes.md,
       fontWeight: fontWeights.semiBold,
       color: colors.textPrimary,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    colorDot: {
+      width: spacing.sm,
+      height: spacing.sm,
+      borderRadius: spacing.sm,
     },
     subtitle: {
       fontSize: fontSizes.sm,

@@ -8,6 +8,14 @@ export const CategoryColors = [
   '#14B8A6',
   '#0EA5E9',
   '#F97316',
+  '#10B981',
+  '#6366F1',
+  '#EC4899',
+  '#F43F5E',
+  '#84CC16',
+  '#06B6D4',
+  '#A855F7',
+  '#D97706',
 ];
 
 export const CategoryIcons = [
@@ -19,5 +27,12 @@ export const CategoryIcons = [
   'directions-car',
   'flight',
   'local-mall',
+  'fastfood',
+  'local-cafe',
+  'phone-iphone',
+  'fitness-center',
+  'healing',
+  'school',
+  'sports-esports',
+  'savings',
 ];
-
