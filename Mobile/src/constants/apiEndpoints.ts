@@ -1,4 +1,5 @@
 // CHANGED_BY_AI: 2026-03-02 - Add report endpoints
+// CHANGED_BY_AI: 2026-03-02 - Remove unused finance endpoints
 
 export const ApiEndpoints = {
   Auth: {
@@ -18,5 +19,16 @@ export const ApiEndpoints = {
     CategoryDetail: (categoryId: string) => `/api/v1/reports/category/${categoryId}`,
     AccountsOverview: '/api/v1/reports/accounts/overview',
     AccountDetail: (accountId: string) => `/api/v1/reports/accounts/${accountId}`,
+  },
+  Categories: {
+    Base: '/api/v1/categories',
+    ById: (id: string) => `/api/v1/categories/${id}`,
+    Merchants: (id: string) => `/api/v1/categories/${id}/merchants`,
+    MerchantLink: (id: string, merchantId: string) => `/api/v1/categories/${id}/merchants/${merchantId}`,
+  },
+  Merchants: {
+    Base: '/api/v1/merchants',
+    ById: (id: string) => `/api/v1/merchants/${id}`,
+    Category: (id: string) => `/api/v1/merchants/${id}/category`,
   },
 };

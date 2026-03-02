@@ -2,6 +2,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add homepage translations
 // CHANGED_BY_AI: 2026-03-02 - Add report translations
 // CHANGED_BY_AI: 2026-03-02 - Add header title localization keys
+// CHANGED_BY_AI: 2026-03-02 - Add finance translations
 const translations: Record<string, Record<string, string>> = {
   en: {
     PleaseCheckYourEMailAndPassword: 'Please check your email and password',
@@ -89,9 +90,34 @@ const translations: Record<string, Record<string, string>> = {
     ForgotPasswordTitle: 'Forgot Password',
     VerificationTitle: 'Verification',
     FinanceTitle: 'Finance',
-    UserTitle: 'Profile',
-    ApplyFilters: 'Apply',
-    Cancel: 'Cancel',
+    CategoriesTitle: 'Categories',
+    MerchantsTitle: 'Merchants',
+    NewCategory: 'New Category',
+    EditCategory: 'Edit Category',
+    CreateCategory: 'Create Category',
+    AddChildCategory: 'Add Child',
+    AddMerchant: 'Add Merchant',
+    AssignMerchants: 'Assign',
+    SelectedMerchants: 'Merchants Selected',
+    SearchCategories: 'Search categories',
+    SearchMerchants: 'Search merchants',
+    NoCategories: 'No categories found',
+    NoMerchants: 'No merchants found',
+    CategoryName: 'Category name',
+    Color: 'Color',
+    Icon: 'Icon',
+    Save: 'Save',
+    Delete: 'Delete',
+    DeleteCategoryTitle: 'Delete category?',
+    DeleteCategoryMessage: 'This action cannot be undone.',
+    MerchantCount: 'Merchants',
+    TransactionCount: 'Transactions',
+    LastTransaction: 'Last transaction',
+    Uncategorized: 'Uncategorized',
+    FiltersTitle: 'Filters',
+    Last30Days: 'Last 30 days',
+    HighestSpending: 'Highest spending',
+    HighestTransactions: 'Highest transactions',
   },
 };
 

@@ -1,4 +1,7 @@
+// CHANGED_BY_AI: 2026-03-02 - Match account report summary and chart layout to category report
+// CHANGED_BY_AI: 2026-03-02 - Align account report UI with category report
 // CHANGED_BY_AI: 2026-03-02 - Add accounts overview screen
+// CHANGED_BY_AI: 2026-03-02 - Guard percentageChange formatting in account report
 import React, {useEffect, useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions} from 'react-native';
 import {PieChart} from 'react-native-chart-kit';
@@ -49,6 +52,7 @@ export default function AccountReportScreen() {
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundSecondary},
     section: {paddingHorizontal: spacing.lg, paddingTop: spacing.lg},
+    sectionTitle: {marginBottom: spacing.sm},
     card: {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.lg,
@@ -62,11 +66,18 @@ export default function AccountReportScreen() {
       shadowRadius: 6,
       elevation: 3,
     },
+    chartCard: {alignItems: 'center'},
+    chartSummary: {marginTop: spacing.md, width: '100%'},
+    chartSummaryRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs},
+    chartSummaryLabel: {fontSize: fontSizes.sm, color: colors.textPrimary},
+    chartSummaryValue: {fontSize: fontSizes.sm, color: colors.textSecondary, fontWeight: fontWeights.medium},
     title: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary},
     subtitle: {fontSize: fontSizes.sm, color: colors.textSecondary},
     row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm},
     label: {fontSize: fontSizes.sm, color: colors.textSecondary},
     value: {fontSize: fontSizes.md, color: colors.textPrimary, fontWeight: fontWeights.medium},
+    summaryValueLarge: {fontSize: fontSizes.xxl, color: colors.textPrimary, fontWeight: fontWeights.bold},
+    summaryValueSmall: {fontSize: fontSizes.sm, color: colors.textSecondary, fontWeight: fontWeights.medium},
     listItem: {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.md,
@@ -95,51 +106,55 @@ export default function AccountReportScreen() {
       <ScrollView contentContainerStyle={{paddingBottom: spacing.xl}}>
         <View style={s.section}>
           <View style={s.card}>
-            <Text style={s.title}>{translate('ReportSummary')}</Text>
             <View style={s.row}>
               <Text style={s.label}>{translate('CurrentMonthTotal')}</Text>
-              <Text style={s.value}>{formatCurrency(summary?.currentMonthToDateTotal)}</Text>
+              <Text style={s.summaryValueLarge}>{formatCurrency(summary?.currentMonthToDateTotal)}</Text>
             </View>
             <View style={s.row}>
               <Text style={s.label}>{translate('PreviousMonthSamePeriod')}</Text>
-              <Text style={s.value}>{formatCurrency(summary?.previousMonthSamePeriodTotal)}</Text>
-            </View>
-            <View style={s.row}>
-              <Text style={s.label}>{translate('Difference')}</Text>
-              <Text style={[s.value, {color: trendColor}]}>{formatCurrency(summary?.differenceAmount)}</Text>
+              <Text style={s.summaryValueSmall}>{formatCurrency(summary?.previousMonthSamePeriodTotal)}</Text>
             </View>
             <View style={s.row}>
               <Text style={s.label}>{translate('PercentageChange')}</Text>
-              <Text style={[s.value, {color: trendColor}]}>{(summary?.percentageChange ?? 0).toFixed(1)}%</Text>
+              <Text style={[s.summaryValueSmall, {color: trendColor}]}>{(summary?.percentageChange ?? 0).toFixed(1)}%</Text>
             </View>
           </View>
         </View>
 
         <View style={s.section}>
-          <Text style={s.title}>{translate('AccountDistribution')}</Text>
+          <Text style={[s.title, s.sectionTitle]}>{translate('AccountDistribution')}</Text>
           {pieData.length > 0 ? (
-            <PieChart
-              data={pieData}
-              width={chartWidth}
-              height={220}
-              chartConfig={{
-                color: () => colors.buttonPrimary,
-                labelColor: () => colors.textSecondary,
-                backgroundGradientFrom: colors.cardBackground,
-                backgroundGradientTo: colors.cardBackground,
-              }}
-              accessor="population"
-              backgroundColor={colors.cardBackground}
-              paddingLeft={`${spacing.lg}`}
-              absolute
-            />
+            <View style={[s.card, s.chartCard]}>
+              <PieChart
+                data={pieData}
+                width={chartWidth}
+                height={220}
+                chartConfig={{
+                  color: () => colors.buttonPrimary,
+                  labelColor: () => colors.textSecondary,
+                  backgroundGradientFrom: colors.cardBackground,
+                  backgroundGradientTo: colors.cardBackground,
+                }}
+                accessor="population"
+                backgroundColor={colors.cardBackground}
+                paddingLeft={`${spacing.lg}`}
+              />
+              <View style={s.chartSummary}>
+                {distribution.map(item => (
+                  <View key={item.accountId} style={s.chartSummaryRow}>
+                    <Text style={s.chartSummaryLabel}>{item.accountName}</Text>
+                    <Text style={s.chartSummaryValue}>{formatCurrency(item.currentMonthToDateTotal)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           ) : (
             <Text style={s.subtitle}>{translate('NoAccountData')}</Text>
           )}
         </View>
 
         <View style={s.section}>
-          <Text style={s.title}>{translate('AccountList')}</Text>
+          <Text style={[s.title, s.sectionTitle]}>{translate('AccountList')}</Text>
           {accounts.length === 0 ? (
             <Text style={s.subtitle}>{translate('NoAccountData')}</Text>
           ) : (
@@ -164,7 +179,7 @@ export default function AccountReportScreen() {
                 <View style={s.listRow}>
                   <Text style={s.listSub}>{translate('PercentageChange')}</Text>
                   <Text style={[s.listSub, {color: item.differenceAmount > 0 ? colors.danger : item.differenceAmount < 0 ? colors.success : colors.textSecondary}]}>
-                    {item.percentageChange.toFixed(1)}%
+                    {(item.percentageChange ?? 0).toFixed(1)}%
                   </Text>
                 </View>
               </TouchableOpacity>

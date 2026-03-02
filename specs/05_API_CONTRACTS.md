@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add finance category and merchant endpoints
 // CHANGED_BY_AI: 2026-03-02 - Add reports contracts and timezone header
 // CHANGED_BY_AI: 2026-03-02 - Document homepage response contract
 # API CONTRACTS
@@ -94,6 +95,10 @@ Returns the data payload directly (no wrapper):
 - `PASSWORD_WEAK` - Password doesn't meet requirements
 - `PASSWORD_REQUIRED` - Password field is required
 - `DUPLICATE_EMAIL` - Email already registered
+- `DUPLICATE_CATEGORY_NAME` - Category name already exists
+- `CATEGORY_NAME_REQUIRED` - Category name is required
+- `MERCHANT_NOT_FOUND` - Merchant ID doesn't exist
+- `CATEGORY_MERCHANT_LINK_INVALID` - Merchant cannot be linked to category
 
 **Business Logic:**
 - `USER_NOT_ACTIVE` - Account disabled
@@ -101,6 +106,7 @@ Returns the data payload directly (no wrapper):
 - `CATEGORY_NOT_FOUND` - Category ID doesn't exist
 - `INSUFFICIENT_BALANCE` - Not enough balance for transaction
 - `INVALID_DATE_RANGE` - Start date after end date
+- `CATEGORY_HAS_CHILDREN` - Category has child categories
 
 **System:**
 - `INTERNAL_SERVER_ERROR` - Unhandled exception
@@ -241,15 +247,101 @@ Cache-Control: no-cache, no-store, must-revalidate
 
 **GET /api/v1/categories**
 - Auth: Required
-- Response: User's custom categories + default categories
-- Errors: None
+- Query: `search?, sortBy?, sortDirection?`
+- Response: User's custom categories + default categories (sorted alphabetically)
+```json
+[
+  {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "Groceries",
+    "parentId": "507f1f77bcf86cd799439010",
+    "color": "#22C55E",
+    "icon": "shopping-cart",
+    "merchantCount": 12,
+    "isSystem": false
+  }
+]
+```
 
 **POST /api/v1/categories**
 - Auth: Required
-- Request: `{ name, color?, icon? }`
+- Request: `{ name, parentId?, color?, icon?, merchantIds? }`
 - Response: Created category
 
-### Report Endpoints (v1)
+**PUT /api/v1/categories/{id}**
+- Auth: Required
+- Request: `{ name, parentId?, color?, icon?, merchantIds? }`
+- Response: Updated category
+
+**DELETE /api/v1/categories/{id}**
+- Auth: Required
+- Response: 204 No Content
+- Errors: 400 (CATEGORY_HAS_CHILDREN), 404 (CATEGORY_NOT_FOUND)
+
+**GET /api/v1/categories/{id}/merchants**
+- Auth: Required
+- Response:
+```json
+[
+  {
+    "id": "507f1f77bcf86cd799439012",
+    "name": "Tesco",
+    "transactionCount": 24,
+    "lastTransactionDate": "2026-03-02T10:00:00Z"
+  }
+]
+```
+
+**POST /api/v1/categories/{id}/merchants**
+- Auth: Required
+- Request: `{ merchantIds }`
+- Response: Updated category
+
+**DELETE /api/v1/categories/{id}/merchants/{merchantId}**
+- Auth: Required
+- Response: 204 No Content
+
+### Merchant Endpoints (v1)
+
+**GET /api/v1/merchants**
+- Auth: Required
+- Query: `search?, isUncategorized?, sortBy?, sortDirection?, startDate?, endDate?`
+- Response:
+```json
+[
+  {
+    "id": "507f1f77bcf86cd799439012",
+    "name": "Tesco",
+    "categoryId": "507f1f77bcf86cd799439011",
+    "categoryName": "Groceries",
+    "transactionCount": 24,
+    "totalAmount": 420.5,
+    "lastTransactionDate": "2026-03-02T10:00:00Z"
+  }
+]
+```
+
+**GET /api/v1/merchants/{id}**
+- Auth: Required
+- Query: `startDate?, endDate?`
+- Response:
+```json
+{
+  "id": "507f1f77bcf86cd799439012",
+  "name": "Tesco",
+  "categoryId": "507f1f77bcf86cd799439011",
+  "categoryName": "Groceries",
+  "transactionCount": 24,
+  "totalAmount": 420.5
+}
+```
+
+**PUT /api/v1/merchants/{id}/category**
+- Auth: Required
+- Request: `{ categoryId? }`
+- Response: Updated merchant
+
+## Report Endpoints (v1)
 
 **GET /api/v1/reports/overview**
 - Auth: Required

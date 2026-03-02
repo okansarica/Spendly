@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Guard percentageChange formatting in category report
 // CHANGED_BY_AI: 2026-03-02 - Add reports overview screen
 import React, {useEffect, useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions} from 'react-native';
@@ -224,7 +225,7 @@ export default function CategoryReportScreen() {
                 <View style={s.listRow}>
                   <Text style={s.listSub}>{translate('PercentageChange')}</Text>
                   <Text style={[s.listSub, {color: item.differenceAmount > 0 ? colors.danger : item.differenceAmount < 0 ? colors.success : colors.textSecondary}]}>
-                    {item.percentageChange.toFixed(1)}%
+                    {(item.percentageChange ?? 0).toFixed(1)}%
                   </Text>
                 </View>
               </TouchableOpacity>

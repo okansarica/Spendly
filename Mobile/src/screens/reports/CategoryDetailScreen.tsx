@@ -1,6 +1,6 @@
 // CHANGED_BY_AI: 2026-03-02 - Use date picker in filter modal
 // CHANGED_BY_AI: 2026-03-02 - Add category detail screen
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Platform} from 'react-native';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
@@ -30,7 +30,7 @@ export default function CategoryDetailScreen({route}: Props) {
   const [startDate, setStartDate] = useState(route.params.startDate ?? today);
   const [endDate, setEndDate] = useState(route.params.endDate ?? today);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const sortDirection: 'asc' | 'desc' = 'desc';
   const [page, setPage] = useState(1);
 
   useEffect(() => {

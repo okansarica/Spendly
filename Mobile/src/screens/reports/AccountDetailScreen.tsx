@@ -1,7 +1,10 @@
+// CHANGED_BY_AI: 2026-03-02 - Align account detail layout and sorting with category screens
+// CHANGED_BY_AI: 2026-03-02 - Align account detail UI with category detail
 // CHANGED_BY_AI: 2026-03-02 - Add date picker filter popup
 // CHANGED_BY_AI: 2026-03-02 - Add account detail screen
-import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal} from 'react-native';
+// CHANGED_BY_AI: 2026-03-02 - Guard percentageChange formatting
+import React, {useEffect, useMemo, useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadAccountDetail} from '../../store/reportsStore';
@@ -12,9 +15,7 @@ import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import Header from '../../components/Header';
-import Button from '../../components/Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 const isCurrentMonthRange = (start: string, end: string): boolean => {
   if (!start || !end) {
@@ -39,9 +40,7 @@ export default function AccountDetailScreen({route}: Props) {
 
   const [startDate, setStartDate] = useState(route.params.startDate ?? '');
   const [endDate, setEndDate] = useState(route.params.endDate ?? '');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false);
-  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'amount'>('amount');
 
   useEffect(() => {
     dispatch(
@@ -58,6 +57,7 @@ export default function AccountDetailScreen({route}: Props) {
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundSecondary},
     section: {paddingHorizontal: spacing.lg, paddingTop: spacing.lg},
+    sectionTitle: {marginBottom: spacing.sm},
     title: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary},
     subtitle: {fontSize: fontSizes.sm, color: colors.textSecondary},
     card: {
@@ -72,15 +72,8 @@ export default function AccountDetailScreen({route}: Props) {
       shadowRadius: 6,
       elevation: 3,
     },
-    input: {
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderRadius: radius.sm,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      color: colors.textPrimary,
-      marginTop: spacing.sm,
-    },
+    summaryRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    summaryValue: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary},
     listItem: {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.md,
@@ -90,6 +83,10 @@ export default function AccountDetailScreen({route}: Props) {
       borderColor: colors.borderSubtle,
     },
     row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm},
+    listRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    listTitle: {fontSize: fontSizes.md, color: colors.textPrimary, fontWeight: fontWeights.medium},
+    listSub: {fontSize: fontSizes.sm, color: colors.textSecondary},
+    value: {fontSize: fontSizes.md, color: colors.textPrimary, fontWeight: fontWeights.medium},
     headerRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
     iconButton: {
       width: spacing.xl + spacing.sm,
@@ -101,30 +98,29 @@ export default function AccountDetailScreen({route}: Props) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    modalBackdrop: {flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.lg},
-    modalCard: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: radius.lg,
-      padding: spacing.lg,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    modalTitle: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary, marginBottom: spacing.sm},
-    modalActions: {flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md, gap: spacing.sm},
   });
 
   const comparisonVisible = detail?.accountSummary && isCurrentMonthRange(startDate, endDate);
-  const formatDateValue = (date: Date): string => date.toISOString().split('T')[0];
+  const sortedCategories = useMemo(() => {
+    const items = [...(detail?.categories ?? [])];
+    if (sortBy === 'name') {
+      items.sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+    } else {
+      items.sort((a, b) => b.totalAmount - a.totalAmount);
+    }
+    return items;
+  }, [detail?.categories, sortBy]);
 
   return (
     <View style={s.container}>
       <Header title={route.params.accountName} />
       <ScrollView contentContainerStyle={{paddingBottom: spacing.xl}}>
         <View style={s.section}>
-          <Text style={s.title}>{route.params.accountName}</Text>
           <View style={s.card}>
-            <Text style={s.subtitle}>{translate('TotalSpending')}</Text>
-            <Text style={s.title}>{formatCurrency(detail?.accountSummary.totalAmount)}</Text>
+            <View style={s.summaryRow}>
+              <Text style={s.subtitle}>{translate('TotalSpending')}</Text>
+              <Text style={s.summaryValue}>{formatCurrency(detail?.accountSummary.totalAmount)}</Text>
+            </View>
             {comparisonVisible && detail?.accountSummary.comparison ? (
               <View>
                 <View style={s.row}>
@@ -133,7 +129,7 @@ export default function AccountDetailScreen({route}: Props) {
                 </View>
                 <View style={s.row}>
                   <Text style={s.subtitle}>{translate('PercentageChange')}</Text>
-                  <Text style={s.subtitle}>{detail.accountSummary.comparison.percentageChange.toFixed(1)}%</Text>
+                  <Text style={s.subtitle}>{(detail.accountSummary.comparison.percentageChange ?? 0).toFixed(1)}%</Text>
                 </View>
               </View>
             ) : null}
@@ -142,91 +138,38 @@ export default function AccountDetailScreen({route}: Props) {
 
         <View style={s.section}>
           <View style={s.headerRow}>
-            <Text style={s.title}>{translate('Filters')}</Text>
-            <TouchableOpacity style={s.iconButton} onPress={() => setIsFilterOpen(true)}>
-              <Icon name="filter-list" size={fontSizes.lg} color={colors.textSecondary} />
+            <Text style={[s.title, s.sectionTitle]}>{translate('Categories')}</Text>
+            <TouchableOpacity style={s.iconButton} onPress={() => setSortBy(sortBy === 'name' ? 'amount' : 'name')}>
+              <Icon name={sortBy === 'name' ? 'sort-by-alpha' : 'attach-money'} size={fontSizes.lg} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={s.section}>
-          <Text style={s.title}>{translate('Categories')}</Text>
-          <View style={s.card}>
-            {isLoading && !detail ? (
-              <ActivityIndicator color={colors.spinner} />
-            ) : detail?.categories.length ? (
-              detail.categories.map(item => (
-                <TouchableOpacity
-                  key={item.categoryId}
-                  style={s.listItem}
-                  onPress={() =>
-                    navigation.navigate('CategoryDetail', {
-                      categoryId: item.categoryId,
-                      categoryName: item.categoryName,
-                      startDate: startDate || undefined,
-                      endDate: endDate || undefined,
-                      accountIds: [route.params.accountId],
-                    })
-                  }>
-                  <View style={s.row}>
-                    <Text style={s.subtitle}>{item.categoryName}</Text>
-                    <Text style={s.subtitle}>{formatCurrency(item.totalAmount)}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={s.subtitle}>{translate('NoCategoryData')}</Text>
-            )}
-          </View>
+          {isLoading && !detail ? (
+            <ActivityIndicator color={colors.spinner} />
+          ) : sortedCategories.length ? (
+            sortedCategories.map(item => (
+              <TouchableOpacity
+                key={item.categoryId}
+                style={s.listItem}
+                onPress={() =>
+                  navigation.navigate('CategoryDetail', {
+                    categoryId: item.categoryId,
+                    categoryName: item.categoryName,
+                    startDate: startDate || undefined,
+                    endDate: endDate || undefined,
+                    accountIds: [route.params.accountId],
+                  })
+                }>
+                <View style={s.listRow}>
+                  <Text style={s.listTitle}>{item.categoryName}</Text>
+                  <Text style={s.value}>{formatCurrency(item.totalAmount)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={s.subtitle}>{translate('NoCategoryData')}</Text>
+          )}
         </View>
       </ScrollView>
-      <Modal visible={isFilterOpen} transparent animationType="fade" onRequestClose={() => setIsFilterOpen(false)}>
-        <View style={s.modalBackdrop}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>{translate('Filters')}</Text>
-            <TouchableOpacity style={s.input} onPress={() => setIsStartPickerOpen(true)}>
-              <Text style={{color: startDate ? colors.textPrimary : colors.textSecondary}}>
-                {startDate || translate('StartDatePlaceholder')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.input} onPress={() => setIsEndPickerOpen(true)}>
-              <Text style={{color: endDate ? colors.textPrimary : colors.textSecondary}}>
-                {endDate || translate('EndDatePlaceholder')}
-              </Text>
-            </TouchableOpacity>
-            {isStartPickerOpen ? (
-              <DateTimePicker
-                value={startDate ? new Date(startDate) : new Date()}
-                mode="date"
-                display="default"
-                onChange={(_, selectedDate) => {
-                  setIsStartPickerOpen(false);
-                  if (selectedDate) {
-                    setStartDate(formatDateValue(selectedDate));
-                  }
-                }}
-              />
-            ) : null}
-            {isEndPickerOpen ? (
-              <DateTimePicker
-                value={endDate ? new Date(endDate) : new Date()}
-                mode="date"
-                display="default"
-                onChange={(_, selectedDate) => {
-                  setIsEndPickerOpen(false);
-                  if (selectedDate) {
-                    setEndDate(formatDateValue(selectedDate));
-                  }
-                }}
-              />
-            ) : null}
-            <View style={s.modalActions}>
-              <Button text={translate('Cancel')} onPress={() => setIsFilterOpen(false)} variant="secondary" style={{flex: 1}} />
-              <Button text={translate('ApplyFilters')} onPress={() => setIsFilterOpen(false)} variant="primary" style={{flex: 1}} />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

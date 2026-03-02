@@ -1,4 +1,4 @@
-// CHANGED_BY_AI: 2026-03-02 - Use shared header component
+// CHANGED_BY_AI: 2026-03-02 - Use finance navigator in main tabs
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -6,7 +6,7 @@ import ReportsNavigator from './ReportsNavigator';
 import {useTheme} from '../theme/ThemeContext';
 import DashboardScreen from "../screens/dashboard/DashboardScreen.tsx";
 import UserScreen from "../screens/user/UserScreen.tsx";
-import FinanceScreen from "../screens/finance/FinanceScreen.tsx";
+import FinanceNavigator from "./FinanceNavigator";
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -55,7 +55,7 @@ export default function MainNavigator() {
       })}>
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Reports" component={ReportsNavigator} />
-      <Tab.Screen name="Finance" component={FinanceScreen} />
+      <Tab.Screen name="Finance" component={FinanceNavigator} />
       <Tab.Screen name="User" component={UserScreen} />
     </Tab.Navigator>
   );
