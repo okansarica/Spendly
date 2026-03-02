@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Spendly.Shared.Core\Spendly.Shared.Core.csproj" />
+        <ProjectReference Include="..\Spendly.Shared.DataLayer\Spendly.Shared.DataLayer.csproj" />
+        <ProjectReference Include="..\Spendly.Shared.Entities\Spendly.Shared.Entities.csproj" />
+        <ProjectReference Include="..\Spendly.Shared.ViewModels\Spendly.Shared.ViewModels.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
+    </ItemGroup>
+
+</Project>

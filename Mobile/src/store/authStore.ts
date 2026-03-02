@@ -1,7 +1,7 @@
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
-import * as Keychain from 'react-native-keychain';
 import {apiCall} from '../services/apiClient';
 import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
+import {tokenService} from '../services/tokenService';
 
 type AuthState = {
   userId: string | undefined;
@@ -24,8 +24,7 @@ const initialState: AuthState = {
 };
 
 export const checkAuth = createAsyncThunk('auth/checkAuth', async () => {
-  const creds = await Keychain.getGenericPassword({service: 'accessToken'});
-  return !!creds;
+  return await tokenService.hasAccessToken();
 });
 
 export const login = createAsyncThunk(
@@ -37,8 +36,12 @@ export const login = createAsyncThunk(
     }
     const auth = response.data!;
     if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
-      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
-      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+      await tokenService.saveTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire
+      );
     }
     return auth;
   },
@@ -53,8 +56,12 @@ export const socialLogin = createAsyncThunk(
     }
     const auth = response.data!;
     if (auth.accessToken && auth.refreshToken) {
-      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
-      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+      await tokenService.saveTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire
+      );
     }
     return auth;
   },
@@ -71,9 +78,7 @@ export const forgotPassword = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk('auth/logout', async () => {
-  await Keychain.resetGenericPassword({service: 'accessToken'});
-  await Keychain.resetGenericPassword({service: 'refreshToken'});
-  //TODO burada apiye logout istegi yapilmali ve db de duran refresh token silinmeli
+  await tokenService.clearTokens();
 });
 
 export const register = createAsyncThunk(
@@ -96,8 +101,12 @@ export const verifyEmail = createAsyncThunk(
     }
     const auth = response.data!;
     if (auth.accessToken && auth.refreshToken) {
-      await Keychain.setGenericPassword('accessToken', auth.accessToken, {service: 'accessToken'});
-      await Keychain.setGenericPassword('refreshToken', auth.refreshToken, {service: 'refreshToken'});
+      await tokenService.saveTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire
+      );
     }
     return auth;
   },

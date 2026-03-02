@@ -1,5 +1,6 @@
 namespace Spendly.Mobile.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Auth;
@@ -7,6 +8,7 @@ using Spendly.Mobile.ViewModels.Auth;
 
 [ApiController]
 [Route("api/v1/[controller]")]
+[AllowAnonymous]
 public class AuthController(AuthService authService) : ControllerBase
 {
     [HttpPost("login")]

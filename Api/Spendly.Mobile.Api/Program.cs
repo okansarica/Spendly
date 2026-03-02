@@ -135,6 +135,10 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 // Enable CORS for mobile client before authentication/authorization/endpoints
 app.UseCors("MobileClient");
 
+// Authentication & Authorization
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Add request session middleware early so SessionId is available to logging
 app.UseMiddleware<RequestSessionMiddleware>();
 app.UseMiddleware<SerilogContextEnricherMiddleware>();

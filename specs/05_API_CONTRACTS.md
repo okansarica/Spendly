@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Document homepage response contract
 # API CONTRACTS
 
 ## General Rules
@@ -252,6 +253,99 @@ Cache-Control: no-cache, no-store, must-revalidate
 - Auth: Required
 - Query: `startDate, endDate`
 - Response: `{ totalExpense, byCategory: { ... }, byMerchant: { ... } }`
+
+### Homepage Endpoint (v1)
+
+**GET /api/v1/homepage**
+- Auth: Required
+- Response:
+```json
+{
+  "currentMonthTotalSpending": 1200.5,
+  "previousMonthTotalSpending": 980.25,
+  "midMonthComparison": {
+    "isIncreased": true,
+    "percentageChange": 12.3
+  },
+  "spendingByAccountCurrentMonth": [
+    {
+      "accountId": "507f1f77bcf86cd799439011",
+      "accountName": "HSBC",
+      "amount": 420.0,
+      "percentageOfTotal": 35.0
+    }
+  ],
+  "spendingByAccountPreviousMonth": [
+    {
+      "accountId": "507f1f77bcf86cd799439011",
+      "accountName": "HSBC",
+      "amount": 390.0,
+      "percentageOfTotal": 39.8
+    }
+  ],
+  "spendingByCategoryCurrentMonth": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "amount": 240.0,
+      "percentageOfTotal": 20.0
+    }
+  ],
+  "spendingByCategoryPreviousMonth": [
+    {
+      "categoryId": "507f1f77bcf86cd799439012",
+      "categoryName": "Groceries",
+      "amount": 210.0,
+      "percentageOfTotal": 21.4
+    }
+  ],
+  "sixMonthTrend": [
+    {
+      "year": 2026,
+      "month": 3,
+      "amount": 1200.5,
+      "previousMonthAmount": 980.25,
+      "percentageChange": 22.5
+    }
+  ],
+  "latestExpenses": [
+    {
+      "transactionId": "507f1f77bcf86cd799439013",
+      "date": "2026-03-02T10:00:00Z",
+      "amount": 32.5,
+      "categoryName": "Groceries",
+      "merchantName": "Tesco",
+      "accountName": "HSBC"
+    }
+  ],
+  "weeklySnapshot": {
+    "thisWeekTotal": 180.0,
+    "previousWeekTotal": 220.0,
+    "percentageChange": -18.2,
+    "isIncreased": false
+  },
+  "topSpendingCategory": {
+    "categoryName": "Groceries",
+    "amount": 240.0,
+    "percentageOfTotal": 20.0
+  },
+  "highestSingleExpense": {
+    "merchantName": "Amazon",
+    "amount": 120.0,
+    "date": "2026-03-01T12:00:00Z"
+  },
+  "mostUsedAccount": {
+    "accountName": "HSBC",
+    "percentageShare": 35.0
+  },
+  "dailyAverage": {
+    "currentMonthAverage": 40.0,
+    "previousMonthAverage": 32.5,
+    "percentageChange": 23.1,
+    "isIncreased": true
+  }
+}
+```
 
 ## Rate Limiting (TBD)
 

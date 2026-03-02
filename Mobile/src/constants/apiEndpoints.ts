@@ -6,6 +6,7 @@ export const ApiEndpoints = {
     Register: '/api/v1/auth/register',
     VerifyEmail: '/api/v1/auth/verify-email',
     ResendCode: '/api/v1/auth/resend-verification',
+    RefreshToken: '/api/v1/auth/refresh-access-token',
   },
   Homepage: {
     Get: '/api/v1/homepage',

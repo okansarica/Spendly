@@ -6,7 +6,7 @@ using MongoDB.Bson;
 public class DailyUserExpense : BaseEntity
 {
     public ObjectId UserId { get; set; }
-    public DateOnly DateTime { get; set; }
+    public DateTime DateTime { get; set; }
     public decimal TotalAmount { get; set; }
 }
 

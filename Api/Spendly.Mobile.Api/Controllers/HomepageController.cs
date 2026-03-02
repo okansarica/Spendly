@@ -6,20 +6,17 @@ using MongoDB.Bson;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Homepage;
 using Spendly.Shared.ViewModels;
+using System.Security.Claims;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
-public class HomepageController(HomepageService homepageService) : ControllerBase
+public class HomepageController(HomepageService homepageService, RequestContextViewModel requestContext) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetHomepage()
     {
-        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("userId")?.Value;
-        
-        if (string.IsNullOrEmpty(userIdClaim) || !ObjectId.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
-
+        var userId = ObjectId.Parse(requestContext.UserId);
         var response = await homepageService.GetHomepageAsync(userId);
         
         if (!response.IsSuccess)

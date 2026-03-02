@@ -27,7 +27,7 @@ clarification.
 
 ## 2. Code Preservation Rules
 
-1.  NEVER remove existing comments.
+1.  NEVER remove existing comments except AI generated header comment
 2.  NEVER remove `// TODO:` comments.
 3.  NEVER remove `// FIXME:` comments.
 4.  Do NOT modify commented-out code.
@@ -106,11 +106,7 @@ Proceed? (yes/no)
 
 ## 9. Testing Rules
 
-1.  Functional changes MUST include unit tests.
-2.  If tests cannot be written, explicitly state: Unit test missing --
-    reason: `<explanation>`{=html}
-3.  Do NOT use real secrets in test code.
-4.  Tests must not be skipped without explanation.
+1.  No test required
 
 ------------------------------------------------------------------------
 
@@ -169,7 +165,7 @@ Before completing any task, AI must verify:
 -   No TODO/FIXME removed
 -   No new dependencies added
 -   API contracts respected
--   Unit tests added (if required)
+-   No Unit tests added
 -   CHANGED_BY_AI header added (if modified)
 
 ------------------------------------------------------------------------

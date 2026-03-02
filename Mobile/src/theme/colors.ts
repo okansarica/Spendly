@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add chart palette tokens
 export const lightColors = {
   backgroundPrimary: '#FFFFFF',
   backgroundSecondary: '#F5F6F8',
@@ -36,6 +37,7 @@ export const lightColors = {
   errorText: '#DC2626',
   successBackground: '#DCFCE7',
   successText: '#16A34A',
+  chartPalette: ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'],
 };
 
 export const darkColors: typeof lightColors = {
@@ -76,5 +78,5 @@ export const darkColors: typeof lightColors = {
   errorText: '#FCA5A5',
   successBackground: '#052E16',
   successText: '#86EFAC',
+  chartPalette: ['#3B82F6', '#22C55E', '#F59E0B', '#EF4444', '#A78BFA', '#F472B6', '#2DD4BF', '#FB923C'],
 };
-

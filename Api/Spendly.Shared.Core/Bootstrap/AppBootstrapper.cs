@@ -258,9 +258,6 @@ public class AppBootstrapper
             // Rate Limiter 
             app.UseRateLimiter();
 
-            // Authentication & Authorization (consumer must have registered these services beforehand)
-            app.UseAuthentication();
-            app.UseAuthorization();
 
             // HealthCheck endpoint
             app.MapHealthChecks("/health");
