@@ -215,6 +215,29 @@ class Program
 
 		await collection.InsertManyAsync(merchants);
 		Console.WriteLine($"✓ Created {merchants.Count} merchants");
+
+		// Update MerchantCount on categories based on created merchants
+		var categoryCollection = _database.GetCollection<Category>("Category");
+		var merchantCounts = merchants
+			.GroupBy(m => m.CategoryId ?? ObjectId.Empty)
+			.ToDictionary(g => g.Key, g => g.Count());
+
+		var updates = new List<WriteModel<Category>>();
+		foreach (var cat in categories)
+		{
+			var count = merchantCounts.TryGetValue(cat.Id, out var c) ? c : 0;
+			cat.MerchantCount = count;
+			var filter = Builders<Category>.Filter.Eq(x => x.Id, cat.Id);
+			var update = Builders<Category>.Update.Set(x => x.MerchantCount, count);
+			updates.Add(new UpdateOneModel<Category>(filter, update));
+		}
+
+		if (updates.Any())
+		{
+			await categoryCollection.BulkWriteAsync(updates);
+			Console.WriteLine($"✓ Updated merchant counts for {updates.Count} categories");
+		}
+
 		return merchants;
 	}
 

@@ -18,7 +18,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FinanceStackParamList } from '../../../navigation/FinanceNavigator';
 import { CategoryColors, CategoryIcons } from '../../../constants/categoryConstants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { formatCurrency } from '../../../utils/formatCurrency';
 import Button from '../../../components/Button';
 import Toast from "react-native-toast-message";
 
@@ -250,6 +249,20 @@ export default function CategoryEditScreen() {
             borderWidth: 1,
             borderColor: colors.borderSubtle,
         },
+        merchantsContainer: {
+            backgroundColor: colors.cardBackground,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: colors.borderSubtle,
+            marginBottom: spacing.sm,
+            overflow: 'hidden',
+        },
+        merchantListItem: {
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.borderSubtle,
+        },
         merchantRow: {
             flexDirection: 'row',
             justifyContent: 'space-between',
@@ -367,30 +380,26 @@ export default function CategoryEditScreen() {
                          <ActivityIndicator size="small" color={colors.buttonPrimary} />
                      </View>
                  ) : linkedMerchants.map(merchant => (
-                     <View key={merchant.id} style={s.merchantCard}>
-                         <View style={s.merchantRow}>
-                             <View>
-                                 <Text style={s.merchantName}>{merchant.name}</Text>
-                                 {'transactionCount' in merchant ? (
-                                     <Text style={s.merchantMeta}>
-                                         {translate('TransactionCount')}: {merchant.transactionCount}
-                                     </Text>
-                                 ) : undefined}
-                                 {'lastTransactionDate' in merchant && merchant.lastTransactionDate ? (
-                                     <Text style={s.merchantMeta}>
-                                         {translate('LastTransaction')}: {merchant.lastTransactionDate}
-                                     </Text>
-                                 ) : undefined}
-                                 {'totalAmount' in merchant ? (
-                                     <Text style={s.merchantMeta}>{formatCurrency(merchant.totalAmount as number)}</Text>
-                                 ) : undefined}
-                             </View>
-                             <TouchableOpacity style={s.removeButton} onPress={() => onRemoveMerchant(merchant.id)}>
-                                 <Text style={s.removeButtonText}>×</Text>
-                             </TouchableOpacity>
-                         </View>
-                     </View>
+                     (linkedMerchants.length === 0 ? null : (
+                         <View key={merchant.id} />
+                     ))
                 ))}
+                {!(isMerchantsLoading || (mode === 'edit' && isCategoryMerchantsLoading)) && linkedMerchants.length > 0 ? (
+                    <View style={s.merchantsContainer}>
+                        {linkedMerchants.map((merchant, index) => (
+                            <View key={merchant.id} style={[s.merchantListItem, index === linkedMerchants.length - 1 ? {borderBottomWidth: 0} : undefined]}>
+                                <View style={s.merchantRow}>
+                                    <View>
+                                        <Text style={s.merchantName}>{merchant.name}</Text>
+                                    </View>
+                                    <TouchableOpacity style={s.removeButton} onPress={() => onRemoveMerchant(merchant.id)}>
+                                        <Text style={s.removeButtonText}>×</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ) : null}
                 <Button
                     text={translate('Save')}
                     onPress={onSave}

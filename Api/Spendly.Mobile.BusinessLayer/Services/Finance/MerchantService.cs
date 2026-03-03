@@ -28,14 +28,6 @@ public class MerchantService(
             merchants = merchants.Where(x => x.CategoryId == null).ToList();
         }
 
-        var search = request.Search?.Trim();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            merchants = merchants
-                .Where(x => x.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
         if (merchants.Count == 0)
         {
             return FunctionResponse.Success(new List<MerchantListItemViewModel>());
@@ -53,8 +45,7 @@ public class MerchantService(
             CategoryName = x.CategoryId != null && categoryLookup.TryGetValue(x.CategoryId.Value, out var name) ? name : "Uncategorized",
         }).ToList();
 
-        var sorted = ApplyMerchantSort(items, request.SortBy, request.SortDirection);
-        return FunctionResponse.Success(sorted);
+        return FunctionResponse.Success(items);
     }
 
 
@@ -95,27 +86,5 @@ public class MerchantService(
         };
 
         return FunctionResponse.Success(response);
-    }
-
-    private static List<MerchantListItemViewModel> ApplyMerchantSort(
-        List<MerchantListItemViewModel> items,
-        string? sortBy,
-        string? sortDirection)
-    {
-        var sorted = items.AsEnumerable();
-        if (sortBy == Constants.Finance.Sort.Name || string.IsNullOrWhiteSpace(sortBy))
-        {
-            sorted = sortDirection == Constants.Finance.Sort.Desc
-                ? sorted.OrderByDescending(x => x.Name)
-                : sorted.OrderBy(x => x.Name);
-        }
-        else
-        {
-            sorted = sortDirection == Constants.Finance.Sort.Desc
-                ? sorted.OrderByDescending(x => x.Name)
-                : sorted.OrderBy(x => x.Name);
-        }
-
-        return sorted.ToList();
     }
 }

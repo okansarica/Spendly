@@ -29,11 +29,6 @@ public class CategoryService(
 				.ToList();
 		}
 
-		var merchantCounts = (await merchantRepository.ListAsync(x => x.UserId == userId && x.CategoryId != null))
-			.Where(x => x.CategoryId != null)
-			.GroupBy(x => x.CategoryId!.Value)
-			.ToDictionary(g => g.Key, g => g.Count());
-
 		var sorted = ApplyCategorySort(categories, request.SortBy, request.SortDirection);
 
 		var response = sorted.Select(x => new CategoryListItemViewModel
@@ -43,7 +38,7 @@ public class CategoryService(
 				ParentId = x.ParentId?.ToString(),
 				Color = x.Color,
 				Icon = x.Icon,
-				MerchantCount = x.ParentId != null ? 0 : (merchantCounts.TryGetValue(x.Id, out var count) ? count : 0),
+				MerchantCount = x.MerchantCount,
 			})
 			.ToList();
 
@@ -114,8 +109,8 @@ public class CategoryService(
 	public async Task<FunctionResponse<CategoryResponseViewModel>> UpdateAsync(string id, CategoryUpsertRequestViewModel request)
 	{
 		var categoryId = id.ToObjectId();
-
 		var userId = requestContextViewModel.UserId.ToObjectId();
+
 		var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
 		if (category == null)
 		{
@@ -123,7 +118,11 @@ public class CategoryService(
 		}
 
 		var name = request.Name?.Trim() ?? string.Empty;
-		var existing = await categoryRepository.ListAsync(x => x.UserId == userId && x.Id != category.Id && x.Name.ToLower() == name.ToLower());
+
+		var existing = await categoryRepository.ListAsync(x => x.UserId == userId &&
+		                                                       x.Id != category.Id &&
+		                                                       x.Name.ToLower() == name.ToLower());
+
 		if (existing.Any())
 		{
 			return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.DuplicateCategoryName);
@@ -133,11 +132,14 @@ public class CategoryService(
 		if (!string.IsNullOrWhiteSpace(request.ParentId))
 		{
 			var parentObjectId = request.ParentId.ToObjectId();
+
 			if (parentObjectId == category.Id)
 			{
 				return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.InvalidCategoryId);
 			}
+
 			_ = await categoryRepository.GetRequiredAsync(x => x.Id == parentObjectId && x.UserId == userId);
+
 			parentId = parentObjectId;
 		}
 
@@ -149,14 +151,25 @@ public class CategoryService(
 
 		await categoryRepository.UpdateAsync(category);
 
-		var merchants = (await merchantRepository.ListAsync(x => x.UserId == userId && request.MerchantIds.Contains(x.Id.ToString()))).ToList();
+		// ---------------------------
+		// Merchant işlemleri
+		// ---------------------------
+
+		var merchants = (await merchantRepository.ListAsync(x => x.UserId == userId &&
+		                                                         request.MerchantIds.Contains(x.Id.ToString())))
+			.ToList();
+
 		if (merchants.Count != request.MerchantIds.Count)
 		{
 			return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.MerchantNotFound);
 		}
 
 		var selectedMerchantIds = request.MerchantIds.ToHashSet();
-		var existingLinkedMerchants = await merchantRepository.ListAsync(x => x.UserId == userId && x.CategoryId == category.Id);
+
+		var existingLinkedMerchants = await merchantRepository.ListAsync(x => x.UserId == userId &&
+		                                                                      x.CategoryId == category.Id);
+
+		// Unlink edilenler
 		foreach (var linkedMerchant in existingLinkedMerchants)
 		{
 			if (!selectedMerchantIds.Contains(linkedMerchant.Id.ToString()))
@@ -166,6 +179,7 @@ public class CategoryService(
 			}
 		}
 
+		// Yeni linklenenler
 		foreach (var merchant in merchants)
 		{
 			if (merchant.CategoryId != category.Id)
@@ -175,9 +189,20 @@ public class CategoryService(
 			}
 		}
 
+		// ---------------------------
+		// ✅ MerchantCount güncelle
+		// ---------------------------
 
-		var merchantCount = (await merchantRepository.ListAsync(x => x.UserId == userId && x.CategoryId == category.Id)).Count();
-		return FunctionResponse.Success(ToResponse(category, merchantCount));
+		var finalMerchantCount = (await merchantRepository.ListAsync(x => x.UserId == userId &&
+		                                                                  x.CategoryId == category.Id)).Count();
+
+		category.MerchantCount = finalMerchantCount;
+		category.UpdatedAt = DateTime.UtcNow;
+
+		await categoryRepository.UpdateAsync(category);
+
+		return FunctionResponse.Success(
+			ToResponse(category, finalMerchantCount));
 	}
 
 	public async Task<FunctionResponse> DeleteAsync(string id)
@@ -233,20 +258,10 @@ public class CategoryService(
 			return FunctionResponse.Success(new List<CategoryMerchantItemViewModel>());
 		}
 
-		var merchantIds = merchants.Select(x => x.Id).ToList();
-		var transactions = await transactionRepository.ListAsync(x => x.UserId == userId && merchantIds.Contains(x.MerchantId));
-		var transactionLookup = transactions
-			.GroupBy(x => x.MerchantId)
-			.ToDictionary(
-				g => g.Key,
-				g => new {Count = g.Count(), LastDate = g.Max(x => x.Date)});
-
 		var response = merchants.Select(x => new CategoryMerchantItemViewModel
 			{
 				Id = x.Id.ToString(),
 				Name = x.Name,
-				TransactionCount = transactionLookup.TryGetValue(x.Id, out var stats) ? stats.Count : x.TransactionCount,
-				LastTransactionDate = transactionLookup.TryGetValue(x.Id, out var stats2) ? stats2.LastDate : null
 			})
 			.ToList();
 

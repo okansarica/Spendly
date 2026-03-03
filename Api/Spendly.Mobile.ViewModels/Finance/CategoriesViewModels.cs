@@ -19,7 +19,5 @@ public class CategoryMerchantItemViewModel
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public int TransactionCount { get; set; }
-    public DateTime? LastTransactionDate { get; set; }
 }
 
