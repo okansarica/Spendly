@@ -56,7 +56,7 @@ export default function MerchantsListScreen() {
       padding: spacing.lg,
     },
     listContent: {
-      paddingBottom: tabBarHeight + spacing.xl,
+      paddingBottom: tabBarHeight + spacing.xl + 50,
     },
     searchRow: {
       flexDirection: 'row',

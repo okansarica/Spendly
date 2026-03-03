@@ -318,6 +318,26 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 
         return dictionary;
     }
+    
+    public async Task<Dictionary<ObjectId, List<T>>> ListAsync(
+        IEnumerable<ObjectId> ids,
+        Expression<Func<T, ObjectId?>> propertySelector,
+        Func<T, ObjectId> keySelector)
+    {
+        var distinctIds = ids.Distinct().ToList();
+        var nullableIds = distinctIds.Cast<ObjectId?>().ToList();
+
+        var filter = Builders<T>.Filter.And(
+            Builders<T>.Filter.In(propertySelector, nullableIds),
+            Builders<T>.Filter.Ne(propertySelector, null)
+        );
+
+        var list = await _entities.Find(filter).ToListAsync();
+
+        return list
+            .GroupBy(keySelector)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
 
 
     public async Task<List<T>> ListPagingAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition, PagingParameter paging)

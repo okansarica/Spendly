@@ -9,7 +9,6 @@ public class CategoryListItemViewModel
     public string? Color { get; set; }
     public string? Icon { get; set; }
     public int MerchantCount { get; set; }
-    public bool IsSystem { get; set; }
 }
 
 public class CategoryResponseViewModel : CategoryListItemViewModel

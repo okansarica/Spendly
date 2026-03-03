@@ -14,7 +14,7 @@ public class CategoryUpsertRequestViewModel
     public string? ParentId { get; set; }
     public string? Color { get; set; }
     public string? Icon { get; set; }
-    public List<string>? MerchantIds { get; set; }
+    public List<string> MerchantIds { get; set; } = [];
 }
 
 public class CategoryMerchantsRequestViewModel

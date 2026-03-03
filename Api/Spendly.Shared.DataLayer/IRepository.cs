@@ -35,5 +35,7 @@ public interface IRepository<T> where T : BaseEntity
 	Task<long> CountAsync(FilterDefinition<T> filterDefinition);
 	Task<Dictionary<ObjectId, T>> ListAsync(IEnumerable<ObjectId> ids,
 		Expression<Func<T, ObjectId?>> propertySelector);
-
+	Task<Dictionary<ObjectId, List<T>>> ListAsync(IEnumerable<ObjectId> ids,
+		Expression<Func<T, ObjectId?>> propertySelector,
+		Func<T, ObjectId> keySelector);
 }

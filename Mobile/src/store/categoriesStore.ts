@@ -6,15 +6,15 @@ import {
   CategoryListItem,
   CategoryListRequest,
   CategoryUpsertRequest,
-  CategoryMerchantsRequest,
   CategoryMerchantItem,
-} from '../services/categoriesService';
+ } from '../services/categoriesService';
 
 type CategoriesState = {
   items: CategoryListItem[];
   merchantsByCategory: Record<string, CategoryMerchantItem[] | undefined>;
   draftMerchantIds: string[];
   isLoading: boolean;
+  isCategoryMerchantsLoading: boolean;
   isSaving: boolean;
   error?: string;
 };
@@ -24,6 +24,7 @@ const initialState: CategoriesState = {
   merchantsByCategory: {},
   draftMerchantIds: [],
   isLoading: false,
+  isCategoryMerchantsLoading: false,
   isSaving: false,
   error: undefined,
 };
@@ -71,28 +72,6 @@ export const loadCategoryMerchants = createAsyncThunk(
       return rejectWithValue(response.errorMessage);
     }
     return {categoryId, items: response.data as CategoryMerchantItem[]};
-  }
-);
-
-export const addCategoryMerchants = createAsyncThunk(
-  'categories/addMerchants',
-  async (payload: {categoryId: string; data: CategoryMerchantsRequest}, {rejectWithValue}) => {
-    const response = await apiCall(() => categoriesService.addMerchants(payload.categoryId, payload.data));
-    if (!response.isSuccess) {
-      return rejectWithValue(response.errorMessage);
-    }
-    return response.data as CategoryListItem;
-  }
-);
-
-export const removeCategoryMerchant = createAsyncThunk(
-  'categories/removeMerchant',
-  async (payload: {categoryId: string; merchantId: string}, {rejectWithValue}) => {
-    const response = await apiCall(() => categoriesService.removeMerchant(payload.categoryId, payload.merchantId));
-    if (!response.isSuccess) {
-      return rejectWithValue(response.errorMessage);
-    }
-    return payload;
   }
 );
 
@@ -159,12 +138,17 @@ const categoriesSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(loadCategoryMerchants.fulfilled, (state, action) => {
+        state.isCategoryMerchantsLoading = false;
         state.merchantsByCategory[action.payload.categoryId] = action.payload.items;
       })
-      .addCase(removeCategoryMerchant.fulfilled, (state, action) => {
-        const current = state.merchantsByCategory[action.payload.categoryId] ?? [];
-        state.merchantsByCategory[action.payload.categoryId] = current.filter(item => item.id !== action.payload.merchantId);
-      });
+      .addCase(loadCategoryMerchants.pending, state => {
+        state.isCategoryMerchantsLoading = true;
+      })
+      .addCase(loadCategoryMerchants.rejected, (state, action) => {
+        state.isCategoryMerchantsLoading = false;
+        state.error = action.payload as string;
+      })
+      
   },
 });
 

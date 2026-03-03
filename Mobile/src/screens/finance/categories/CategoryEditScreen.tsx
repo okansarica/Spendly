@@ -1,6 +1,6 @@
 // CHANGED_BY_AI: 2026-03-02 - Add category edit screen
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { translate } from '../../../utils/translations';
 import Header from '../../../components/Header';
@@ -10,11 +10,10 @@ import {
     createCategory,
     deleteCategory,
     loadCategoryMerchants,
-    removeCategoryMerchant,
     setDraftMerchantIds,
     updateCategory,
 } from '../../../store/categoriesStore';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FinanceStackParamList } from '../../../navigation/FinanceNavigator';
 import { CategoryColors, CategoryIcons } from '../../../constants/categoryConstants';
@@ -39,6 +38,9 @@ export default function CategoryEditScreen() {
     const merchantItems = useAppSelector(state => state.merchants.items);
     const categories = useAppSelector(state => state.categories.items);
     const isSaving = useAppSelector(state => state.categories.isSaving);
+    const isMerchantsLoading = useAppSelector(state => state.merchants.isLoading);
+    const initializedDraftCategoryIdRef = useRef<string | undefined>(undefined);
+    const isCategoryMerchantsLoading = mode === 'edit' && !!category?.id && !!category.merchantCount && !merchantsByCategory[category.id];
 
     const usedColors = useMemo(() => {
         const list = categories.map(item => item.color).filter(color => color !== undefined) as string[];
@@ -68,20 +70,37 @@ export default function CategoryEditScreen() {
         }
     }, [mode, colorTouched, availableColors, color]);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (mode === 'edit' && category?.id) {
-                dispatch(loadCategoryMerchants(category.id));
-            }
-        }, [dispatch, mode, category?.id])
-    );
+    useEffect(() => {
+        if (mode === 'edit' && category?.id && category.merchantCount) {
+            dispatch(loadCategoryMerchants(category.id));
+            initializedDraftCategoryIdRef.current = undefined;
+        }
+    }, [dispatch, mode, category?.id]);
+
+    useEffect(() => {
+        if (mode !== 'edit' || !category?.id) {
+            return;
+        }
+        const items = merchantsByCategory[category.id];
+        if (!items) {
+            return;
+        }
+        if (initializedDraftCategoryIdRef.current === category.id) {
+            return;
+        }
+        dispatch(setDraftMerchantIds(items.map(item => item.id)));
+        initializedDraftCategoryIdRef.current = category.id;
+    }, [dispatch, mode, category?.id, merchantsByCategory]);
 
     const linkedMerchants = useMemo(() => {
-        if (mode === 'edit' && category?.id) {
-            return merchantsByCategory[category.id] ?? [];
-        }
-        return merchantItems.filter(item => draftMerchantIds.includes(item.id));
-    }, [mode, category?.id, merchantsByCategory, merchantItems, draftMerchantIds]);
+        const draftSet = new Set(draftMerchantIds);
+         if (mode === 'edit' && category?.id) {
+            const existing = merchantsByCategory[category.id] ?? [];
+            const extra = merchantItems.filter(item => draftSet.has(item.id) && !existing.some(existingItem => existingItem.id === item.id));
+            return [...existing.filter(item => draftSet.has(item.id)), ...extra];
+         }
+        return merchantItems.filter(item => draftSet.has(item.id));
+     }, [mode, category?.id, merchantsByCategory, merchantItems, draftMerchantIds]);
 
     const onSave = async () => {
         if (mode === 'create') {
@@ -110,7 +129,7 @@ export default function CategoryEditScreen() {
         if (category?.id) {
             const result = await dispatch(updateCategory({
                 id: category.id,
-                data: {name, parentId: parentCategory?.id, color, icon}
+                data: {name, parentId: parentCategory?.id, color, icon, merchantIds: draftMerchantIds}
             }));
 
             if (result.meta.requestStatus !== 'fulfilled') {
@@ -134,11 +153,7 @@ export default function CategoryEditScreen() {
     };
 
     const onRemoveMerchant = (merchantId: string) => {
-        if (mode === 'edit' && category?.id) {
-            dispatch(removeCategoryMerchant({categoryId: category.id, merchantId}));
-            return;
-        }
-        dispatch(setDraftMerchantIds(draftMerchantIds.filter(id => id !== merchantId)));
+         dispatch(setDraftMerchantIds(draftMerchantIds.filter(id => id !== merchantId)));
     };
 
     const onDelete = () => {
@@ -291,10 +306,15 @@ export default function CategoryEditScreen() {
             borderColor: colors.borderSubtle,
         },
         parentText: {
-            color: colors.textSecondary,
-            fontSize: fontSizes.sm,
+             color: colors.textSecondary,
+             fontSize: fontSizes.sm,
+         },
+        loadingRow: {
+            paddingVertical: spacing.md,
+            alignItems: 'center',
+            marginBottom: spacing.sm,
         },
-    });
+     });
 
     const title = mode === 'edit' ? translate('EditCategory') : translate('CreateCategory');
 
@@ -342,30 +362,34 @@ export default function CategoryEditScreen() {
                         <Text style={s.actionButtonText}>{translate('AddMerchant')}</Text>
                     </TouchableOpacity>
                 </View>
-                {linkedMerchants.map(merchant => (
-                    <View key={merchant.id} style={s.merchantCard}>
-                        <View style={s.merchantRow}>
-                            <View>
-                                <Text style={s.merchantName}>{merchant.name}</Text>
-                                {'transactionCount' in merchant ? (
-                                    <Text style={s.merchantMeta}>
-                                        {translate('TransactionCount')}: {merchant.transactionCount}
-                                    </Text>
-                                ) : undefined}
-                                {'lastTransactionDate' in merchant && merchant.lastTransactionDate ? (
-                                    <Text style={s.merchantMeta}>
-                                        {translate('LastTransaction')}: {merchant.lastTransactionDate}
-                                    </Text>
-                                ) : undefined}
-                                {'totalAmount' in merchant ? (
-                                    <Text style={s.merchantMeta}>{formatCurrency(merchant.totalAmount as number)}</Text>
-                                ) : undefined}
-                            </View>
-                            <TouchableOpacity style={s.removeButton} onPress={() => onRemoveMerchant(merchant.id)}>
-                                <Text style={s.removeButtonText}>×</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                {isMerchantsLoading || (mode === 'edit' && isCategoryMerchantsLoading) ? (
+                     <View style={s.loadingRow}>
+                         <ActivityIndicator size="small" color={colors.buttonPrimary} />
+                     </View>
+                 ) : linkedMerchants.map(merchant => (
+                     <View key={merchant.id} style={s.merchantCard}>
+                         <View style={s.merchantRow}>
+                             <View>
+                                 <Text style={s.merchantName}>{merchant.name}</Text>
+                                 {'transactionCount' in merchant ? (
+                                     <Text style={s.merchantMeta}>
+                                         {translate('TransactionCount')}: {merchant.transactionCount}
+                                     </Text>
+                                 ) : undefined}
+                                 {'lastTransactionDate' in merchant && merchant.lastTransactionDate ? (
+                                     <Text style={s.merchantMeta}>
+                                         {translate('LastTransaction')}: {merchant.lastTransactionDate}
+                                     </Text>
+                                 ) : undefined}
+                                 {'totalAmount' in merchant ? (
+                                     <Text style={s.merchantMeta}>{formatCurrency(merchant.totalAmount as number)}</Text>
+                                 ) : undefined}
+                             </View>
+                             <TouchableOpacity style={s.removeButton} onPress={() => onRemoveMerchant(merchant.id)}>
+                                 <Text style={s.removeButtonText}>×</Text>
+                             </TouchableOpacity>
+                         </View>
+                     </View>
                 ))}
                 <Button
                     text={translate('Save')}

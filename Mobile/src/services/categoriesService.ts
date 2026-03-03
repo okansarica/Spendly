@@ -9,7 +9,6 @@ export type CategoryListItem = {
   color?: string;
   icon?: string;
   merchantCount: number;
-  isSystem: boolean;
 };
 
 export type CategoryMerchantItem = {
@@ -43,7 +42,5 @@ export const categoriesService = {
   update: (id: string, payload: CategoryUpsertRequest) => apiClient.put<CategoryListItem>(ApiEndpoints.Categories.ById(id), payload),
   remove: (id: string) => apiClient.delete<void>(ApiEndpoints.Categories.ById(id)),
   getMerchants: (id: string) => apiClient.get<CategoryMerchantItem[]>(ApiEndpoints.Categories.Merchants(id)),
-  addMerchants: (id: string, payload: CategoryMerchantsRequest) => apiClient.post<CategoryListItem>(ApiEndpoints.Categories.Merchants(id), payload),
-  removeMerchant: (id: string, merchantId: string) => apiClient.delete<void>(ApiEndpoints.Categories.MerchantLink(id, merchantId)),
 };
 

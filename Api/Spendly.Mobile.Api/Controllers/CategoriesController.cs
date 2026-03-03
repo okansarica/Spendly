@@ -71,33 +71,9 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
         {
             return this.BadRequestFrom(response);
         }
-
+    
         return Ok(response.Data);
     }
-
-    [HttpPost("{id}/merchants")]
-    public async Task<IActionResult> AddMerchants(string id, [FromBody] CategoryMerchantsRequestViewModel request)
-    {
-        var response = await categoryService.AddMerchantsAsync(id, request);
-        if (!response.IsSuccess)
-        {
-            return this.BadRequestFrom(response);
-        }
-
-        return Ok(response.Data);
-    }
-
-    [HttpDelete("{id}/merchants/{merchantId}")]
-    public async Task<IActionResult> RemoveMerchant(string id, string merchantId)
-    {
-
-        var response = await categoryService.RemoveMerchantAsync(id, merchantId);
-        if (!response.IsSuccess)
-        {
-            return this.BadRequestFrom(response);
-        }
-
-        return Ok();
-    }
+    
 }
 

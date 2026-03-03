@@ -261,7 +261,6 @@ Cache-Control: no-cache, no-store, must-revalidate
     "color": "#22C55E",
     "icon": "shopping-cart",
     "merchantCount": 12,
-    "isSystem": false
   }
 ]
 ```

@@ -41,7 +41,7 @@ public class MerchantService(
             return FunctionResponse.Success(new List<MerchantListItemViewModel>());
         }
 
-        var categoryLookup = (await categoryRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId() || x.IsSystem))
+        var categoryLookup = (await categoryRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId()))
             .ToDictionary(x => x.Id, x => x.Name);
 
         var items = merchants.Select(x => new MerchantListItemViewModel

@@ -1,13 +1,13 @@
 // CHANGED_BY_AI: 2026-03-02 - Add category merchants selection screen
-import React, {useCallback, useMemo, useState, useEffect} from 'react';
+import React, {useCallback, useState, useEffect} from 'react';
 import {View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList} from 'react-native';
 import {useTheme} from '../../../theme/ThemeContext';
 import {translate} from '../../../utils/translations';
 import Header from '../../../components/Header';
 import {useAppDispatch, useAppSelector} from '../../../store/hooks';
 import {loadMerchants} from '../../../store/merchantsStore';
-import {addCategoryMerchants, setDraftMerchantIds} from '../../../store/categoriesStore';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {setDraftMerchantIds} from '../../../store/categoriesStore';
+import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {FinanceStackParamList} from '../../../navigation/FinanceNavigator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -20,8 +20,6 @@ export default function CategoryMerchantsSelectScreen() {
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NativeStackNavigationProp<FinanceStackParamList, 'CategoryMerchantsSelect'>>();
-  const route = useRoute();
-  const params = route.params as FinanceStackParamList['CategoryMerchantsSelect'];
   const merchants = useAppSelector(state => state.merchants.items);
   const draftMerchantIds = useAppSelector(state => state.categories.draftMerchantIds);
   const [search, setSearch] = useState('');
@@ -57,17 +55,9 @@ export default function CategoryMerchantsSelectScreen() {
   };
 
   const onAssign = () => {
-    if (params.mode === 'edit' && params.categoryId) {
-      dispatch(addCategoryMerchants({categoryId: params.categoryId, data: {merchantIds: selectedIds}})).then(result => {
-        if (result.meta.requestStatus === 'fulfilled') {
-          navigation.goBack();
-        }
-      });
-      return;
-    }
-    dispatch(setDraftMerchantIds(selectedIds));
-    navigation.goBack();
-  };
+     dispatch(setDraftMerchantIds(selectedIds));
+     navigation.goBack();
+   };
 
   const s = StyleSheet.create({
     container: {
@@ -146,11 +136,6 @@ export default function CategoryMerchantsSelectScreen() {
       fontSize: fontSizes.xs,
       color: colors.textSecondary,
     },
-    amount: {
-      fontSize: fontSizes.sm,
-      color: colors.textSecondary,
-      textAlign: 'right',
-    },
     bottomBar: {
       position: 'absolute',
       left: 0,
@@ -181,9 +166,7 @@ export default function CategoryMerchantsSelectScreen() {
     },
   });
 
-  const data = useMemo(() => merchants, [merchants]);
-
-  return (
+   return (
     <View style={s.container}>
       <Header title={translate('AddMerchant')} />
       <View style={s.content}>
@@ -212,7 +195,7 @@ export default function CategoryMerchantsSelectScreen() {
           </TouchableOpacity>
         </View>
         <FlatList
-          data={data}
+          data={merchants}
           keyExtractor={item => item.id}
           renderItem={({item}) => (
             <TouchableOpacity style={s.row} onPress={() => toggleSelect(item.id)}>
@@ -222,10 +205,8 @@ export default function CategoryMerchantsSelectScreen() {
                 </View>
                 <View>
                   <Text style={s.name}>{item.name}</Text>
-                  <Text style={s.meta}>{translate('TransactionCount')}: {item.transactionCount}</Text>
                 </View>
               </View>
-              <Text style={s.amount}>{item.totalAmount.toFixed(2)}</Text>
             </TouchableOpacity>
           )}
         />
