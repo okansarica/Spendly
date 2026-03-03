@@ -185,15 +185,33 @@ class Program
 		var collection = _database.GetCollection<Merchant>("Merchant");
 		await collection.DeleteManyAsync(FilterDefinition<Merchant>.Empty);
 
-		var merchants = new List<Merchant>
+		var merchants = new List<Merchant>();
+		var merchantNames = new[] { "Walmart", "Amazon", "Starbucks", "Shell Gas", "Netflix", "Spotify", "McDonald's", "Target", "Best Buy", "Costco" };
+		var random = new Random();
+
+		var userCategories = categories.GroupBy(c => c.UserId).ToList();
+
+		foreach (var userCategoryGroup in userCategories)
 		{
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Walmart", CategoryId = categories[0].Id, TransactionCount = 0, TransactionAmount = 0 },
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Amazon", CategoryId = categories[0].Id, TransactionCount = 0, TransactionAmount = 0 },
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Starbucks", CategoryId = categories[0].Id, TransactionCount = 0, TransactionAmount = 0 },
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Shell Gas", CategoryId = categories[1].Id, TransactionCount = 0, TransactionAmount = 0 },
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Netflix", CategoryId = categories[2].Id, TransactionCount = 0, TransactionAmount = 0 },
-			new Merchant { Id = ObjectId.GenerateNewId(), Name = "Spotify", CategoryId = categories[2].Id, TransactionCount = 0, TransactionAmount = 0 },
-		};
+			var userId = userCategoryGroup.Key;
+			var userCats = userCategoryGroup.ToList();
+
+			foreach (var merchantName in merchantNames)
+			{
+				var transactionCount = random.Next(5, 50);
+				var transactionAmount = transactionCount * (decimal)random.Next(20, 200);
+
+				merchants.Add(new Merchant
+				{
+					Id = ObjectId.GenerateNewId(),
+					UserId = userId,
+					Name = merchantName,
+					CategoryId = userCats[random.Next(userCats.Count)].Id,
+					TransactionCount = transactionCount,
+					TransactionAmount = transactionAmount
+				});
+			}
+		}
 
 		await collection.InsertManyAsync(merchants);
 		Console.WriteLine($"✓ Created {merchants.Count} merchants");
@@ -222,20 +240,20 @@ class Program
 		{
 			var userAccounts = accounts.Where(a => a.UserId == user.Id).ToList();
 			var userCategories = categories.Where(c => c.UserId == user.Id).ToList();
+			var userMerchants = merchants.Where(m => m.UserId == user.Id).ToList();
 
 			for (int i = 0; i < 150; i++)
 			{
 				var txnDate = startDate.AddDays(random.Next(0, 180));
 				var account = userAccounts[random.Next(userAccounts.Count)];
 				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = merchants[random.Next(merchants.Count)];
+				var merchant = userMerchants[random.Next(userMerchants.Count)];
 				var amount = amounts[random.Next(amounts.Length)];
 
 				var rawTxn = new RawTransaction
 				{
 					Id = ObjectId.GenerateNewId(),
 					UserId = user.Id,
-					
 					Amount = amount,
 					MerchantName = merchant.Name,
 					CreatedAt = DateTime.UtcNow
@@ -263,7 +281,7 @@ class Program
 				var txnDate = previousMonth.AddDays(random.Next(0, 28));
 				var account = userAccounts[random.Next(userAccounts.Count)];
 				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = merchants[random.Next(merchants.Count)];
+				var merchant = userMerchants[random.Next(userMerchants.Count)];
 				var amount = amounts[random.Next(amounts.Length)];
 
 				var rawTxn = new RawTransaction
@@ -297,7 +315,7 @@ class Program
 				var txnDate = currentMonth.AddDays(random.Next(0, 2));
 				var account = userAccounts[random.Next(userAccounts.Count)];
 				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = merchants[random.Next(merchants.Count)];
+				var merchant = userMerchants[random.Next(userMerchants.Count)];
 				var amount = amounts[random.Next(amounts.Length)];
 
 				var rawTxn = new RawTransaction

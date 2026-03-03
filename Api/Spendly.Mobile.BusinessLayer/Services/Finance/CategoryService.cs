@@ -4,6 +4,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Finance;
 using MongoDB.Bson;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Finance;
+using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
 using Spendly.Shared.Entities.TransactionManagement;
 using Spendly.Shared.Entities.UserManagement;
@@ -13,10 +14,12 @@ using Spendly.Shared.ViewModels;
 public class CategoryService(
     IRepository<Category> categoryRepository,
     IRepository<Merchant> merchantRepository,
-    IRepository<NormalizedTransaction> transactionRepository)
+    IRepository<NormalizedTransaction> transactionRepository,
+    RequestContextViewModel requestContextViewModel)
 {
-    public async Task<FunctionResponse<List<CategoryListItemViewModel>>> GetListAsync(ObjectId userId, CategoryListRequestViewModel request)
+    public async Task<FunctionResponse<List<CategoryListItemViewModel>>> GetListAsync(CategoryListRequestViewModel request)
     {
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var categories = (await categoryRepository.ListAsync(x => x.UserId == userId || x.IsSystem)).ToList();
         var search = request.Search?.Trim();
         if (!string.IsNullOrWhiteSpace(search))
@@ -47,8 +50,9 @@ public class CategoryService(
         return FunctionResponse.Success(response);
     }
 
-    public async Task<FunctionResponse<CategoryResponseViewModel>> CreateAsync(ObjectId userId, CategoryUpsertRequestViewModel request)
+    public async Task<FunctionResponse<CategoryResponseViewModel>> CreateAsync(CategoryUpsertRequestViewModel request)
     {
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var name = request.Name?.Trim() ?? string.Empty;
         var existing = await categoryRepository.ListAsync(x => x.UserId == userId && x.Name.ToLower() == name.ToLower());
         if (existing.Any())
@@ -59,7 +63,8 @@ public class CategoryService(
         ObjectId? parentId = null;
         if (!string.IsNullOrWhiteSpace(request.ParentId))
         {
-            if (!ObjectId.TryParse(request.ParentId, out var parentObjectId))
+            var parentObjectId = request.ParentId.ToObjectIdOrNull();
+            if (parentObjectId == null)
             {
                 return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.InvalidCategoryId);
             }
@@ -111,13 +116,15 @@ public class CategoryService(
         return FunctionResponse.Success(ToResponse(category, 0));
     }
 
-    public async Task<FunctionResponse<CategoryResponseViewModel>> UpdateAsync(ObjectId userId, string id, CategoryUpsertRequestViewModel request)
+    public async Task<FunctionResponse<CategoryResponseViewModel>> UpdateAsync(string id, CategoryUpsertRequestViewModel request)
     {
-        if (!ObjectId.TryParse(id, out var categoryId))
+        var categoryId = id.ToObjectIdOrNull();
+        if (categoryId == null)
         {
             return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.InvalidCategoryId);
         }
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
         if (category == null)
         {
@@ -134,7 +141,8 @@ public class CategoryService(
         ObjectId? parentId = null;
         if (!string.IsNullOrWhiteSpace(request.ParentId))
         {
-            if (!ObjectId.TryParse(request.ParentId, out var parentObjectId))
+            var parentObjectId = request.ParentId.ToObjectIdOrNull();
+            if (parentObjectId == null)
             {
                 return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.InvalidCategoryId);
             }
@@ -182,13 +190,15 @@ public class CategoryService(
         return FunctionResponse.Success(ToResponse(category, merchantCount));
     }
 
-    public async Task<FunctionResponse> DeleteAsync(ObjectId userId, string id)
+    public async Task<FunctionResponse> DeleteAsync(string id)
     {
-        if (!ObjectId.TryParse(id, out var categoryId))
+        var categoryId = id.ToObjectIdOrNull();
+        if (categoryId == null)
         {
             return FunctionResponse.Failure(MessageCodes.InvalidCategoryId);
         }
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
         if (category == null)
         {
@@ -212,13 +222,15 @@ public class CategoryService(
         return FunctionResponse.Success();
     }
 
-    public async Task<FunctionResponse<List<CategoryMerchantItemViewModel>>> GetMerchantsAsync(ObjectId userId, string id)
+    public async Task<FunctionResponse<List<CategoryMerchantItemViewModel>>> GetMerchantsAsync(string id)
     {
-        if (!ObjectId.TryParse(id, out var categoryId))
+        var categoryId = id.ToObjectIdOrNull();
+        if (categoryId == null)
         {
             return FunctionResponse.Failure<List<CategoryMerchantItemViewModel>>(MessageCodes.InvalidCategoryId);
         }
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
         if (category == null)
         {
@@ -250,13 +262,15 @@ public class CategoryService(
         return FunctionResponse.Success(response);
     }
 
-    public async Task<FunctionResponse<CategoryResponseViewModel>> AddMerchantsAsync(ObjectId userId, string id, CategoryMerchantsRequestViewModel request)
+    public async Task<FunctionResponse<CategoryResponseViewModel>> AddMerchantsAsync(string id, CategoryMerchantsRequestViewModel request)
     {
-        if (!ObjectId.TryParse(id, out var categoryId))
+        var categoryId = id.ToObjectIdOrNull();
+        if (categoryId == null)
         {
             return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.InvalidCategoryId);
         }
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
         if (category == null)
         {
@@ -288,18 +302,21 @@ public class CategoryService(
         return FunctionResponse.Success(ToResponse(category, merchantCount));
     }
 
-    public async Task<FunctionResponse> RemoveMerchantAsync(ObjectId userId, string id, string merchantId)
+    public async Task<FunctionResponse> RemoveMerchantAsync(string id, string merchantId)
     {
-        if (!ObjectId.TryParse(id, out var categoryId))
+        var categoryId = id.ToObjectIdOrNull();
+        if (categoryId == null)
         {
             return FunctionResponse.Failure(MessageCodes.InvalidCategoryId);
         }
 
-        if (!ObjectId.TryParse(merchantId, out var merchantObjectId))
+        var merchantObjectId = merchantId.ToObjectIdOrNull();
+        if (merchantObjectId == null)
         {
             return FunctionResponse.Failure(MessageCodes.MerchantNotFound);
         }
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
         if (category == null)
         {
@@ -344,11 +361,12 @@ public class CategoryService(
         var parsed = new List<ObjectId>();
         foreach (var id in merchantIds)
         {
-            if (!ObjectId.TryParse(id, out var objectId))
+            var objectId = id.ToObjectIdOrNull();
+            if (objectId == null)
             {
                 return null;
             }
-            parsed.Add(objectId);
+            parsed.Add(objectId.Value);
         }
         return parsed;
     }

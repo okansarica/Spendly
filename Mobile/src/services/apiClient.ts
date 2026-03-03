@@ -31,14 +31,14 @@ export async function apiCall<T>(request: () => Promise<AxiosResponse<T>>): Prom
     return {isSuccess: true, data: response.data, errorMessage: undefined};
   } catch (error: any) {
     console.log(error);
-    if (error.response?.status === 400) {
+    if (error.response?.status === 400) { //TODO translation yapilacak
       const key =
         error.response.data?.message ??
         error.response.data?.errors?.[0]?.message ??
         'an error occurred';
       return {isSuccess: false, data: undefined, errorMessage: translate(key)};
     }
-    return {isSuccess: false, data: undefined, errorMessage: translate('An unexpected error occurred')};
+    return {isSuccess: false, data: undefined, errorMessage: translate('An unexpected error occurred')}; //TODO translation yapilacak
   }
 }
 

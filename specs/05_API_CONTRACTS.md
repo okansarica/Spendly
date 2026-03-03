@@ -1,3 +1,6 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant nickname endpoint
+// CHANGED_BY_AI: 2026-03-02 - Add merchants delete endpoint
+// CHANGED_BY_AI: 2026-03-02 - Remove merchant transaction fields from contracts
 // CHANGED_BY_AI: 2026-03-02 - Add finance category and merchant endpoints
 // CHANGED_BY_AI: 2026-03-02 - Add reports contracts and timezone header
 // CHANGED_BY_AI: 2026-03-02 - Document homepage response contract
@@ -305,41 +308,46 @@ Cache-Control: no-cache, no-store, must-revalidate
 
 **GET /api/v1/merchants**
 - Auth: Required
-- Query: `search?, isUncategorized?, sortBy?, sortDirection?, startDate?, endDate?`
+- Query: `search?, isUncategorized?, sortBy?, sortDirection?`
 - Response:
 ```json
 [
   {
     "id": "507f1f77bcf86cd799439012",
     "name": "Tesco",
+    "nickname": "Tesco Local",
     "categoryId": "507f1f77bcf86cd799439011",
-    "categoryName": "Groceries",
-    "transactionCount": 24,
-    "totalAmount": 420.5,
-    "lastTransactionDate": "2026-03-02T10:00:00Z"
+    "categoryName": "Groceries"
   }
 ]
 ```
 
 **GET /api/v1/merchants/{id}**
 - Auth: Required
-- Query: `startDate?, endDate?`
 - Response:
 ```json
 {
   "id": "507f1f77bcf86cd799439012",
   "name": "Tesco",
+  "nickname": "Tesco Local",
   "categoryId": "507f1f77bcf86cd799439011",
-  "categoryName": "Groceries",
-  "transactionCount": 24,
-  "totalAmount": 420.5
+  "categoryName": "Groceries"
 }
 ```
 
-**PUT /api/v1/merchants/{id}/category**
+**PUT /api/v1/merchants/{id}**
 - Auth: Required
-- Request: `{ categoryId? }`
+- Request: `{ nickname?, categoryId? }`
 - Response: Updated merchant
+
+**PUT /api/v1/merchants/{id}/nickname**
+- Auth: Required
+- Request: `{ nickname? }`
+- Response: Updated merchant
+
+**DELETE /api/v1/merchants/{id}**
+- Auth: Required
+- Response: 204 No Content
 
 ## Report Endpoints (v1)
 

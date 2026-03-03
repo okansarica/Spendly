@@ -17,7 +17,7 @@ public class RequestContextFilter(RequestContextViewModel requestContextViewMode
         // Fallback for tests: allow setting seller id via header X-Test-SellerId when authentication isn't present
         if (idClaim == null)
         {
-            if (httpContext.Request.Headers.TryGetValue("X-Test-SellerId", out var val))
+            if (httpContext.Request.Headers.TryGetValue("X-Test-UserId", out var val))
             {
                 requestContextViewModel.SetUserId(val.ToString());
             }

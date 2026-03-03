@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant edit screen route
 // CHANGED_BY_AI: 2026-03-02 - Add finance navigator
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -7,6 +8,7 @@ import CategoriesListScreen from '../screens/finance/categories/CategoriesListSc
 import CategoryEditScreen from '../screens/finance/categories/CategoryEditScreen';
 import CategoryMerchantsSelectScreen from '../screens/finance/categories/CategoryMerchantsSelectScreen';
 import MerchantsListScreen from '../screens/finance/merchants/MerchantsListScreen';
+import MerchantEditScreen from '../screens/finance/merchants/MerchantEditScreen';
 import {CategoryListItem} from '../services/categoriesService';
 
 export type FinanceStackParamList = {
@@ -15,6 +17,7 @@ export type FinanceStackParamList = {
   CategoryEdit: {mode: 'create' | 'edit'; category?: CategoryListItem; parentCategory?: CategoryListItem};
   CategoryMerchantsSelect: {categoryId?: string; mode: 'create' | 'edit'};
   MerchantsList: undefined;
+  MerchantEdit: {merchantId: string};
 };
 
 const Stack = createNativeStackNavigator<FinanceStackParamList>();
@@ -35,7 +38,7 @@ export default function FinanceNavigator() {
       <Stack.Screen name="CategoryEdit" component={CategoryEditScreen} />
       <Stack.Screen name="CategoryMerchantsSelect" component={CategoryMerchantsSelectScreen} />
       <Stack.Screen name="MerchantsList" component={MerchantsListScreen} />
+      <Stack.Screen name="MerchantEdit" component={MerchantEditScreen} />
     </Stack.Navigator>
   );
 }
-

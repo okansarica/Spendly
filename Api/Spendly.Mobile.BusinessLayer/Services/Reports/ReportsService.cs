@@ -5,6 +5,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Reports;
+using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
 using Spendly.Shared.Entities.Reporting;
 using Spendly.Shared.Entities.TransactionManagement;
@@ -17,14 +18,13 @@ public class ReportsService(
     IRepository<NormalizedTransaction> transactionRepository,
     IRepository<Account> accountRepository,
     IRepository<Category> categoryRepository,
-    IRepository<Merchant> merchantRepository)
+    IRepository<Merchant> merchantRepository,
+    RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<ReportsOverviewResponseViewModel>> GetOverviewAsync(
-        ObjectId userId,
-        ReportsOverviewRequestViewModel request,
-        string timezone)
+        ReportsOverviewRequestViewModel request)
     {
-        if (!TryResolveTimezone(timezone, out var tz))
+        if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
         {
             return FunctionResponse.Failure<ReportsOverviewResponseViewModel>(MessageCodes.InvalidTimezone);
         }
@@ -36,6 +36,7 @@ public class ReportsService(
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
         var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var currentSummaries = await GetDailySummariesAsync(userId, startUtc, endUtc);
         var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc);
 
@@ -92,17 +93,16 @@ public class ReportsService(
     }
 
     public async Task<FunctionResponse<ReportCategoryDetailResponseViewModel>> GetCategoryDetailAsync(
-        ObjectId userId,
         string categoryId,
-        ReportsCategoryRequestViewModel request,
-        string timezone)
+        ReportsCategoryRequestViewModel request)
     {
-        if (!ObjectId.TryParse(categoryId, out var categoryObjectId))
+        var categoryObjectId = categoryId.ToObjectIdOrNull();
+        if (categoryObjectId == null)
         {
             return FunctionResponse.Failure<ReportCategoryDetailResponseViewModel>(MessageCodes.InvalidCategoryId);
         }
 
-        if (!TryResolveTimezone(timezone, out var tz))
+        if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
         {
             return FunctionResponse.Failure<ReportCategoryDetailResponseViewModel>(MessageCodes.InvalidTimezone);
         }
@@ -112,14 +112,16 @@ public class ReportsService(
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
         var accountIds = request.AccountIds
-            ?.Select(id => ObjectId.TryParse(id, out var accountId) ? accountId : ObjectId.Empty)
-            .Where(id => id != ObjectId.Empty)
+            ?.Select(id => id.ToObjectIdOrNull())
+            .Where(id => id.HasValue)
+            .Select(id => id.Value)
             .ToList() ?? new List<ObjectId>();
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var categoryTotals = await GetDailySummariesAsync(userId, startUtc, endUtc, categoryObjectId, accountIds);
         var totalAmount = categoryTotals.Sum(x => x.TotalAmount);
 
-        var categoryName = await GetCategoryNameAsync(categoryObjectId);
+        var categoryName = await GetCategoryNameAsync(categoryObjectId.Value);
 
         var page = request.Page ?? 1;
         var pageSize = request.PageSize ?? Constants.Reports.DefaultPageSize;
@@ -128,7 +130,7 @@ public class ReportsService(
 
         var (transactions, total) = await GetCategoryTransactionsAsync(
             userId,
-            categoryObjectId,
+            categoryObjectId.Value,
             accountIds,
             startUtc,
             endUtc,
@@ -155,7 +157,7 @@ public class ReportsService(
         {
             CategorySummary = new ReportCategorySummaryViewModel
             {
-                CategoryId = categoryObjectId.ToString(),
+                CategoryId = categoryObjectId.Value.ToString(),
                 CategoryName = categoryName,
                 TotalAmount = totalAmount
             },
@@ -173,11 +175,9 @@ public class ReportsService(
     }
 
     public async Task<FunctionResponse<AccountsOverviewResponseViewModel>> GetAccountsOverviewAsync(
-        ObjectId userId,
-        AccountsOverviewRequestViewModel request,
-        string timezone)
+        AccountsOverviewRequestViewModel request)
     {
-        if (!TryResolveTimezone(timezone, out var tz))
+        if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
         {
             return FunctionResponse.Failure<AccountsOverviewResponseViewModel>(MessageCodes.InvalidTimezone);
         }
@@ -189,6 +189,7 @@ public class ReportsService(
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
         var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
 
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var currentSummaries = await GetDailySummariesAsync(userId, startUtc, endUtc);
         var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc);
 
@@ -240,17 +241,16 @@ public class ReportsService(
     }
 
     public async Task<FunctionResponse<AccountDetailResponseViewModel>> GetAccountDetailAsync(
-        ObjectId userId,
         string accountId,
-        AccountDetailRequestViewModel request,
-        string timezone)
+        AccountDetailRequestViewModel request)
     {
-        if (!ObjectId.TryParse(accountId, out var accountObjectId))
+        var accountObjectId = accountId.ToObjectIdOrNull();
+        if (accountObjectId == null)
         {
             return FunctionResponse.Failure<AccountDetailResponseViewModel>(MessageCodes.InvalidAccountId);
         }
 
-        if (!TryResolveTimezone(timezone, out var tz))
+        if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
         {
             return FunctionResponse.Failure<AccountDetailResponseViewModel>(MessageCodes.InvalidTimezone);
         }
@@ -259,10 +259,11 @@ public class ReportsService(
         var (startLocal, endLocal) = ResolveRange(request.StartDate, request.EndDate, nowLocal);
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
-        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, new List<ObjectId> { accountObjectId });
+        var userId = requestContextViewModel.UserId.ToObjectId();
+        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, new List<ObjectId> { accountObjectId.Value });
         var totalAmount = summaries.Sum(x => x.TotalAmount);
 
-        var accountName = await GetAccountNameAsync(accountObjectId);
+        var accountName = await GetAccountNameAsync(accountObjectId.Value);
 
         var categories = summaries
             .GroupBy(x => x.CategoryId)
@@ -284,7 +285,7 @@ public class ReportsService(
             endLocal,
             nowLocal,
             userId,
-            accountObjectId,
+            accountObjectId.Value,
             tz,
             totalAmount);
 
@@ -292,7 +293,7 @@ public class ReportsService(
         {
             AccountSummary = new AccountSummaryViewModel
             {
-                AccountId = accountObjectId.ToString(),
+                AccountId = accountObjectId.Value.ToString(),
                 AccountName = accountName,
                 StartDate = startLocal,
                 EndDate = endLocal,

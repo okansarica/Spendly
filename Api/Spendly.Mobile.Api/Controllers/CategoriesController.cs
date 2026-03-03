@@ -13,18 +13,12 @@ using Spendly.Shared.ViewModels;
 [ApiController]
 [Route("api/v1/categories")]
 [Authorize]
-public class CategoriesController(CategoryService categoryService, RequestContextViewModel requestContext) : ControllerBase
+public class CategoriesController(CategoryService categoryService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetList([FromQuery] CategoryListRequestViewModel request)
+    public async Task<IActionResult> List([FromQuery] CategoryListRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.GetListAsync(ObjectId.Parse(userIdValue), request);
+        var response = await categoryService.GetListAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -36,13 +30,7 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CategoryUpsertRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.CreateAsync(ObjectId.Parse(userIdValue), request);
+        var response = await categoryService.CreateAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -54,13 +42,7 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] CategoryUpsertRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.UpdateAsync(ObjectId.Parse(userIdValue), id, request);
+        var response = await categoryService.UpdateAsync(id, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -72,13 +54,7 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.DeleteAsync(ObjectId.Parse(userIdValue), id);
+        var response = await categoryService.DeleteAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -90,13 +66,7 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpGet("{id}/merchants")]
     public async Task<IActionResult> GetMerchants(string id)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.GetMerchantsAsync(ObjectId.Parse(userIdValue), id);
+        var response = await categoryService.GetMerchantsAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -108,13 +78,7 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpPost("{id}/merchants")]
     public async Task<IActionResult> AddMerchants(string id, [FromBody] CategoryMerchantsRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await categoryService.AddMerchantsAsync(ObjectId.Parse(userIdValue), id, request);
+        var response = await categoryService.AddMerchantsAsync(id, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -126,13 +90,8 @@ public class CategoriesController(CategoryService categoryService, RequestContex
     [HttpDelete("{id}/merchants/{merchantId}")]
     public async Task<IActionResult> RemoveMerchant(string id, string merchantId)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
 
-        var response = await categoryService.RemoveMerchantAsync(ObjectId.Parse(userIdValue), id, merchantId);
+        var response = await categoryService.RemoveMerchantAsync(id, merchantId);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

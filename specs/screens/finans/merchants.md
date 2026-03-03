@@ -1,3 +1,5 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant nickname field
+// CHANGED_BY_AI: 2026-03-02 - Remove merchant transaction summary from list
 # AI Prompt — Finance Module: Merchant Management (Mobile Expense Tracking App)
 
 ## Role
@@ -62,8 +64,6 @@ This section manages:
 
 - All merchants  
 - Merchant-category assignments  
-- Monthly expense summaries per merchant  
-- Merchant-level transaction visibility  
 
 ---
 
@@ -71,10 +71,9 @@ This section manages:
 
 ## General Rules
 
-- Displays ALL merchants  
-- NO pagination  
-- NO lazy loading  
-- Default filter: Current calendar month  
+- Displays ALL merchants
+- NO pagination
+- NO lazy loading
 
 ---
 
@@ -84,26 +83,12 @@ This section manages:
 
 Must include:
 
-1. **Month Selector**
-   - Default: current month  
-   - Can set date range
-   - Date filter will make a query to api
 
 2. **Search Input**
    - Filters by merchant name  // this will work in ui
-   - Case-insensitive  
-   - Instant filtering (debounced)  
+   - Case-insensitive
+   - Instant filtering (debounced)
 
-3. **Sort Selector**
-   Options:
-   - Alphabetical (A–Z)  
-   - Alphabetical (Z–A)  
-   - Highest Spending (selected month)  
-   - Lowest Spending (selected month)  
-   - Most Transactions (selected month)  
-   - Least Transactions (selected month)  
-
-Sorting applies after filtering.
 
 ---
 
@@ -111,43 +96,27 @@ Sorting applies after filtering.
 
 Each merchant row must display:
 
-- Merchant Name (primary emphasis)  
-- Assigned Category (badge style)  
-- Total Spending (selected month)  
-- Transaction Count (selected month)  
+- Merchant Name (primary emphasis)
+- Assigned Category (badge style)
 
-If merchant has:
-- 0 transactions in selected month → show 0 amount and 0 count  
-- Merchant must NOT be hidden  
 
 Tapping a merchant navigates to the Merchant Detail Screen.
 
 ---
 
-## Sorting Logic
 
-Sorting must use:
-
-- Aggregated totals for selected month  
-- OR merchant name (case-insensitive)  
-
-Tie-breaker rule:
-- Alphabetical ascending  
-
----
 
 ## Empty States
 
 Define different UX states for:
 
-1. No merchants exist  
-2. Merchants exist but none match filter/search  
-3. Merchants exist but no transactions in selected month  
+1. No merchants exist
+2. Merchants exist but none match filter/search
 
 Each state must include:
-- Title  
-- Supporting description  
-- Optional CTA  
+- Title
+- Supporting description
+- Optional CTA
 
 ---
 
@@ -156,15 +125,8 @@ Each state must include:
 Even without pagination/lazy loading, app must handle:
 
 - 500–1000 merchants  
-- Monthly aggregation calculations  
 
-### Backend Strategy (.NET)
-
-- Server-side aggregation (GroupBy MerchantId + Date range)  
-- Indexed queries (UserId, MerchantId, Date)  
-- Avoid N+1 queries  
-- Optional: precomputed monthly summaries  
-
+---
 
 # Merchant Detail Page — Finance Module (Mobile Expense Tracking App)
 
@@ -176,10 +138,8 @@ Finance → Merchants → Merchant List
 
 It provides:
 
-- Monthly summary of spending for the selected merchant  
-- Full list of transactions for the selected date range  
-- Filtering and sorting controls  
 - Category reassignment capability  
+- Nickname editing (optional)  
 - Administrative merchant actions (optional: rename, delete, merge)  
 
 This screen must be implementation-ready for React Native + .NET backend.
@@ -192,4 +152,3 @@ This screen must be implementation-ready for React Native + .NET backend.
 
 - Merchant List Screen → Tap Merchant
 - Deep link (optional future support)
-

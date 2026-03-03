@@ -1,8 +1,10 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant edit localization keys
 // CHANGED_BY_AI: 2026-03-02 - Add reports menu translations
 // CHANGED_BY_AI: 2026-03-02 - Add homepage translations
 // CHANGED_BY_AI: 2026-03-02 - Add report translations
 // CHANGED_BY_AI: 2026-03-02 - Add header title localization keys
 // CHANGED_BY_AI: 2026-03-02 - Add finance translations
+// CHANGED_BY_AI: 2026-03-02 - Add merchant list localization keys
 const translations: Record<string, Record<string, string>> = {
   en: {
     PleaseCheckYourEMailAndPassword: 'Please check your email and password',
@@ -108,8 +110,15 @@ const translations: Record<string, Record<string, string>> = {
     Icon: 'Icon',
     Save: 'Save',
     Delete: 'Delete',
+    Cancel: 'Cancel',
     DeleteCategoryTitle: 'Delete category?',
     DeleteCategoryMessage: 'This action cannot be undone.',
+    DeleteMerchantTitle: 'Delete merchant?',
+    DeleteMerchantMessage: 'This action cannot be undone.',
+    EditMerchant: 'Edit Merchant',
+    MerchantName: 'Merchant name',
+    MerchantNickname: 'Merchant nickname',
+    MerchantCategory: 'Merchant category',
     MerchantCount: 'Merchants',
     TransactionCount: 'Transactions',
     LastTransaction: 'Last transaction',
@@ -118,6 +127,20 @@ const translations: Record<string, Record<string, string>> = {
     Last30Days: 'Last 30 days',
     HighestSpending: 'Highest spending',
     HighestTransactions: 'Highest transactions',
+    SortBy: 'Sort by',
+    SortAlphabeticalAsc: 'Alphabetical (A–Z)',
+    SortAlphabeticalDesc: 'Alphabetical (Z–A)',
+    SortHighestSpending: 'Highest spending',
+    SortLowestSpending: 'Lowest spending',
+    SortMostTransactions: 'Most transactions',
+    SortLeastTransactions: 'Least transactions',
+    NoMerchantsTitle: 'No merchants yet',
+    NoMerchantsDescription: 'Merchants will appear here once transactions are imported.',
+    NoMerchantsFilteredTitle: 'No matches found',
+    NoMerchantsFilteredDescription: 'Try adjusting your search or date range.',
+    NoTransactionsForMonthTitle: 'No transactions this month',
+    NoTransactionsForMonthDescription: 'Merchants are shown with zero activity for the selected range.',
+    ClearFilters: 'Clear filters',
   },
 };
 

@@ -12,14 +12,12 @@ using Spendly.Shared.ViewModels;
 [ApiController]
 [Route("api/v1/reports")]
 [Authorize]
-public class ReportsController(ReportsService reportsService, RequestContextViewModel requestContext) : ControllerBase
+public class ReportsController(ReportsService reportsService) : ControllerBase
 {
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview([FromQuery] ReportsOverviewRequestViewModel request)
     {
-        var userId = ObjectId.Parse(requestContext.UserId);
-        var timezone = request.Timezone ?? requestContext.Timezone;
-        var response = await reportsService.GetOverviewAsync(userId, request, timezone);
+        var response = await reportsService.GetOverviewAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -30,9 +28,7 @@ public class ReportsController(ReportsService reportsService, RequestContextView
     [HttpGet("category/{categoryId}")]
     public async Task<IActionResult> GetCategoryDetail(string categoryId, [FromQuery] ReportsCategoryRequestViewModel request)
     {
-        var userId = ObjectId.Parse(requestContext.UserId);
-        var timezone = request.Timezone ?? requestContext.Timezone;
-        var response = await reportsService.GetCategoryDetailAsync(userId, categoryId, request, timezone);
+        var response = await reportsService.GetCategoryDetailAsync(categoryId, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -43,9 +39,7 @@ public class ReportsController(ReportsService reportsService, RequestContextView
     [HttpGet("accounts/overview")]
     public async Task<IActionResult> GetAccountsOverview([FromQuery] AccountsOverviewRequestViewModel request)
     {
-        var userId = ObjectId.Parse(requestContext.UserId);
-        var timezone = request.Timezone ?? requestContext.Timezone;
-        var response = await reportsService.GetAccountsOverviewAsync(userId, request, timezone);
+        var response = await reportsService.GetAccountsOverviewAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -56,9 +50,7 @@ public class ReportsController(ReportsService reportsService, RequestContextView
     [HttpGet("accounts/{accountId}")]
     public async Task<IActionResult> GetAccountDetail(string accountId, [FromQuery] AccountDetailRequestViewModel request)
     {
-        var userId = ObjectId.Parse(requestContext.UserId);
-        var timezone = request.Timezone ?? requestContext.Timezone;
-        var response = await reportsService.GetAccountDetailAsync(userId, accountId, request, timezone);
+        var response = await reportsService.GetAccountDetailAsync(accountId, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

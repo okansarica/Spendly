@@ -9,6 +9,7 @@ using Shared.Entities.TransactionManagement;
 using Shared.Entities.UserManagement;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Homepage;
+using Spendly.Shared.Core;
 using Spendly.Shared.Core.Interception;
 using Spendly.Shared.DataLayer;
 using Spendly.Shared.ViewModels;
@@ -18,11 +19,13 @@ public class HomepageService(
     IRepository<NormalizedTransaction> transactionRepository,
     IRepository<Account> accountRepository,
     IRepository<Category> categoryRepository,
-    IRepository<Merchant> merchantRepository)
+    IRepository<Merchant> merchantRepository,
+    RequestContextViewModel requestContextViewModel)
 {
     [Cacheable(DurationSeconds=120)]
-    public async virtual Task<FunctionResponse<HomepageResponseViewModel>> GetHomepageAsync(ObjectId userId)
+    public async virtual Task<FunctionResponse<HomepageResponseViewModel>> GetHomepageAsync()
     {
+        var userId = requestContextViewModel.UserId.ToObjectId();
         var now = DateTime.UtcNow.Date;
         var currentMonthStart = new DateTime(now.Year, now.Month, 1);
         var previousMonthStart = currentMonthStart.AddMonths(-1);

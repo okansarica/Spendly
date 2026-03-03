@@ -1,4 +1,7 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant nickname endpoint
+// CHANGED_BY_AI: 2026-03-02 - Add merchant delete endpoint
 // CHANGED_BY_AI: 2026-03-02 - Add merchants controller
+// CHANGED_BY_AI: 2026-03-02 - Add merchant update endpoint
 namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
@@ -13,18 +16,12 @@ using Spendly.Shared.ViewModels;
 [ApiController]
 [Route("api/v1/merchants")]
 [Authorize]
-public class MerchantsController(MerchantService merchantService, RequestContextViewModel requestContext) : ControllerBase
+public class MerchantsController(MerchantService merchantService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] MerchantListRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await merchantService.GetListAsync(ObjectId.Parse(userIdValue), request);
+        var response = await merchantService.ListAsync( request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -33,16 +30,10 @@ public class MerchantsController(MerchantService merchantService, RequestContext
         return Ok(response.Data);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetDetail(string id, [FromQuery] MerchantListRequestViewModel request)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] MerchantUpdateRequestViewModel request)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await merchantService.GetDetailAsync(ObjectId.Parse(userIdValue), id, request);
+        var response = await merchantService.UpdateAsync(id, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -51,22 +42,15 @@ public class MerchantsController(MerchantService merchantService, RequestContext
         return Ok(response.Data);
     }
 
-    [HttpPut("{id}/category")]
-    public async Task<IActionResult> UpdateCategory(string id, [FromBody] MerchantCategoryUpdateRequestViewModel request)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id)
     {
-        var userIdValue = requestContext.TryToGetUserId();
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            return this.BadRequestFrom(FunctionResponse.Failure(MessageCodes.UserNotFound));
-        }
-
-        var response = await merchantService.UpdateCategoryAsync(ObjectId.Parse(userIdValue), id, request);
+        var response = await merchantService.DeleteAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
         }
 
-        return Ok(response.Data);
+        return NoContent();
     }
 }
-

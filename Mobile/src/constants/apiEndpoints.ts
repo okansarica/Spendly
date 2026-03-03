@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-02 - Add merchant nickname endpoint
 // CHANGED_BY_AI: 2026-03-02 - Add report endpoints
 // CHANGED_BY_AI: 2026-03-02 - Remove unused finance endpoints
 
@@ -30,5 +31,6 @@ export const ApiEndpoints = {
     Base: '/api/v1/merchants',
     ById: (id: string) => `/api/v1/merchants/${id}`,
     Category: (id: string) => `/api/v1/merchants/${id}/category`,
+    Nickname: (id: string) => `/api/v1/merchants/${id}/nickname`,
   },
 };

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-03 - add redux insert/update and screen handling example
 # UI ARCHITECTURE
 
 ## Null Policy
@@ -7,7 +8,7 @@
 - Do not assign `null` to variables, props, or state
 - TypeScript types use `T | undefined`, never `T | null`
 
-```typescript
+```text
 type TempClass = {
   id: string;
   email: string;
@@ -20,8 +21,10 @@ type TempClass = {
 - Never use `try/catch` in screens, components, or services for API calls
 - All API calls go through the `apiCall` base function in `src/services/apiClient.ts`
 - This function handles all HTTP errors centrally
+- All API communication must use async/await.
+- Never swallow errors, always show error messages coming from ApiClient using a Toast
 
-```typescript
+```text
 type ApiResponse<T> = {
   isSuccess: boolean;
   data?: T ;
@@ -41,9 +44,9 @@ On 500 response: return `{ isSuccess: false, errorMessage: 'An unexpected error 
 
 ## Response Handling Pattern
 
-All callers check `isSuccess` before proceeding:
+All callers check `isSuccess` before proceeding; see `src/services/apiClient.ts` for the canonical example:
 
-```typescript
+```text
 const response = await apiCall(() => authService.login(credentials));
 
 if (!response.isSuccess) {
@@ -58,15 +61,7 @@ Never assume success - always check `isSuccess` first.
 
 ## ApiResponse Type
 
-Client-side response class mirrors the backend pattern:
-
-```typescript
-type ApiResponse<T = undefined> = {
-  isSuccess: boolean;
-  data: T | undefined;
-  errorMessage: string | undefined;
-};
-```
+Client-side response class mirrors the backend pattern and is documented in `src/services/apiClient.ts`.
 
 Services return `ApiResponse<T>`. Screens/actions check `isSuccess` and act accordingly.
 
@@ -77,11 +72,62 @@ Services return `ApiResponse<T>`. Screens/actions check `isSuccess` and act acco
 - Async actions (thunks) use `apiCall` and dispatch result
 - Screens read from store selectors, never call API directly
 
+## Redux Insert/Update Pattern
+
+Use `rejectWithValue` to return API error messages and handle them in the screen.
+
+```text
+export const updateMerchant = createAsyncThunk(
+  'merchants/update',
+  async (
+    payload: { id: string; ... },
+    { rejectWithValue },
+  ) => {
+    const response = await apiCall(() =>
+      merchantsService.update(payload.id, {
+        ...        
+      }),
+    );
+
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+
+    return response.data as MerchantDetail;
+  },
+);
+```
+
+## Screen Handling Example
+
+```text
+const onSave = async () => {
+  const trimmedNickname = nickname.trim();
+  const action = await dispatch(
+    updateMerchant({
+      id: params.merchantId,
+      ...
+    }),
+  );
+
+  if (action.meta.requestStatus !== 'fulfilled') {
+    Toast.show({
+      type: 'error',
+      text1: t('errors.title'),
+      text2: action.payload as string,
+    });
+    return;
+  }
+
+  //Progress to next step
+};
+```
+
 ## Constants
 
 All constants defined in dedicated constant files, never inline in components:
 
-```typescript
+```text
 export const ApiEndpoints = {
   Auth: {
     Login: '/api/v1/auth/login',

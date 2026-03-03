@@ -100,6 +100,12 @@ app.Run();
 - On failure: return `this.BadRequestFrom(response)`
 - Use FluentValidation for input validation (auto via middleware)
 
+### Controller
+
+Controllers must not perform validations such as user id checks; `RequestContextViewModel` is populated automatically (via `RequestContextFilter`) and user-related validation should be performed in the business layer.
+
+All validations must be implemented as FluentValidation validators. For request-taking operations (e.g., PUT, POST), required fields must be validated using these validators.
+
 **Example:**
 ```csharp
 [ApiController]
@@ -119,6 +125,12 @@ public class CategoriesController(CategoryService categoryService)
 }
 ```
 
+## Business Layer
+
+If a service requires a userId, add `RequestContextViewModel` as a constructor parameter of the service and obtain the userId from it; do not pass userId or `RequestContextViewModel` from controllers.
+
+If an unexpected error occurs (for example: an id arrives as a string in the request but cannot be parsed to an `ObjectId`), do not return a `Function Failure`; instead throw an exception that includes the affected Id in the message. `Function Failure` should be used only for business-rule failures that result in a 400 response to the UI.
+
 ## Data Access
 
 **Repository Pattern:**
@@ -126,13 +138,37 @@ public class CategoriesController(CategoryService categoryService)
 ```csharp
 public interface IRepository<T> where T : BaseEntity
 {
-    Task<T?> GetAsync(string id);
-    Task<T?> GetAsync(Expression<Func<T, bool>> filter);
-    Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> filter = null);
-    Task CreateAsync(T entity);
-    Task UpdateAsync(T entity);
-    Task DeleteAsync(string id);
+	public string CollectionName { get; set; }
+	Task<T?> GetAsync(Expression<Func<T, bool>> filter);
+	Task<T?> GetAsync(string id);
+	Task<T?> GetAsync(ObjectId id);
+	Task<T?> GetAsync(Expression<Func<T, bool>> filter, ProjectionDefinition<T> projectionDefinition);
+	Task<T?> GetAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition);
+	Task<T?> GetAsync(ObjectId id, ProjectionDefinition<T> projectionDefinition);
+	Task<T?> GetAsync(string id, ProjectionDefinition<T> projectionDefinition);
+	Task<T> GetRequiredAsync(string id);
+	Task<T> GetRequiredAsync(ObjectId id);
+	Task<T> GetRequiredAsync(FilterDefinition<T> filterDefinition);
+	Task<T> GetRequiredAsync(Expression<Func<T, bool>> filter);
+	Task InsertAsync(T model);
+	Task UpdateAsync(T model);
+	Task<UpdateResult> UpdateWithIdAsync(ObjectId id, UpdateDefinition<T> updateDef);
+	Task<UpdateResult> UpdateAsync(FilterDefinition<T> filterDefinition, UpdateDefinition<T> updateDefinition);
+	Task DeleteAsync(string id);
+	Task DeleteAsync(ObjectId id);
+	//Task<List<T>> ListAsync(FilterDefinition<T> filterDefinition);
+	Task<List<T>> ListAsync(Expression<Func<T, bool>> filter, SortDefinition<T> sortDefinition, int limit);
+	Task<List<T>> ListPagingAsync(Expression<Func<T, bool>>? filter = null, PagingParameter? paging = null, SortDefinition<T>? sortDefinition = null);
+	Task<List<T>> ListAsync(FilterDefinition<T> filter, ProjectionDefinition<T>? projection = null);
+	Task<List<T>> ListAsync(Expression<Func<T, bool>>? filter, ProjectionDefinition<T>? projection = null);
+	Task<Dictionary<ObjectId, T>> ListAsync(IEnumerable<ObjectId> ids);
+	Task<ListPagingAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition, PagingParameter paging);
+	Task<long> CountAsync(FilterDefinition<T> filterDefinition);
+	Task<Dictionary<ObjectId, T>> ListAsync(IEnumerable<ObjectId> ids,
+		Expression<Func<T, ObjectId?>> propertySelector);
+
 }
+
 ```
 
 **Rules:**
@@ -143,6 +179,8 @@ public interface IRepository<T> where T : BaseEntity
 - No migrations (schema-less), but enforce document structure in code
 - All operations async (ConfigureAwait(false))
 - Data ownership checks always performed in the service layer, never in controllers
+- When querying a data with Id if the record must be in the db according to domein rules, use GetRequiredAsync to throw if not found. Use GetAsync when record may not exist.
+- When converting id strings to MongoDB `ObjectId`, use the `ToObjectId()` string extension method where appropriate.
 
 **Connection:**
 - Username/password from shared.local.json via DbSettings class
