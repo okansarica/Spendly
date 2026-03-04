@@ -169,7 +169,7 @@ export default function AccountDetailScreen({route}: Props) {
                     categoryName: item.categoryName,
                     startDate: startDate || undefined,
                     endDate: endDate || undefined,
-                    accountIds: [route.params.accountId],
+                    accountId: route.params.accountId,
                   })
                 }>
                 <View style={s.listRow}>

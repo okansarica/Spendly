@@ -111,14 +111,10 @@ public class ReportsService(
         var (startLocal, endLocal) = ResolveRange(request.StartDate, request.EndDate, nowLocal);
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
-        var accountIds = request.AccountIds
-            ?.Select(id => id.ToObjectIdOrNull())
-            .Where(id => id.HasValue)
-            .Select(id => id.Value)
-            .ToList() ?? new List<ObjectId>();
+        var accountId = request.AccountId?.ToObjectIdOrNull();
 
         var userId = requestContextViewModel.UserId.ToObjectId();
-        var categoryTotals = await GetDailySummariesAsync(userId, startUtc, endUtc, categoryObjectId, accountIds);
+        var categoryTotals = await GetDailySummariesAsync(userId, startUtc, endUtc, categoryObjectId, accountId);
         var totalAmount = categoryTotals.Sum(x => x.TotalAmount);
 
         var categoryName = await GetCategoryNameAsync(categoryObjectId.Value);
@@ -131,7 +127,7 @@ public class ReportsService(
         var (transactions, total) = await GetCategoryTransactionsAsync(
             userId,
             categoryObjectId.Value,
-            accountIds,
+            accountId,
             startUtc,
             endUtc,
             sortBy,
@@ -260,7 +256,7 @@ public class ReportsService(
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
         var userId = requestContextViewModel.UserId.ToObjectId();
-        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, new List<ObjectId> { accountObjectId.Value });
+        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, accountObjectId.Value);
         var totalAmount = summaries.Sum(x => x.TotalAmount);
 
         var accountName = await GetAccountNameAsync(accountObjectId.Value);
@@ -330,7 +326,7 @@ public class ReportsService(
 
         var (prevStartLocal, prevEndLocal) = GetPreviousMonthSamePeriod(startLocal, endLocal);
         var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
-        var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc, null, new List<ObjectId> { accountId });
+        var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc, null, accountId);
         var previousTotal = previousSummaries.Sum(x => x.TotalAmount);
 
         var summary = BuildSummary(currentTotal, previousTotal);
@@ -350,7 +346,7 @@ public class ReportsService(
         DateTime startUtc,
         DateTime endUtc,
         ObjectId? categoryId = null,
-        List<ObjectId>? accountIds = null)
+        ObjectId? accountId = null)
     {
         var filters = new List<FilterDefinition<DailyCategoryAccountExpense>>
         {
@@ -364,9 +360,9 @@ public class ReportsService(
             filters.Add(Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.CategoryId, categoryId.Value));
         }
 
-        if (accountIds != null && accountIds.Count > 0)
+        if (accountId.HasValue)
         {
-            filters.Add(Builders<DailyCategoryAccountExpense>.Filter.In(x => x.AccountId, accountIds));
+            filters.Add(Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.AccountId, accountId.Value));
         }
 
         var filter = Builders<DailyCategoryAccountExpense>.Filter.And(filters);
@@ -376,7 +372,7 @@ public class ReportsService(
     private async Task<(List<NormalizedTransaction> Transactions, long Total)> GetCategoryTransactionsAsync(
         ObjectId userId,
         ObjectId categoryId,
-        List<ObjectId> accountIds,
+        ObjectId? accountId,
         DateTime startUtc,
         DateTime endUtc,
         string sortBy,
@@ -391,9 +387,9 @@ public class ReportsService(
             Builders<NormalizedTransaction>.Filter.Lte(x => x.Date, endUtc)
         );
 
-        if (accountIds.Count > 0)
+        if (accountId.HasValue)
         {
-            filter = Builders<NormalizedTransaction>.Filter.And(filter, Builders<NormalizedTransaction>.Filter.In(x => x.AccountId, accountIds));
+            filter = Builders<NormalizedTransaction>.Filter.And(filter, Builders<NormalizedTransaction>.Filter.Eq(x => x.AccountId, accountId.Value));
         }
 
         var total = await transactionRepository.CountAsync(filter);
@@ -413,7 +409,7 @@ public class ReportsService(
         };
 
         var transactions = await transactionRepository.ListPagingAsync(
-            x => x.UserId == userId && x.CategoryId == categoryId && x.Date >= startUtc && x.Date <= endUtc && (accountIds.Count == 0 || accountIds.Contains(x.AccountId)),
+            x => x.UserId == userId && x.CategoryId == categoryId && x.Date >= startUtc && x.Date <= endUtc && (!accountId.HasValue || x.AccountId == accountId.Value),
             paging,
             sort);
 

@@ -134,7 +134,6 @@ export default function AccountReportScreen() {
             <View style={[s.card, s.chartCard]}>
               <PieChartCard
                 data={pieChartData}
-                chartWidth={chartWidth}
                 chartHeight={220}
               />
             </View>

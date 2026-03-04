@@ -12,7 +12,7 @@ public class ReportsCategoryRequestViewModel
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public List<string>? AccountIds { get; set; }
+    public string? AccountId { get; set; }
     public string? SortBy { get; set; }
     public string? SortDirection { get; set; }
     public int? Page { get; set; }

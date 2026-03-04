@@ -13,7 +13,7 @@ import AccountReportScreen from "../screens/reports/AccountReportScreen.tsx";
 export type ReportsStackParamList = {
   ReportsMenu: undefined;
   ReportsOverview: undefined;
-  CategoryDetail: {categoryId: string; categoryName: string; startDate?: string; endDate?: string; accountIds?: string[]};
+  CategoryDetail: {categoryId: string; categoryName: string; startDate?: string; endDate?: string; accountId?: string};
   AccountsOverview: undefined;
   AccountDetail: {accountId: string; accountName: string; startDate?: string; endDate?: string};
 };

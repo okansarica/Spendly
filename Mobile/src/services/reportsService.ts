@@ -103,7 +103,7 @@ export type ReportsOverviewParams = {
 export type ReportsCategoryParams = {
   startDate?: string;
   endDate?: string;
-  accountIds?: string[];
+  accountId?: string;
   sortBy?: string;
   sortDirection?: string;
   page?: number;

@@ -24,12 +24,13 @@ export default function CategoryDetailScreen({route}: Props) {
   const isLoading = useAppSelector(s => s.reports.isLoadingCategoryDetail);
   const error = useAppSelector(s => s.reports.error);
   const today = new Date().toISOString().split('T')[0];
+  const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [draftStartDate, setDraftStartDate] = useState(route.params.startDate ?? today);
+  const [draftStartDate, setDraftStartDate] = useState(route.params.startDate ?? firstDayOfMonth);
   const [draftEndDate, setDraftEndDate] = useState(route.params.endDate ?? today);
   const [activePicker, setActivePicker] = useState<'start' | 'end' | null>(null);
 
-  const [startDate, setStartDate] = useState(route.params.startDate ?? today);
+  const [startDate, setStartDate] = useState(route.params.startDate ?? firstDayOfMonth);
   const [endDate, setEndDate] = useState(route.params.endDate ?? today);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const sortDirection: 'asc' | 'desc' = 'desc';
@@ -47,11 +48,12 @@ export default function CategoryDetailScreen({route}: Props) {
             sortDirection,
             page,
             pageSize: detail?.transactions.pageSize,
+            accountId: route.params.accountId,
           },
         })
       );
     }
-  }, [route.params.categoryId, startDate, endDate, sortBy, sortDirection, page]);
+  }, [route.params.categoryId, startDate, endDate, sortBy, sortDirection, page, route.params.accountId]);
 
   useEffect(() => {
     if (isFilterOpen) {

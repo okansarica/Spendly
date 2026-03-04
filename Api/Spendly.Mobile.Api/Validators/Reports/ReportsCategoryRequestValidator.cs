@@ -36,7 +36,7 @@ public class ReportsCategoryRequestValidator : AbstractValidator<ReportsCategory
             {
                 context.AddFailure(MessageCodes.InvalidPageSize);
             }
-            if (request.AccountIds != null && request.AccountIds.Any(id => !ObjectId.TryParse(id, out _)))
+            if (!string.IsNullOrWhiteSpace(request.AccountId) && !ObjectId.TryParse(request.AccountId, out _))
             {
                 context.AddFailure(MessageCodes.InvalidAccountId);
             }
