@@ -33,7 +33,6 @@ export default function CategoryDetailScreen({route}: Props) {
   const [startDate, setStartDate] = useState(route.params.startDate ?? firstDayOfMonth);
   const [endDate, setEndDate] = useState(route.params.endDate ?? today);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
-  const sortDirection: 'asc' | 'desc' = 'desc';
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -44,8 +43,6 @@ export default function CategoryDetailScreen({route}: Props) {
           params: {
             startDate: startDate || undefined,
             endDate: endDate || undefined,
-            sortBy,
-            sortDirection,
             page,
             pageSize: detail?.transactions.pageSize,
             accountId: route.params.accountId,
@@ -53,7 +50,7 @@ export default function CategoryDetailScreen({route}: Props) {
         })
       );
     }
-  }, [route.params.categoryId, startDate, endDate, sortBy, sortDirection, page, route.params.accountId]);
+  }, [route.params.categoryId, startDate, endDate, page, route.params.accountId]);
 
   useEffect(() => {
     if (isFilterOpen) {
@@ -63,7 +60,14 @@ export default function CategoryDetailScreen({route}: Props) {
     }
   }, [isFilterOpen, startDate, endDate]);
 
-  const transactions = detail?.transactions.items ?? [];
+  const sortedTransactions = React.useMemo(() => {
+    const items = [...(detail?.transactions.items ?? [])];
+    if (sortBy === 'amount') {
+      return items.sort((a, b) => b.amount - a.amount);
+    }
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [detail?.transactions.items, sortBy]);
+
   const totalPages = detail?.transactions.totalPages ?? 1;
 
   const s = StyleSheet.create({
@@ -208,11 +212,11 @@ export default function CategoryDetailScreen({route}: Props) {
           <View style={s.card}>
             {isLoading && !detail ? (
               <ActivityIndicator color={colors.spinner} />
-            ) : transactions.length === 0 ? (
+            ) : sortedTransactions.length === 0 ? (
               <Text style={s.subtitle}>{translate('NoTransactions')}</Text>
             ) : (
-              transactions.map((item, index) => (
-                <View key={item.transactionId} style={[s.expenseItem, index === transactions.length - 1 && s.expenseItemLast]}>
+              sortedTransactions.map((item, index) => (
+                <View key={item.transactionId} style={[s.expenseItem, index === sortedTransactions.length - 1 && s.expenseItemLast]}>
                   <View style={s.expenseLeft}>
                     <Text style={s.expenseMerchant}>{item.merchantName}</Text>
                     <Text style={s.expenseDetails}>{item.accountName}</Text>

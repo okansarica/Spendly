@@ -104,8 +104,6 @@ export type ReportsCategoryParams = {
   startDate?: string;
   endDate?: string;
   accountId?: string;
-  sortBy?: string;
-  sortDirection?: string;
   page?: number;
   pageSize?: number;
 };

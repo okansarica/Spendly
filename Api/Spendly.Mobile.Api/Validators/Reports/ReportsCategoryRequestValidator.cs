@@ -20,14 +20,6 @@ public class ReportsCategoryRequestValidator : AbstractValidator<ReportsCategory
             {
                 context.AddFailure(MessageCodes.InvalidTimezone);
             }
-            if (!string.IsNullOrWhiteSpace(request.SortBy) && request.SortBy != "date" && request.SortBy != "amount")
-            {
-                context.AddFailure(MessageCodes.InvalidSortBy);
-            }
-            if (!string.IsNullOrWhiteSpace(request.SortDirection) && request.SortDirection != "asc" && request.SortDirection != "desc")
-            {
-                context.AddFailure(MessageCodes.InvalidSortDirection);
-            }
             if (request.Page.HasValue && request.Page <= 0)
             {
                 context.AddFailure(MessageCodes.InvalidPage);

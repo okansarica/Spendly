@@ -121,8 +121,6 @@ public class ReportsService(
 
         var page = request.Page ?? 1;
         var pageSize = request.PageSize ?? Constants.Reports.DefaultPageSize;
-        var sortBy = request.SortBy ?? "date";
-        var sortDirection = request.SortDirection ?? "desc";
 
         var (transactions, total) = await GetCategoryTransactionsAsync(
             userId,
@@ -130,8 +128,6 @@ public class ReportsService(
             accountId,
             startUtc,
             endUtc,
-            sortBy,
-            sortDirection,
             page,
             pageSize);
 
@@ -375,8 +371,6 @@ public class ReportsService(
         ObjectId? accountId,
         DateTime startUtc,
         DateTime endUtc,
-        string sortBy,
-        string sortDirection,
         int page,
         int pageSize)
     {
@@ -394,13 +388,7 @@ public class ReportsService(
 
         var total = await transactionRepository.CountAsync(filter);
 
-        var sort = sortBy == "amount"
-            ? (sortDirection == "asc"
-                ? Builders<NormalizedTransaction>.Sort.Ascending(x => x.Amount)
-                : Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount))
-            : (sortDirection == "asc"
-                ? Builders<NormalizedTransaction>.Sort.Ascending(x => x.Date)
-                : Builders<NormalizedTransaction>.Sort.Descending(x => x.Date));
+        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Date);
 
         var paging = new PagingParameter
         {
