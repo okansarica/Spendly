@@ -10,6 +10,8 @@ import {formatCurrency} from '../../utils/formatCurrency';
 import {translate} from '../../utils/translations';
 import {ReportConstants} from '../../constants/reportConstants';
 import Header from '../../components/Header';
+import ErrorDisplay from '../../components/ErrorDisplay';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
@@ -24,12 +26,13 @@ export default function CategoryReportScreen() {
   const navigation = useNavigation<ReportsNavProp>();
   const overview = useAppSelector(s => s.reports.overview);
   const isLoading = useAppSelector(s => s.reports.isLoadingOverview);
+  const error = useAppSelector(s => s.reports.error);
 
   useEffect(() => {
-    if (!overview && !isLoading) {
+    if (!overview && !isLoading && !error) {
       dispatch(loadReportsOverview(undefined));
     }
-  }, [overview, isLoading, dispatch]);
+  }, [overview, isLoading, error]);
 
   const chartWidth = useMemo(() => screenWidth - spacing.lg * 4, [spacing.lg]);
 
@@ -108,6 +111,15 @@ export default function CategoryReportScreen() {
       <View style={[s.container, {justifyContent: 'center', alignItems: 'center'}]}>
         <Header title={translate('ReportOverviewTitle')} />
         <ActivityIndicator color={colors.spinner} />
+      </View>
+    );
+  }
+
+  if (error && !overview) {
+    return (
+      <View style={s.container}>
+        <Header title={translate('ReportOverviewTitle')} />
+        <ErrorDisplay message={error} />
       </View>
     );
   }

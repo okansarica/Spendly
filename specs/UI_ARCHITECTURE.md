@@ -100,6 +100,9 @@ export const updateMerchant = createAsyncThunk(
 
 ## Screen Handling Example
 
+- If there is any data load from api when loading the page, show a loading spinner until the data is loaded.
+- If any error occurs during the API call, dont cause an indefinite loop handle it in useEffect and show the shared component.
+
 ```text
 const onSave = async () => {
   const trimmedNickname = nickname.trim();

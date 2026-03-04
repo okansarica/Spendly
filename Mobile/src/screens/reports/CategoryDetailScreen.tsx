@@ -9,6 +9,7 @@ import {formatCurrency} from '../../utils/formatCurrency';
 import {translate} from '../../utils/translations';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import Header from '../../components/Header';
+import ErrorDisplay from '../../components/ErrorDisplay';
 import Button from '../../components/Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -21,6 +22,7 @@ export default function CategoryDetailScreen({route}: Props) {
   const dispatch = useAppDispatch();
   const detail = useAppSelector(s => s.reports.categoryDetail);
   const isLoading = useAppSelector(s => s.reports.isLoadingCategoryDetail);
+  const error = useAppSelector(s => s.reports.error);
   const today = new Date().toISOString().split('T')[0];
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [draftStartDate, setDraftStartDate] = useState(route.params.startDate ?? today);
@@ -34,20 +36,22 @@ export default function CategoryDetailScreen({route}: Props) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    dispatch(
-      loadCategoryDetail({
-        categoryId: route.params.categoryId,
-        params: {
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          sortBy,
-          sortDirection,
-          page,
-          pageSize: detail?.transactions.pageSize,
-        },
-      })
-    );
-  }, [dispatch, route.params.categoryId, startDate, endDate, sortBy, sortDirection, page]);
+    if (!isLoading && !error) {
+      dispatch(
+        loadCategoryDetail({
+          categoryId: route.params.categoryId,
+          params: {
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            sortBy,
+            sortDirection,
+            page,
+            pageSize: detail?.transactions.pageSize,
+          },
+        })
+      );
+    }
+  }, [route.params.categoryId, startDate, endDate, sortBy, sortDirection, page]);
 
   useEffect(() => {
     if (isFilterOpen) {
@@ -160,6 +164,15 @@ export default function CategoryDetailScreen({route}: Props) {
       setActivePicker(null);
     }
   };
+
+  if (error && !detail) {
+    return (
+      <View style={s.container}>
+        <Header title={route.params.categoryName} />
+        <ErrorDisplay message={error} />
+      </View>
+    );
+  }
 
   return (
     <View style={s.container}>

@@ -18,6 +18,7 @@ import {formatCurrency} from '../../utils/formatCurrency';
 import {translate} from '../../utils/translations';
 import {HomepageConstants} from '../../constants/homepageConstants';
 import Header from '../../components/Header';
+import ErrorDisplay from '../../components/ErrorDisplay';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -35,12 +36,13 @@ export default function DashboardScreen() {
   const data = useAppSelector(s => s.homepage.data);
   const isLoading = useAppSelector(s => s.homepage.isLoading);
   const isRefreshing = useAppSelector(s => s.homepage.isRefreshing);
+  const error = useAppSelector(s => s.homepage.error);
 
   useEffect(() => {
-    if (!data && !isLoading) {
+    if (!data && !isLoading && !error) {
       dispatch(loadHomepage());
     }
-  }, [data, isLoading, dispatch]);
+  }, [data, isLoading, error]);
 
   const onRefresh = () => {
     dispatch(refreshHomepage());
@@ -339,7 +341,26 @@ export default function DashboardScreen() {
   if (isLoading && !data) {
     return (
       <View style={s.container}>
-        <ActivityIndicator size="large" color={colors.spinner} />
+        <Header title={translate('DashboardTitle')} showBack={false} />
+        <View style={s.emptyState}>
+          <ActivityIndicator size="large" color={colors.spinner} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <View style={s.container}>
+        <Header title={translate('DashboardTitle')} showBack={false} />
+        <ScrollView
+          style={s.scrollView}
+          contentContainerStyle={{flex: 1}}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[colors.spinner]} tintColor={colors.spinner} />
+          }>
+          <ErrorDisplay message={error} />
+        </ScrollView>
       </View>
     );
   }

@@ -4,6 +4,7 @@ import {View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Modal, Al
 import {useTheme} from '../../../theme/ThemeContext';
 import {translate} from '../../../utils/translations';
 import Header from '../../../components/Header';
+import ErrorDisplay from '../../../components/ErrorDisplay';
 import {useAppDispatch, useAppSelector} from '../../../store/hooks';
 import {loadCategories, deleteCategory} from '../../../store/categoriesStore';
 import {useNavigation} from '@react-navigation/native';
@@ -30,14 +31,17 @@ export default function CategoriesListScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const items = useAppSelector(state => state.categories.items);
   const isLoading = useAppSelector(state => state.categories.isLoading);
+  const error = useAppSelector(state => state.categories.error);
   const [search, setSearch] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuCategory, setMenuCategory] = useState<CategoryListItem | undefined>(undefined);
   const [menuPosition, setMenuPosition] = useState<{x: number; y: number} | undefined>(undefined);
 
   useEffect(() => {
-    dispatch(loadCategories({search, sortBy, sortDirection}));
-  }, [dispatch, search]);
+    if (!isLoading && !error) {
+      dispatch(loadCategories({search, sortBy, sortDirection}));
+    }
+  }, [search]);
 
   const data = useMemo(() => {
     const parents = items.filter(item => !item.parentId);
@@ -266,30 +270,34 @@ export default function CategoriesListScreen() {
   return (
     <View style={s.container}>
       <Header title={translate('CategoriesTitle')} />
-      <View style={s.content}>
-        <View style={s.searchRow}>
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={translate('SearchCategories')}
-            placeholderTextColor={colors.textSecondary}
-            style={s.searchInput}
+      {error && items.length === 0 ? (
+        <ErrorDisplay message={error} />
+      ) : (
+        <View style={s.content}>
+          <View style={s.searchRow}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={translate('SearchCategories')}
+              placeholderTextColor={colors.textSecondary}
+              style={s.searchInput}
+            />
+            <TouchableOpacity
+              style={s.newButton}
+              onPress={() => navigation.navigate('CategoryEdit', {mode: 'create'})}>
+              <Text style={s.newButtonText}>{translate('NewCategory')}</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={data}
+            renderItem={renderItem}
+            keyExtractor={item => item.item.id}
+            contentContainerStyle={s.listContent}
+            scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
+            ListEmptyComponent={!isLoading ? <Text style={s.empty}>{translate('NoCategories')}</Text> : undefined}
           />
-          <TouchableOpacity
-            style={s.newButton}
-            onPress={() => navigation.navigate('CategoryEdit', {mode: 'create'})}>
-            <Text style={s.newButtonText}>{translate('NewCategory')}</Text>
-          </TouchableOpacity>
         </View>
-        <FlatList
-          data={data}
-          renderItem={renderItem}
-          keyExtractor={item => item.item.id}
-          contentContainerStyle={s.listContent}
-          scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
-          ListEmptyComponent={!isLoading ? <Text style={s.empty}>{translate('NoCategories')}</Text> : undefined}
-        />
-      </View>
+      )}
       <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={closeMenu}>
         <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={closeMenu}>
           <View style={s.menuCard}>

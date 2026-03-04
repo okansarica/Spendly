@@ -5,6 +5,7 @@ import {View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Modal, Al
 import {useTheme} from '../../../theme/ThemeContext';
 import {translate} from '../../../utils/translations';
 import Header from '../../../components/Header';
+import ErrorDisplay from '../../../components/ErrorDisplay';
 import {useAppDispatch, useAppSelector} from '../../../store/hooks';
 import {loadMerchants, deleteMerchant} from '../../../store/merchantsStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -21,6 +22,7 @@ export default function MerchantsListScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const items = useAppSelector(state => state.merchants.items);
   const isLoading = useAppSelector(state => state.merchants.isLoading);
+  const error = useAppSelector(state => state.merchants.error);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,8 +37,10 @@ export default function MerchantsListScreen() {
   }, [search]);
 
   useEffect(() => {
-    dispatch(loadMerchants({sortBy: 'name', sortDirection: 'asc'}));
-  }, [dispatch]);
+    if (!isLoading && !error) {
+      dispatch(loadMerchants({sortBy: 'name', sortDirection: 'asc'}));
+    }
+  }, []);
 
   const filteredItems = useMemo(() => {
     const needle = debouncedSearch.toLowerCase();
@@ -213,37 +217,40 @@ export default function MerchantsListScreen() {
   return (
     <View style={s.container}>
       <Header title={translate('MerchantsTitle')} />
-      <View style={s.content}>
-        <View style={s.searchRow}>
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder={translate('SearchMerchants')}
-            placeholderTextColor={colors.textSecondary}
-            style={s.searchInput}
-          />
-        </View>
-        {hasMerchants && !hasFiltered && !isLoading ? (
-          <View>
-            <Text style={s.emptyTitle}>{translate('NoMerchantsFilteredTitle')}</Text>
-            <Text style={s.emptyDescription}>{translate('NoMerchantsFilteredDescription')}</Text>
-            <TouchableOpacity
-              style={s.emptyButton}
-              onPress={() => {
-                setSearch('');
-                setDebouncedSearch('');
-              }}>
-              <Text style={s.emptyButtonText}>{translate('ClearFilters')}</Text>
-            </TouchableOpacity>
+      {error && items.length === 0 ? (
+        <ErrorDisplay message={error} />
+      ) : (
+        <View style={s.content}>
+          <View style={s.searchRow}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={translate('SearchMerchants')}
+              placeholderTextColor={colors.textSecondary}
+              style={s.searchInput}
+            />
           </View>
-        ) : !hasMerchants && !isLoading ? (
-          <View>
-            <Text style={s.emptyTitle}>{translate('NoMerchantsTitle')}</Text>
-            <Text style={s.emptyDescription}>{translate('NoMerchantsDescription')}</Text>
-          </View>
-        ) : (
-          <>
-            <FlatList
+          {hasMerchants && !hasFiltered && !isLoading ? (
+            <View>
+              <Text style={s.emptyTitle}>{translate('NoMerchantsFilteredTitle')}</Text>
+              <Text style={s.emptyDescription}>{translate('NoMerchantsFilteredDescription')}</Text>
+              <TouchableOpacity
+                style={s.emptyButton}
+                onPress={() => {
+                  setSearch('');
+                  setDebouncedSearch('');
+                }}>
+                <Text style={s.emptyButtonText}>{translate('ClearFilters')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : !hasMerchants && !isLoading ? (
+            <View>
+              <Text style={s.emptyTitle}>{translate('NoMerchantsTitle')}</Text>
+              <Text style={s.emptyDescription}>{translate('NoMerchantsDescription')}</Text>
+            </View>
+          ) : (
+            <>
+              <FlatList
               data={filteredItems}
               keyExtractor={item => item.id}
               contentContainerStyle={s.listContent}
@@ -267,6 +274,7 @@ export default function MerchantsListScreen() {
           </>
         )}
       </View>
+      )}
       <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={closeMenu}>
         <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={closeMenu}>
           <View style={s.menuCard}>

@@ -30,6 +30,8 @@ class TokenInterceptor {
   }
 
   private async handleRequest(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
+    console.log('🚀 REQUEST:', config.url);
+    
     const sessionId = await sessionService.getSessionId();
     config.headers['X-Session-Id'] = sessionId;
     config.headers['Accept-Language'] = getCurrentLanguage();
@@ -86,9 +88,18 @@ class TokenInterceptor {
   }
 
   private async handleResponseError(error: AxiosError): Promise<never> {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {_retry?: boolean};
+    console.log('❌ Response error:', error.message);
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 🚨 SUNUCU KAPALI / NETWORK ERROR
+    if (!error.response) {
+      console.log('🚨 Network error detected, not retrying...');
+      return Promise.reject(error);
+    }
+
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Sadece gerçek 401 durumunda refresh dene
+    if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       if (this.isRefreshing) {

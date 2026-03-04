@@ -15,6 +15,7 @@ import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import Header from '../../components/Header';
+import ErrorDisplay from '../../components/ErrorDisplay';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const isCurrentMonthRange = (start: string, end: string): boolean => {
@@ -37,22 +38,25 @@ export default function AccountDetailScreen({route}: Props) {
   const navigation = useNavigation<NavProp>();
   const detail = useAppSelector(s => s.reports.accountDetail);
   const isLoading = useAppSelector(s => s.reports.isLoadingAccountDetail);
+  const error = useAppSelector(s => s.reports.error);
 
   const [startDate, setStartDate] = useState(route.params.startDate ?? '');
   const [endDate, setEndDate] = useState(route.params.endDate ?? '');
   const [sortBy, setSortBy] = useState<'name' | 'amount'>('amount');
 
   useEffect(() => {
-    dispatch(
-      loadAccountDetail({
-        accountId: route.params.accountId,
-        params: {
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-        },
-      })
-    );
-  }, [dispatch, route.params.accountId, startDate, endDate]);
+    if (!isLoading && !error) {
+      dispatch(
+        loadAccountDetail({
+          accountId: route.params.accountId,
+          params: {
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+          },
+        })
+      );
+    }
+  }, [route.params.accountId, startDate, endDate]);
 
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundSecondary},
@@ -110,6 +114,15 @@ export default function AccountDetailScreen({route}: Props) {
     }
     return items;
   }, [detail?.categories, sortBy]);
+
+  if (error && !detail) {
+    return (
+      <View style={s.container}>
+        <Header title={route.params.accountName} />
+        <ErrorDisplay message={error} />
+      </View>
+    );
+  }
 
   return (
     <View style={s.container}>

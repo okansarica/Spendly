@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {Alert, Modal, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import Header from '../../components/Header';
+import ErrorDisplay from '../../components/ErrorDisplay';
 import {translate} from '../../utils/translations';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
@@ -20,6 +21,8 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const profile = useAppSelector(s => s.user.profile);
   const isSaving = useAppSelector(s => s.user.isSaving);
+  const isLoading = useAppSelector(s => s.user.isLoading);
+  const error = useAppSelector(s => s.user.error);
   const {colors, spacing, radius, fontSizes} = useTheme();
 
   const [name, setName] = useState('');
@@ -35,8 +38,10 @@ export default function ProfileScreen() {
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    dispatch(loadUserProfile());
-  }, []);
+    if (!profile && !isLoading && !error) {
+      dispatch(loadUserProfile());
+    }
+  }, [profile, isLoading, error]);
 
   useEffect(() => {
     if (profile) {
@@ -186,7 +191,10 @@ export default function ProfileScreen() {
       <View style={s.container}>
         <Header title={translate('ProfileTitle')} />
 
-        <View style={s.content}>
+        {error && !profile ? (
+          <ErrorDisplay message={error} />
+        ) : (
+          <View style={s.content}>
           <Text style={s.label}>{translate('EmailTitle')}</Text>
           <Text>{profile?.email}</Text>
 
@@ -212,6 +220,7 @@ export default function ProfileScreen() {
               disabled={isSaving}
           />
         </View>
+        )}
 
         <Modal visible={isDeleteModalOpen} transparent animationType="fade">
           <View style={s.modalBackdrop}>
