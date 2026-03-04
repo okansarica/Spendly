@@ -80,11 +80,7 @@ public class AuthService(
 				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
 
 		DateTime? subscriptionEndDate = null;
-		if (activeSubscription != null)
-		{
-			subscriptionEndDate = activeSubscription.EndDateTime ?? activeSubscription.ExpectedEndDateTime;
-		}
-		else
+		if (activeSubscription == null)
 		{
 			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
 			subscriptionEndDate = trialSubscriptions.EndDateTime;
