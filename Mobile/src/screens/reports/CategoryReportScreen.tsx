@@ -26,6 +26,7 @@ export default function CategoryReportScreen() {
   const overview = useAppSelector(s => s.reports.overview);
   const isLoading = useAppSelector(s => s.reports.isLoadingOverview);
   const error = useAppSelector(s => s.reports.error);
+  const categoriesFromStore = useAppSelector(s => s.categories.items);
 
   useEffect(() => {
     if (!overview && !isLoading && !error) {
@@ -34,6 +35,16 @@ export default function CategoryReportScreen() {
   }, [overview, isLoading, error]);
 
   const chartWidth = useMemo(() => screenWidth - spacing.lg * 4, [spacing.lg]);
+  
+  const categoryColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categoriesFromStore.forEach(cat => {
+      if (cat.color) {
+        map[cat.name] = cat.color;
+      }
+    });
+    return map;
+  }, [categoriesFromStore]);
 
   const summary = overview?.summary;
   const categories = overview?.categories ?? [];
@@ -49,6 +60,7 @@ export default function CategoryReportScreen() {
       label: item.categoryName,
       amount: item.currentMonthToDateTotal,
       percentage: total > 0 ? (item.currentMonthToDateTotal / total) * 100 : 0,
+      color: categoryColorMap[item.categoryName],
     };
   });
 

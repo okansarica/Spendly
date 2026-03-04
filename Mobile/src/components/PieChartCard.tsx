@@ -8,8 +8,10 @@ interface PieChartData {
     label: string;
     amount: number;
     percentage: number;
+    color?: string;
 }
 
+// Dont add chartwidth to props. it will be hardcoded
 interface PieChartCardProps {
     data: PieChartData[];
     chartHeight: number;
@@ -30,7 +32,7 @@ export default function PieChartCard({   data,
         return dataArray.map((item, index) => ({            
             name: '',
             population: item.amount,
-            color: colors.chartPalette[index % colors.chartPalette.length],
+            color: item.color ?? colors.chartPalette[index % colors.chartPalette.length],
         }));
     };
 
@@ -43,8 +45,7 @@ export default function PieChartCard({   data,
                             style={[
                                 s.legendDot,
                                 {
-                                    backgroundColor:
-                                        colors.chartPalette[index % colors.chartPalette.length],
+                                    backgroundColor: item.color ?? colors.chartPalette[index % colors.chartPalette.length],
                                 },
                             ]}
                         />

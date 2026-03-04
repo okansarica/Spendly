@@ -39,11 +39,22 @@ export default function DashboardScreen() {
   const isLoading = useAppSelector(s => s.homepage.isLoading);
   const isRefreshing = useAppSelector(s => s.homepage.isRefreshing);
   const error = useAppSelector(s => s.homepage.error);
+  const categories = useAppSelector(s => s.categories.items);
   
   const [accountChartPage, setAccountChartPage] = useState(0);
   const [categoryChartPage, setCategoryChartPage] = useState(0);
   
   const chartWidth = useMemo(() => screenWidth - spacing.lg * 4, [spacing.lg]);
+  
+  const categoryColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach(cat => {
+      if (cat.color) {
+        map[cat.name] = cat.color;
+      }
+    });
+    return map;
+  }, [categories]);
   
 
   useEffect(() => {
@@ -521,6 +532,7 @@ export default function DashboardScreen() {
                           label: item.categoryName,
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
+                          color: categoryColorMap[item.categoryName],
                         }))}
                         chartHeight={HomepageConstants.ChartHeight}
                         title={translate('CurrentMonth')}
@@ -532,6 +544,7 @@ export default function DashboardScreen() {
                           label: item.categoryName,
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
+                          color: categoryColorMap[item.categoryName],
                         }))}
                         chartHeight={HomepageConstants.ChartHeight}
                         title={translate('PreviousMonth')}
