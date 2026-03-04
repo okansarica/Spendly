@@ -3,6 +3,8 @@ import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import {apiCall} from '../services/apiClient';
 import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
 import {tokenService} from '../services/tokenService';
+import sessionService from '../services/sessionService';
+import {clearUserState} from './userStore';
 
 type AuthState = {
   userId: string | undefined;
@@ -78,12 +80,24 @@ export const forgotPassword = createAsyncThunk(
   },
 );
 
-export const logout = createAsyncThunk('auth/logout', async () => {
+export const logout = createAsyncThunk('auth/logout', async (_, {dispatch}) => {
   try {
     await apiCall(() => authService.logout());
   } finally {
-    await tokenService.clearTokens().catch(() => undefined);
+    await Promise.all([
+      tokenService.clearTokens().catch(() => undefined),
+      sessionService.clearSessionId().catch(() => undefined),
+    ]);
+    dispatch(clearUserState());
   }
+});
+
+export const logoutLocal = createAsyncThunk('auth/logoutLocal', async (_, {dispatch}) => {
+  await Promise.all([
+    tokenService.clearTokens().catch(() => undefined),
+    sessionService.clearSessionId().catch(() => undefined),
+  ]);
+  dispatch(clearUserState());
 });
 
 export const register = createAsyncThunk(
@@ -188,6 +202,13 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(logout.fulfilled, state => {
+        state.userId = undefined;
+        state.email = undefined;
+        state.isAuthenticated = false;
+        state.emailVerificationRequired = false;
+        state.error = undefined;
+      })
+      .addCase(logoutLocal.fulfilled, state => {
         state.userId = undefined;
         state.email = undefined;
         state.isAuthenticated = false;

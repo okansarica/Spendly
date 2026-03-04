@@ -6,6 +6,7 @@ import {translate} from '../../utils/translations';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {changeUserPassword} from '../../store/userStore';
+import Toast from "react-native-toast-message";
 
 export default function ChangePasswordScreen() {
   const dispatch = useAppDispatch();
@@ -39,7 +40,25 @@ export default function ChangePasswordScreen() {
   });
 
   const onSave = async () => {
-    await dispatch(changeUserPassword({currentPassword, newPassword, confirmNewPassword}));
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      Alert.alert(translate('Warning'), translate('AllPasswordFieldsRequired'));
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert(translate('Warning'), translate('PasswordsDoNotMatch'));
+      return;
+    }
+
+    const result = await dispatch(changeUserPassword({currentPassword, newPassword, confirmNewPassword}));if (result.meta.requestStatus !== 'fulfilled') {
+      Toast.show({
+        type: 'error',
+        text1: translate('Error'),
+        text2: result.payload as string,
+      });
+      return;
+    }
+    
     setCurrentPassword('');
     setNewPassword('');
     setConfirmNewPassword('');
@@ -66,4 +85,3 @@ export default function ChangePasswordScreen() {
     </View>
   );
 }
-
