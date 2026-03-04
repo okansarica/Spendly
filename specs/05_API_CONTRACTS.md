@@ -4,6 +4,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add finance category and merchant endpoints
 // CHANGED_BY_AI: 2026-03-02 - Add reports contracts and timezone header
 // CHANGED_BY_AI: 2026-03-02 - Document homepage response contract
+// CHANGED_BY_AI: 2026-03-03 - Add user profile and account management contracts
 # API CONTRACTS
 
 ## General Rules
@@ -205,6 +206,29 @@ Cache-Control: no-cache, no-store, must-revalidate
 - Response: `{ id, email, token }`
 
 ### User Endpoints (v1)
+
+**GET /api/v1/users/profile**
+- Auth: Required
+- Response: `{ id, name, surname, email, isNewsletterSubscribed, languageCode }`
+
+**PUT /api/v1/users/profile**
+- Auth: Required
+- Request: `{ name, surname, isNewsletterSubscribed }`
+- Response: `{ id, name, surname, email, isNewsletterSubscribed, languageCode }`
+
+**PUT /api/v1/users/change-password**
+- Auth: Required
+- Request: `{ currentPassword, newPassword, confirmNewPassword }`
+- Response: `{ success: true }`
+
+**PUT /api/v1/users/language**
+- Auth: Required
+- Request: `{ languageCode }`
+- Response: `{ languageCode }`
+
+**DELETE /api/v1/users/account**
+- Auth: Required
+- Response: `{ success: true }`
 
 **GET /api/v1/users/{id}**
 - Auth: Required

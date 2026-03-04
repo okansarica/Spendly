@@ -5,6 +5,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add header title localization keys
 // CHANGED_BY_AI: 2026-03-02 - Add finance translations
 // CHANGED_BY_AI: 2026-03-02 - Add merchant list localization keys
+// CHANGED_BY_AI: 2026-03-03 - Add user profile screen translations
 const translations: Record<string, Record<string, string>> = {
   en: {
     PleaseCheckYourEMailAndPassword: 'Please check your email and password',
@@ -141,6 +142,26 @@ const translations: Record<string, Record<string, string>> = {
     NoTransactionsForMonthTitle: 'No transactions this month',
     NoTransactionsForMonthDescription: 'Merchants are shown with zero activity for the selected range.',
     ClearFilters: 'Clear filters',
+    UserTitle: 'User',
+    LanguageTitle: 'Language',
+    ProfileTitle: 'Profile',
+    ChangePasswordTitle: 'Change Password',
+    LogoutTitle: 'Logout',
+    FirstNameTitle: 'First Name',
+    LastNameTitle: 'Last Name',
+    EmailTitle: 'Email',
+    NewsletterTitle: 'Newsletter Subscription',
+    CurrentPasswordTitle: 'Current Password',
+    NewPasswordTitle: 'New Password',
+    ConfirmNewPasswordTitle: 'Confirm New Password',
+    DeleteAccountTitle: 'Delete My Account',
+    DeleteAccountMessage: 'This action will permanently delete your account data.',
+    SuccessTitle: 'Success',
+    ProfileUpdatedMessage: 'Profile updated successfully.',
+    PasswordUpdatedMessage: 'Password updated successfully.',
+    DeleteAccountChallengeTitle: 'Final Confirmation',
+    DeleteAccountChallengeMessage: 'Answer all 4 math questions correctly to delete your account.',
+    DeleteAccountChallengeError: 'Answers are incorrect. Please try again.',
   },
 };
 

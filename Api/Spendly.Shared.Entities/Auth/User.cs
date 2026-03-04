@@ -14,10 +14,9 @@ public class User : BaseEntity
     public EmailVerification EmailVerification { get; set; } = new();
     public List<UserLoginProvider> LoginProviders { get; set; } = new();
     public bool IsActive { get; set; } = true;
-    public string? RefreshToken { get; set; }
-
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-    public DateTime? RefreshTokenExpiry { get; set; }
+    public bool IsNewsletterSubscribed { get; set; }
+    public string LanguageCode { get; set; } = "en";
+    
 }
 
 public class EmailVerification

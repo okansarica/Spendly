@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-03 - Re-render root on language changes
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useAppSelector} from '../store/hooks';
@@ -16,6 +17,7 @@ const Stack = createNativeStackNavigator();
 export default function RootNavigator() {
   const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
   const isInitializing = useAppSelector(s => s.auth.isInitializing);
+  useAppSelector(s => s.user.languageCode);
 
   return (
     <Stack.Navigator screenOptions={{headerShown: false, animation: 'fade'}}>
@@ -29,4 +31,3 @@ export default function RootNavigator() {
     </Stack.Navigator>
   );
 }
-

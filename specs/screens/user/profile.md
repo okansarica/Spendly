@@ -1,14 +1,16 @@
-# User profile navigation
+# User profile navigation screen
 
 Top-level language selection dropdown. When the user changes the language the choice is sent to the backend immediately and saved as the user's preference. The app updates its UI to the selected language.
 
-Navigation includes links to the Profile screen and the Change Password screen.
+Navigation includes links to the Profile screen and the Change Password screen. Style will ve similart to categories and merchants screens
+
+At the bottom there will be a logout button, keep the similar style.
 
 ## Profile screen
 
 Shows first name, last name, email, and newsletter subscription status. On open the screen loads the user's current information. The user can update all fields except email. When the user taps Save the updated information is persisted and a confirmation message is shown.
 
-At the bottom of the screen there are Logout and Delete My Account buttons.
+At the bottom of the screen there are Delete My Account buttons. for this logic, delete all related transaction, raw transaction, summary tables, user data, categories, merchants data
 
 ## Change Password screen
 

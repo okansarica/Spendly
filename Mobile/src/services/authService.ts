@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-03 - Add logout API call
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
 
@@ -67,4 +68,6 @@ export const authService = {
     apiClient.post(ApiEndpoints.Auth.ResendCode, {userId}, {
       headers: {'X-Disable-Auth': 'true'},
     }),
+
+  logout: () => apiClient.post(ApiEndpoints.Auth.Logout, {}),
 };

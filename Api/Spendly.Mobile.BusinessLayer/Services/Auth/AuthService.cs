@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-03 - Add logout integration and register defaults
 namespace Spendly.Mobile.BusinessLayer.Services.Auth;
 
 using System.IdentityModel.Tokens.Jwt;
@@ -19,7 +20,8 @@ public class AuthService(
 	IRepository<User> userRepository,
 	IRepository<UserRefreshToken> refreshTokenRepository,
 	JwtSettings jwtSettings,
-	IHttpClientFactory httpClientFactory)
+	IHttpClientFactory httpClientFactory,
+	RequestContextViewModel requestContextViewModel)
 {
 	private const int MaxVerificationAttempts = 5;
 	private const int VerificationCodeExpiryHours = 24;
@@ -64,10 +66,6 @@ public class AuthService(
 		}
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
-		user.RefreshToken = refreshToken;
-		user.RefreshTokenExpiry = refreshTokenExpiry;
-		user.UpdatedAt = DateTime.UtcNow;
-		await userRepository.UpdateAsync(user);
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		return FunctionResponse.Success(new AuthResponseViewModel
@@ -128,10 +126,6 @@ public class AuthService(
 		}
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
-		user.RefreshToken = refreshToken;
-		user.RefreshTokenExpiry = refreshTokenExpiry;
-		user.UpdatedAt = DateTime.UtcNow;
-		await userRepository.UpdateAsync(user);
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		return FunctionResponse.Success(new AuthResponseViewModel
@@ -193,7 +187,9 @@ public class AuthService(
 			{
 				new() {Provider = LoginProviderType.Local}
 			},
-			IsActive = true
+			IsActive = true,
+			IsNewsletterSubscribed = false,
+			LanguageCode = "en"
 		};
 
 		await userRepository.InsertAsync(user);
@@ -231,8 +227,6 @@ public class AuthService(
 		{
 			await refreshTokenRepository.DeleteAsync(tokenEntity.Id);
 			await SaveRefreshTokenAsync(user.Id, newRefreshToken, newRefreshTokenExpiry);
-			user.RefreshToken = newRefreshToken;
-			user.RefreshTokenExpiry = newRefreshTokenExpiry;
 		}
 		else
 		{
@@ -314,9 +308,7 @@ public class AuthService(
 		await userRepository.UpdateAsync(user);
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
-		user.RefreshToken = refreshToken;
-		user.RefreshTokenExpiry = refreshTokenExpiry;
-		await userRepository.UpdateAsync(user);
+		
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		return FunctionResponse.Success(new AuthResponseViewModel
@@ -360,6 +352,19 @@ public class AuthService(
 		user.EmailVerification.VerificationAttemptCount = 0;
 		user.UpdatedAt = DateTime.UtcNow;
 		await userRepository.UpdateAsync(user);
+
+		return FunctionResponse.Success();
+	}
+
+	public async Task<FunctionResponse> LogoutAsync()
+	{
+		var user = await userRepository.GetRequiredAsync(x => x.Id == requestContextViewModel.UserId.ToObjectId());
+
+		var refreshTokens = await refreshTokenRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId());
+		foreach (var token in refreshTokens)
+		{
+			await refreshTokenRepository.DeleteAsync(token.Id);
+		}
 
 		return FunctionResponse.Success();
 	}

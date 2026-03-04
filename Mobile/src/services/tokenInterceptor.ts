@@ -1,6 +1,8 @@
+// CHANGED_BY_AI: 2026-03-03 - Send Accept-Language header from selected app language
 import axios, {AxiosInstance, InternalAxiosRequestConfig, AxiosError} from 'axios';
 import sessionService from './sessionService';
 import {tokenService} from './tokenService';
+import {getCurrentLanguage} from '../utils/translations';
 
 class TokenInterceptor {
   private isRefreshing = false;
@@ -30,6 +32,7 @@ class TokenInterceptor {
   private async handleRequest(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
     const sessionId = await sessionService.getSessionId();
     config.headers['X-Session-Id'] = sessionId;
+    config.headers['Accept-Language'] = getCurrentLanguage();
 
     if (config.url?.includes('assets/')) {
       return config;
@@ -165,6 +168,3 @@ class TokenInterceptor {
 }
 
 export default TokenInterceptor;
-
-
-

@@ -1,6 +1,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add merchant nickname endpoint
 // CHANGED_BY_AI: 2026-03-02 - Add report endpoints
 // CHANGED_BY_AI: 2026-03-02 - Remove unused finance endpoints
+// CHANGED_BY_AI: 2026-03-03 - Add user profile and logout endpoints
 
 export const ApiEndpoints = {
   Auth: {
@@ -11,6 +12,7 @@ export const ApiEndpoints = {
     VerifyEmail: '/api/v1/auth/verify-email',
     ResendCode: '/api/v1/auth/resend-verification',
     RefreshToken: '/api/v1/auth/refresh-access-token',
+    Logout: '/api/v1/auth/logout',
   },
   Homepage: {
     Get: '/api/v1/homepage',
@@ -32,5 +34,11 @@ export const ApiEndpoints = {
     ById: (id: string) => `/api/v1/merchants/${id}`,
     Category: (id: string) => `/api/v1/merchants/${id}/category`,
     Nickname: (id: string) => `/api/v1/merchants/${id}/nickname`,
+  },
+  Users: {
+    Profile: '/api/v1/users/profile',
+    ChangePassword: '/api/v1/users/change-password',
+    Language: '/api/v1/users/language',
+    DeleteAccount: '/api/v1/users/account',
   },
 };

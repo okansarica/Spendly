@@ -1,6 +1,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add finance category and merchant message codes
 // CHANGED_BY_AI: 2026-03-01 - Added register validation message codes
 // CHANGED_BY_AI: 2026-03-02 - Add report validation message codes
+// CHANGED_BY_AI: 2026-03-03 - Add profile language validation message code
 namespace Spendly.Shared.Localization;
 
 public class MessageCodes
@@ -34,4 +35,5 @@ public class MessageCodes
 	public const string MerchantNotFound = "MerchantNotFound";
 	public const string CategoryMerchantLinkInvalid = "CategoryMerchantLinkInvalid";
 	public const string CategoryHasChildren = "CategoryHasChildren";
+	public const string InvalidLanguage = "InvalidLanguage";
 }

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-03 - Integrate backend logout in auth store
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import {apiCall} from '../services/apiClient';
 import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
@@ -78,7 +79,11 @@ export const forgotPassword = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk('auth/logout', async () => {
-  await tokenService.clearTokens();
+  try {
+    await apiCall(() => authService.logout());
+  } finally {
+    await tokenService.clearTokens().catch(() => undefined);
+  }
 });
 
 export const register = createAsyncThunk(
@@ -186,6 +191,8 @@ const authSlice = createSlice({
         state.userId = undefined;
         state.email = undefined;
         state.isAuthenticated = false;
+        state.emailVerificationRequired = false;
+        state.error = undefined;
       })
       .addCase(register.pending, state => {
         state.isLoading = true;

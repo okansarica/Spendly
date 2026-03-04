@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import ReportsNavigator from './ReportsNavigator';
 import {useTheme} from '../theme/ThemeContext';
 import DashboardScreen from "../screens/dashboard/DashboardScreen.tsx";
-import UserScreen from "../screens/user/UserScreen.tsx";
+import UserNavigator from './UserNavigator';
 import FinanceNavigator from "./FinanceNavigator";
 
 export type MainTabParamList = {
@@ -56,7 +56,7 @@ export default function MainNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Reports" component={ReportsNavigator} />
       <Tab.Screen name="Finance" component={FinanceNavigator} />
-      <Tab.Screen name="User" component={UserScreen} />
+      <Tab.Screen name="User" component={UserNavigator} />
     </Tab.Navigator>
   );
 }
