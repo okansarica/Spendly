@@ -475,7 +475,6 @@ export default function DashboardScreen() {
                             amount: item.amount,
                             percentage: item.percentageOfTotal,
                           }))}
-                          chartWidth={chartWidth}
                           chartHeight={HomepageConstants.ChartHeight}
                           title={translate('CurrentMonth')}
                       />
@@ -487,7 +486,6 @@ export default function DashboardScreen() {
                             amount: item.amount,
                             percentage: item.percentageOfTotal,
                           }))}
-                          chartWidth={chartWidth}
                           chartHeight={HomepageConstants.ChartHeight}
                           title={translate('PreviousMonth')}
                       />
@@ -524,7 +522,6 @@ export default function DashboardScreen() {
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
                         }))}
-                        chartWidth={chartWidth}
                         chartHeight={HomepageConstants.ChartHeight}
                         title={translate('CurrentMonth')}
                       />
@@ -536,7 +533,6 @@ export default function DashboardScreen() {
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
                         }))}
-                        chartWidth={chartWidth}
                         chartHeight={HomepageConstants.ChartHeight}
                         title={translate('PreviousMonth')}
                       />
