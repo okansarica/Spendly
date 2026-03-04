@@ -1,5 +1,5 @@
 // CHANGED_BY_AI: 2026-03-02 - Refactor homepage dashboard to spec
-import React, {useEffect, useMemo} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {PieChart, BarChart} from 'react-native-chart-kit';
+import {BarChart} from 'react-native-chart-kit';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadHomepage, refreshHomepage} from '../../store/homepageStore';
@@ -19,6 +19,8 @@ import {translate} from '../../utils/translations';
 import {HomepageConstants} from '../../constants/homepageConstants';
 import Header from '../../components/Header';
 import ErrorDisplay from '../../components/ErrorDisplay';
+import PieChartCard from '../../components/PieChartCard';
+import PaginationDots from '../../components/PaginationDots';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -37,6 +39,12 @@ export default function DashboardScreen() {
   const isLoading = useAppSelector(s => s.homepage.isLoading);
   const isRefreshing = useAppSelector(s => s.homepage.isRefreshing);
   const error = useAppSelector(s => s.homepage.error);
+  
+  const [accountChartPage, setAccountChartPage] = useState(0);
+  const [categoryChartPage, setCategoryChartPage] = useState(0);
+  
+  const chartWidth = useMemo(() => screenWidth - spacing.lg * 4, [spacing.lg]);
+  
 
   useEffect(() => {
     if (!data && !isLoading && !error) {
@@ -48,8 +56,6 @@ export default function DashboardScreen() {
     dispatch(refreshHomepage());
   };
 
-  const chartWidth = useMemo(() => screenWidth - spacing.lg * 4, [spacing.lg]);
-
   const hasAnyData = !!data && (
     data.currentMonthTotalSpending > 0 ||
     data.previousMonthTotalSpending > 0 ||
@@ -59,15 +65,6 @@ export default function DashboardScreen() {
     data.sixMonthTrend.length > 0
   );
 
-  const preparePieData = (dataArray: {name: string; amount: number}[]) => {
-    return dataArray.map((item, index) => ({
-      name: item.name,
-      population: item.amount,
-      color: colors.chartPalette[index % colors.chartPalette.length],
-      legendFontColor: colors.textPrimary,
-      legendFontSize: fontSizes.sm,
-    }));
-  };
 
   const s = StyleSheet.create({
     container: {
@@ -179,37 +176,6 @@ export default function DashboardScreen() {
     chartContainer: {
       alignItems: 'center',
       marginVertical: spacing.md,
-    },
-    carouselContainer: {
-      alignItems: 'center',
-    },
-    carouselPage: {
-      width: chartWidth,
-      alignItems: 'center',
-    },
-    legendItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.xs,
-    },
-    legendLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    legendDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-    },
-    legendLabel: {
-      fontSize: fontSizes.sm,
-      color: colors.textPrimary,
-    },
-    legendValue: {
-      fontSize: fontSizes.sm,
-      color: colors.textSecondary,
     },
     listItem: {
       flexDirection: 'row',
@@ -370,8 +336,8 @@ export default function DashboardScreen() {
     backgroundGradientFrom: colors.cardBackground,
     backgroundGradientTo: colors.cardBackground,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
-    labelColor: (opacity = 1) => colors.textPrimary,
+    color: (_opacity = 1) => `rgba(37, 99, 235, ${_opacity})`,
+    labelColor: (_opacity = 1) => colors.textPrimary,
     style: {
       borderRadius: radius.lg,
     },
@@ -384,22 +350,6 @@ export default function DashboardScreen() {
     <View style={s.emptyState}>
       <Icon name="account-balance-wallet" size={HomepageConstants.EmptyIconSize} color={colors.textSecondary} />
       <Text style={s.emptyText}>{translate(messageKey)}</Text>
-    </View>
-  );
-
-  const renderPieLegend = (items: {label: string; amount: number; percentage: number}[], colorOffset: number) => (
-    <View>
-      {items.map((item, index) => (
-        <View key={`${item.label}-${index}`} style={s.legendItem}>
-          <View style={s.legendLeft}>
-            <View style={[s.legendDot, {backgroundColor: colors.chartPalette[(index + colorOffset) % colors.chartPalette.length]}]} />
-            <Text style={s.legendLabel}>{item.label}</Text>
-          </View>
-          <Text style={s.legendValue}>
-            {formatPercentage(item.percentage)}% • {formatCurrency(item.amount)}
-          </Text>
-        </View>
-      ))}
     </View>
   );
 
@@ -506,69 +456,45 @@ export default function DashboardScreen() {
                 <Text style={s.cardTitle}>{translate('SpendingByAccount')}</Text>
               </View>
               {data.spendingByAccountCurrentMonth.length > 0 ? (
-                <View style={s.carouselContainer}>
+                <>
                   <ScrollView
                     horizontal
                     pagingEnabled
                     snapToInterval={chartWidth}
                     decelerationRate="fast"
-                    showsHorizontalScrollIndicator={false}>
-                    <View style={s.carouselPage}>
-                      <View style={s.chartContainer}>
-                        <PieChart
-                          data={preparePieData(
-                            data.spendingByAccountCurrentMonth.map(item => ({
-                              name: item.accountName,
-                              amount: item.amount,
-                            }))
-                          )}
-                          width={chartWidth}
-                          height={HomepageConstants.ChartHeight}
-                          chartConfig={chartConfig}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="15"
-                          absolute
-                        />
-                      </View>
-                      {renderPieLegend(
-                        data.spendingByAccountCurrentMonth.map(item => ({
-                          label: item.accountName,
-                          amount: item.amount,
-                          percentage: item.percentageOfTotal,
-                        })),
-                        0
-                      )}
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={(e) => {
+                      const page = Math.round(e.nativeEvent.contentOffset.x / chartWidth);
+                      setAccountChartPage(page);
+                    }}
+                    scrollEventThrottle={16}>
+                    <View style={{width: chartWidth}}>
+                      <PieChartCard
+                          data={data.spendingByAccountCurrentMonth.map(item => ({
+                            label: item.accountName,
+                            amount: item.amount,
+                            percentage: item.percentageOfTotal,
+                          }))}
+                          chartWidth={chartWidth}
+                          chartHeight={HomepageConstants.ChartHeight}
+                          title={translate('CurrentMonth')}
+                      />
                     </View>
-                    <View style={s.carouselPage}>
-                      <View style={s.chartContainer}>
-                        <PieChart
-                          data={preparePieData(
-                            data.spendingByAccountPreviousMonth.map(item => ({
-                              name: item.accountName,
-                              amount: item.amount,
-                            }))
-                          )}
-                          width={chartWidth}
-                          height={HomepageConstants.ChartHeight}
-                          chartConfig={chartConfig}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="15"
-                          absolute
-                        />
-                      </View>
-                      {renderPieLegend(
-                        data.spendingByAccountPreviousMonth.map(item => ({
-                          label: item.accountName,
-                          amount: item.amount,
-                          percentage: item.percentageOfTotal,
-                        })),
-                        0
-                      )}
+                    <View style={{width: chartWidth}}>
+                      <PieChartCard
+                          data={data.spendingByAccountPreviousMonth.map(item => ({
+                            label: item.accountName,
+                            amount: item.amount,
+                            percentage: item.percentageOfTotal,
+                          }))}
+                          chartWidth={chartWidth}
+                          chartHeight={HomepageConstants.ChartHeight}
+                          title={translate('PreviousMonth')}
+                      />
                     </View>
                   </ScrollView>
-                </View>
+                  <PaginationDots totalPages={2} activePage={accountChartPage} />
+                </>
               ) : (
                 renderEmptyState('NoDataForPeriod')
               )}
@@ -579,69 +505,45 @@ export default function DashboardScreen() {
                 <Text style={s.cardTitle}>{translate('SpendingByCategory')}</Text>
               </View>
               {data.spendingByCategoryCurrentMonth.length > 0 ? (
-                <View style={s.carouselContainer}>
+                <>
                   <ScrollView
                     horizontal
                     pagingEnabled
                     snapToInterval={chartWidth}
                     decelerationRate="fast"
-                    showsHorizontalScrollIndicator={false}>
-                    <View style={s.carouselPage}>
-                      <View style={s.chartContainer}>
-                        <PieChart
-                          data={preparePieData(
-                            data.spendingByCategoryCurrentMonth.map(item => ({
-                              name: item.categoryName,
-                              amount: item.amount,
-                            }))
-                          )}
-                          width={chartWidth}
-                          height={HomepageConstants.ChartHeight}
-                          chartConfig={chartConfig}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="15"
-                          absolute
-                        />
-                      </View>
-                      {renderPieLegend(
-                        data.spendingByCategoryCurrentMonth.map(item => ({
+                    showsHorizontalScrollIndicator={false}
+                    onScroll={(e) => {
+                      const page = Math.round(e.nativeEvent.contentOffset.x / chartWidth);
+                      setCategoryChartPage(page);
+                    }}
+                    scrollEventThrottle={16}>
+                    <View style={{width: chartWidth}}>
+                      <PieChartCard
+                        data={data.spendingByCategoryCurrentMonth.map(item => ({
                           label: item.categoryName,
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
-                        })),
-                        0
-                      )}
+                        }))}
+                        chartWidth={chartWidth}
+                        chartHeight={HomepageConstants.ChartHeight}
+                        title={translate('CurrentMonth')}
+                      />
                     </View>
-                    <View style={s.carouselPage}>
-                      <View style={s.chartContainer}>
-                        <PieChart
-                          data={preparePieData(
-                            data.spendingByCategoryPreviousMonth.map(item => ({
-                              name: item.categoryName,
-                              amount: item.amount,
-                            }))
-                          )}
-                          width={chartWidth}
-                          height={HomepageConstants.ChartHeight}
-                          chartConfig={chartConfig}
-                          accessor="population"
-                          backgroundColor="transparent"
-                          paddingLeft="15"
-                          absolute
-                        />
-                      </View>
-                      {renderPieLegend(
-                        data.spendingByCategoryPreviousMonth.map(item => ({
+                    <View style={{width: chartWidth}}>
+                      <PieChartCard
+                        data={data.spendingByCategoryPreviousMonth.map(item => ({
                           label: item.categoryName,
                           amount: item.amount,
                           percentage: item.percentageOfTotal,
-                        })),
-                        0
-                      )}
+                        }))}
+                        chartWidth={chartWidth}
+                        chartHeight={HomepageConstants.ChartHeight}
+                        title={translate('PreviousMonth')}
+                      />
                     </View>
                   </ScrollView>
-                </View>
+                  <PaginationDots totalPages={2} activePage={categoryChartPage} />
+                </>
               ) : (
                 renderEmptyState('NoDataForPeriod')
               )}
@@ -726,6 +628,7 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+
     </View>
   );
 }

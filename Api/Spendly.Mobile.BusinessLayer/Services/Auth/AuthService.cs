@@ -61,7 +61,8 @@ public class AuthService(
 			{
 				Id = user.Id.ToString(),
 				Email = user.Email,
-				EmailVerificationRequired = true
+				EmailVerificationRequired = true,
+				LanguageCode = user.LanguageCode
 			});
 		}
 
@@ -76,7 +77,8 @@ public class AuthService(
 			AccessTokenExpire = accessTokenExpiry,
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
-			EmailVerificationRequired = false
+			EmailVerificationRequired = false,
+			LanguageCode = user.LanguageCode
 		});
 	}
 
@@ -136,7 +138,8 @@ public class AuthService(
 			AccessTokenExpire = accessTokenExpiry,
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
-			EmailVerificationRequired = false
+			EmailVerificationRequired = false,
+			LanguageCode = user.LanguageCode
 		});
 	}
 
@@ -198,7 +201,8 @@ public class AuthService(
 		{
 			Id = user.Id.ToString(),
 			Email = user.Email,
-			EmailVerificationRequired = true
+			EmailVerificationRequired = true,
+			LanguageCode = user.LanguageCode
 		});
 	}
 
@@ -245,7 +249,8 @@ public class AuthService(
 			AccessTokenExpire = accessTokenExpiry,
 			RefreshToken = newRefreshToken,
 			RefreshTokenExpire = newRefreshTokenExpiry,
-			EmailVerificationRequired = false
+			EmailVerificationRequired = false,
+			LanguageCode = user.LanguageCode
 		});
 	}
 
@@ -319,7 +324,8 @@ public class AuthService(
 			AccessTokenExpire = accessTokenExpiry,
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
-			EmailVerificationRequired = false
+			EmailVerificationRequired = false,
+			LanguageCode = user.LanguageCode
 		});
 	}
 

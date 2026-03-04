@@ -2,7 +2,6 @@ namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Localization;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Homepage;
 

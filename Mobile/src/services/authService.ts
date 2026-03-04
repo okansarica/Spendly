@@ -36,6 +36,7 @@ export type AuthResponse = {
   refreshToken?: string;
   refreshTokenExpire?: string;
   emailVerificationRequired: boolean;
+  languageCode: string;
 };
 
 export const authService = {

@@ -9,5 +9,6 @@ public class AuthResponseViewModel
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpire { get; set; }
     public bool EmailVerificationRequired { get; set; }
+    public string LanguageCode { get; set; }
 }
 

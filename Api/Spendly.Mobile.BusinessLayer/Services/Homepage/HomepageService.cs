@@ -78,20 +78,29 @@ public class HomepageService(
 
         var response = new HomepageResponseViewModel
         {
+            //Ust summary box
             CurrentMonthTotalSpending = currentMonthTotal,
             PreviousMonthTotalSpending = previousMonthTotal,
             MidMonthComparison = midMonthComparison,
+            
+            //Kucuk summary boxlar
+            WeeklySnapshot = weeklySnapshot,
+            DailyAverage = dailyAverage,
+            
+            //Insights
+            TopSpendingCategory = topSpendingCategory,
+            HighestSingleExpense = highestSingleExpense,
+            MostUsedAccount = mostUsedAccount,
+                
+            //Pie charts
             SpendingByAccountCurrentMonth = spendingByAccountCurrent,
             SpendingByAccountPreviousMonth = spendingByAccountPrevious,
             SpendingByCategoryCurrentMonth = spendingByCategoryCurrent,
             SpendingByCategoryPreviousMonth = spendingByCategoryPrevious,
-            SixMonthTrend = sixMonthTrend,
+            
+            //Bar chart
+            SixMonthTrend = sixMonthTrend, //bar chart
             LatestExpenses = latestExpenses,
-            WeeklySnapshot = weeklySnapshot,
-            TopSpendingCategory = topSpendingCategory,
-            HighestSingleExpense = highestSingleExpense,
-            MostUsedAccount = mostUsedAccount,
-            DailyAverage = dailyAverage
         };
 
         return FunctionResponse.Success(response);

@@ -5,6 +5,7 @@ import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEm
 import {tokenService} from '../services/tokenService';
 import sessionService from '../services/sessionService';
 import {clearUserState} from './userStore';
+import {setLanguage} from '../utils/translations';
 
 type AuthState = {
   userId: string | undefined;
@@ -161,6 +162,9 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
+        if (action.payload.languageCode) {
+          setLanguage(action.payload.languageCode);
+        }
         if (action.payload.emailVerificationRequired) {
           state.emailVerificationRequired = true;
           state.userId = action.payload.id;
@@ -182,6 +186,9 @@ const authSlice = createSlice({
       })
       .addCase(socialLogin.fulfilled, (state, action) => {
         state.isLoading = false;
+        if (action.payload.languageCode) {
+          setLanguage(action.payload.languageCode);
+        }
         state.userId = action.payload.id;
         state.email = action.payload.email;
         state.isAuthenticated = true;
@@ -221,6 +228,9 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
+        if (action.payload.languageCode) {
+          setLanguage(action.payload.languageCode);
+        }
         state.emailVerificationRequired = true;
         state.userId = action.payload.id;
         state.email = action.payload.email;
@@ -235,6 +245,9 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmail.fulfilled, (state, action) => {
         state.isLoading = false;
+        if (action.payload.languageCode) {
+          setLanguage(action.payload.languageCode);
+        }
         state.userId = action.payload.id;
         state.email = action.payload.email;
         state.isAuthenticated = true;
