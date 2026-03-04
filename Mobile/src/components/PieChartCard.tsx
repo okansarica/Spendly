@@ -12,7 +12,6 @@ interface PieChartData {
 
 interface PieChartCardProps {
     data: PieChartData[];
-    chartWidth: number;
     chartHeight: number;
     title?: string;
 }
@@ -21,22 +20,17 @@ const formatPercentage = (percentage: number): string => {
     return percentage.toFixed(1);
 };
 
-export default function PieChartCard({
-                                         data,
-                                         chartWidth,
+export default function PieChartCard({   data,
                                          chartHeight,
                                          title,
                                      }: PieChartCardProps) {
     const {colors, spacing, radius, fontSizes} = useTheme();
 
     const preparePieData = (dataArray: PieChartData[]) => {
-        return dataArray.map((item, index) => ({
-            //name: item.label,
+        return dataArray.map((item, index) => ({            
             name: '',
             population: item.amount,
             color: colors.chartPalette[index % colors.chartPalette.length],
-            //legendFontColor: colors.textPrimary,
-            //legendFontSize: fontSizes.sm,
         }));
     };
 
@@ -86,8 +80,7 @@ export default function PieChartCard({
             color: colors.textSecondary,            
         },
         chartContainer: {
-            alignItems: 'center',
-            //marginVertical: spacing.md,
+            alignItems: 'center',            
             justifyContent: 'center',
         },
         legendItem: {

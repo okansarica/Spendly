@@ -2,16 +2,15 @@
 // CHANGED_BY_AI: 2026-03-02 - Add reports overview screen
 import React, {useEffect, useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions} from 'react-native';
-import {BarChart, PieChart} from 'react-native-chart-kit';
+import {BarChart} from 'react-native-chart-kit';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadReportsOverview} from '../../store/reportsStore';
 import {formatCurrency} from '../../utils/formatCurrency';
 import {translate} from '../../utils/translations';
-import {ReportConstants} from '../../constants/reportConstants';
 import Header from '../../components/Header';
 import ErrorDisplay from '../../components/ErrorDisplay';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import PieChartCard from '../../components/PieChartCard';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
@@ -44,13 +43,14 @@ export default function CategoryReportScreen() {
   const barLabels = topChanging.map(c => c.categoryName);
   const barData = topChanging.map(c => Math.abs(c.differenceAmount));
 
-  const pieData = distribution.map((item, index) => ({
-    name: item.categoryName,
-    population: item.currentMonthToDateTotal,
-    color: ReportConstants.ChartColors[index % ReportConstants.ChartColors.length],
-    legendFontColor: colors.textSecondary,
-    legendFontSize: fontSizes.xs,
-  }));
+  const pieChartData = distribution.map(item => {
+    const total = distribution.reduce((sum, d) => sum + d.currentMonthToDateTotal, 0);
+    return {
+      label: item.categoryName,
+      amount: item.currentMonthToDateTotal,
+      percentage: total > 0 ? (item.currentMonthToDateTotal / total) * 100 : 0,
+    };
+  });
 
   const trendColor = summary?.differenceAmount
     ? summary.differenceAmount > 0
@@ -77,9 +77,7 @@ export default function CategoryReportScreen() {
       shadowRadius: 6,
       elevation: 3,
     },
-    chartCard: {
-      alignItems: 'center',
-    },
+    chartCard: {},
     chartSummary: {marginTop: spacing.md, width: '100%'},
     chartSummaryRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs},
     chartSummaryLabel: {fontSize: fontSizes.sm, color: colors.textPrimary},
@@ -181,30 +179,12 @@ export default function CategoryReportScreen() {
 
         <View style={s.section}>
           <Text style={[s.title, s.sectionTitle]}>{translate('CategoryDistribution')}</Text>
-          {pieData.length > 0 ? (
+          {pieChartData.length > 0 ? (
             <View style={[s.card, s.chartCard]}>
-              <PieChart
-                data={pieData}
-                width={chartWidth}
-                height={220}
-                chartConfig={{
-                  color: () => colors.buttonPrimary,
-                  labelColor: () => colors.textSecondary,
-                  backgroundGradientFrom: colors.cardBackground,
-                  backgroundGradientTo: colors.cardBackground,
-                }}
-                accessor="population"
-                backgroundColor={colors.cardBackground}
-                paddingLeft={`${spacing.lg}`}
+              <PieChartCard
+                data={pieChartData}
+                chartHeight={220}
               />
-              <View style={s.chartSummary}>
-                {distribution.map(item => (
-                  <View key={item.categoryId} style={s.chartSummaryRow}>
-                    <Text style={s.chartSummaryLabel}>{item.categoryName}</Text>
-                    <Text style={s.chartSummaryValue}>{formatCurrency(item.currentMonthToDateTotal)}</Text>
-                  </View>
-                ))}
-              </View>
             </View>
           ) : (
             <Text style={s.subtitle}>{translate('NoCategoryData')}</Text>
