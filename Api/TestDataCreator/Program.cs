@@ -5,6 +5,7 @@ using Spendly.Shared.Entities.Auth;
 using Spendly.Shared.Entities.TransactionManagement;
 using Spendly.Shared.Entities.UserManagement;
 using Spendly.Shared.Entities.Reporting;
+using Spendly.Shared.Entities.Subscription;
 using Spendly.Shared.Enums;
 
 namespace TestDataCreator;
@@ -44,6 +45,7 @@ class Program
 	static async Task GenerateTestData()
 	{
 		var users = await CreateUsers();
+		await CreateUserSubscriptions(users);
 		var (accounts, currencies) = await CreateAccounts(users);
 		var categories = await CreateCategories(users);
 		var merchants = await CreateMerchants(categories);
@@ -151,6 +153,43 @@ class Program
 		await collection.InsertManyAsync(accounts);
 		Console.WriteLine($"✓ Created {accounts.Count} accounts");
 		return (accounts, currencyIds);
+	}
+
+	static async Task CreateUserSubscriptions(List<User> users)
+	{
+		var collection = _database.GetCollection<UserSubscription>("UserSubscription");
+		await collection.DeleteManyAsync(FilterDefinition<UserSubscription>.Empty);
+
+		var subscriptions = new List<UserSubscription>();
+		var now = DateTime.UtcNow;
+		foreach (var user in users)
+		{
+			var start = now;
+			var expectedEnd = start.AddDays(5);
+			subscriptions.Add(new UserSubscription
+			{
+				Id = ObjectId.GenerateNewId(),
+				UserId = user.Id,
+				StartDateTime = start,
+				ExpectedEndDateTime = expectedEnd,
+				EndDateTime = null,
+				Payment = new UserSubscriptionPayment
+				{
+					Duration = UserSubscriptionDurationType.Monthly,
+					Amount = 0m,
+					PaymentStatus = UserSubscriptionPaymentStatusType.Paid
+				},
+				SubscriptionType = SubscriptionType.Trial,
+				CreatedAt = DateTime.UtcNow
+			});
+		}
+
+		if (subscriptions.Any())
+		{
+			await collection.InsertManyAsync(subscriptions);
+		}
+
+		Console.WriteLine($"✓ Created {subscriptions.Count} trial subscriptions");
 	}
 
 	static async Task<List<Category>> CreateCategories(List<User> users)

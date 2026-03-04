@@ -4,6 +4,7 @@ import {apiCall} from '../services/apiClient';
 import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
 import {tokenService} from '../services/tokenService';
 import sessionService from '../services/sessionService';
+import {subscriptionService} from '../services/subscriptionService';
 import {clearUserState} from './userStore';
 import {setLanguage} from '../utils/translations';
 
@@ -47,6 +48,9 @@ export const login = createAsyncThunk(
         auth.refreshTokenExpire
       );
     }
+    if (auth.subscriptionEndDateTime) {
+      await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
+    }
     return auth;
   },
 );
@@ -66,6 +70,9 @@ export const socialLogin = createAsyncThunk(
         auth.accessTokenExpire,
         auth.refreshTokenExpire
       );
+    }
+    if (auth.subscriptionEndDateTime) {
+      await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
     }
     return auth;
   },
@@ -88,6 +95,7 @@ export const logout = createAsyncThunk('auth/logout', async (_, {dispatch}) => {
     await Promise.all([
       tokenService.clearTokens().catch(() => undefined),
       sessionService.clearSessionId().catch(() => undefined),
+      subscriptionService.clearSubscriptionEndDate().catch(() => undefined),
     ]);
     dispatch(clearUserState());
   }
@@ -97,6 +105,7 @@ export const logoutLocal = createAsyncThunk('auth/logoutLocal', async (_, {dispa
   await Promise.all([
     tokenService.clearTokens().catch(() => undefined),
     sessionService.clearSessionId().catch(() => undefined),
+    subscriptionService.clearSubscriptionEndDate().catch(() => undefined),
   ]);
   dispatch(clearUserState());
 });
@@ -127,6 +136,9 @@ export const verifyEmail = createAsyncThunk(
         auth.accessTokenExpire,
         auth.refreshTokenExpire
       );
+    }
+    if (auth.subscriptionEndDateTime) {
+      await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
     }
     return auth;
   },

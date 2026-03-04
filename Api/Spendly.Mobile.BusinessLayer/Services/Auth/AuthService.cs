@@ -75,6 +75,7 @@ public class AuthService(
 
 		var activeSubscription =
 			userSubscriptions.SingleOrDefault(p =>
+				p.SubscriptionType == SubscriptionType.Paid&&
 				p.StartDateTime.HasValue &&
 				p.StartDateTime.Value >= DateTime.UtcNow &&
 				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
@@ -83,7 +84,7 @@ public class AuthService(
 		if (activeSubscription == null)
 		{
 			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
-			subscriptionEndDate = trialSubscriptions.EndDateTime;
+			subscriptionEndDate = trialSubscriptions.EndDateTime??trialSubscriptions.ExpectedEndDateTime;
 		}
 
 		return FunctionResponse.Success(new AuthResponseViewModel

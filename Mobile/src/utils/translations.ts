@@ -164,6 +164,11 @@ const translations: Record<string, Record<string, string>> = {
     DeleteAccountChallengeTitle: 'Final Confirmation',
     DeleteAccountChallengeMessage: 'Are you sure? All your data will be deleted permanently. Solve the math question to continue.',
     DeleteAccountChallengeError: 'Answers are incorrect. Please try again.',
+    SubscriptionExpiringWarning: 'Your trial subscription expires in {days} days',
+    SubscriptionExpiringWarningLastDay: 'Your trial subscription expires in {hours} hours',
+    SubscriptionExpiredTitle: 'Subscription Expired',
+    SubscriptionExpiredMessage: 'Your subscription has expired. Please renew to continue using the app.',
+    RenewSubscription: 'Renew Subscription',
   },
 };
 
