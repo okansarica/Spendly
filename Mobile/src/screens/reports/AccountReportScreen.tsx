@@ -69,10 +69,6 @@ export default function AccountReportScreen() {
       elevation: 3,
     },
     chartCard: {},
-    chartSummary: {marginTop: spacing.md, width: '100%'},
-    chartSummaryRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs},
-    chartSummaryLabel: {fontSize: fontSizes.sm, color: colors.textPrimary},
-    chartSummaryValue: {fontSize: fontSizes.sm, color: colors.textSecondary, fontWeight: fontWeights.medium},
     title: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary},
     subtitle: {fontSize: fontSizes.sm, color: colors.textSecondary},
     row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm},
@@ -138,6 +134,7 @@ export default function AccountReportScreen() {
             <View style={[s.card, s.chartCard]}>
               <PieChartCard
                 data={pieChartData}
+                chartWidth={chartWidth}
                 chartHeight={220}
               />
             </View>

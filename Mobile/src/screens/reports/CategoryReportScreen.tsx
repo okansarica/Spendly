@@ -2,7 +2,6 @@
 // CHANGED_BY_AI: 2026-03-02 - Add reports overview screen
 import React, {useEffect, useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions} from 'react-native';
-import {BarChart} from 'react-native-chart-kit';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadReportsOverview} from '../../store/reportsStore';
@@ -11,6 +10,7 @@ import {translate} from '../../utils/translations';
 import Header from '../../components/Header';
 import ErrorDisplay from '../../components/ErrorDisplay';
 import PieChartCard from '../../components/PieChartCard';
+import BarChartCard from '../../components/BarChartCard';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useNavigation} from '@react-navigation/native';
 import type {ReportsStackParamList} from '../../navigation/ReportsNavigator';
@@ -90,10 +90,6 @@ export default function CategoryReportScreen() {
       elevation: 3,
     },
     chartCard: {},
-    chartSummary: {marginTop: spacing.md, width: '100%'},
-    chartSummaryRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.xs},
-    chartSummaryLabel: {fontSize: fontSizes.sm, color: colors.textPrimary},
-    chartSummaryValue: {fontSize: fontSizes.sm, color: colors.textSecondary, fontWeight: fontWeights.medium},
     title: {fontSize: fontSizes.lg, fontWeight: fontWeights.semiBold, color: colors.textPrimary},
     subtitle: {fontSize: fontSizes.sm, color: colors.textSecondary},
     row: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm},
@@ -159,30 +155,12 @@ export default function CategoryReportScreen() {
           <Text style={[s.title, s.sectionTitle]}>{translate('TopChangingCategories')}</Text>
           {barData.length > 0 ? (
             <View style={[s.card, s.chartCard]}>
-              <BarChart
-                data={{labels: barLabels, datasets: [{data: barData}]}}
-                width={chartWidth}
-                height={220}
-                fromZero
-                yAxisLabel=""
-                yAxisSuffix=""
-                withHorizontalLabels={false}
-                chartConfig={{
-                  backgroundGradientFrom: colors.cardBackground,
-                  backgroundGradientTo: colors.cardBackground,
-                  color: () => colors.buttonPrimary,
-                  labelColor: () => colors.textSecondary,
-                }}
-                style={{borderRadius: radius.md}}
+              <BarChartCard
+                data={barData}
+                labels={barLabels}
+                chartWidth={chartWidth}
+                chartHeight={220}
               />
-              <View style={s.chartSummary}>
-                {topChanging.map(item => (
-                  <View key={item.categoryId} style={s.chartSummaryRow}>
-                    <Text style={s.chartSummaryLabel}>{item.categoryName}</Text>
-                    <Text style={s.chartSummaryValue}>{formatCurrency(Math.abs(item.differenceAmount))}</Text>
-                  </View>
-                ))}
-              </View>
             </View>
           ) : (
             <Text style={s.subtitle}>{translate('NoCategoryData')}</Text>

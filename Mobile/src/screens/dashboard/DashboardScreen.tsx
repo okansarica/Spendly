@@ -10,7 +10,6 @@ import {
   Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {BarChart} from 'react-native-chart-kit';
 import {useTheme} from '../../theme/ThemeContext';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {loadHomepage, refreshHomepage} from '../../store/homepageStore';
@@ -21,6 +20,7 @@ import Header from '../../components/Header';
 import ErrorDisplay from '../../components/ErrorDisplay';
 import PieChartCard from '../../components/PieChartCard';
 import PaginationDots from '../../components/PaginationDots';
+import BarChartCard from '../../components/BarChartCard';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -342,21 +342,6 @@ export default function DashboardScreen() {
     );
   }
 
-  const chartConfig = {
-    backgroundColor: colors.cardBackground,
-    backgroundGradientFrom: colors.cardBackground,
-    backgroundGradientTo: colors.cardBackground,
-    decimalPlaces: 0,
-    color: (_opacity = 1) => `rgba(37, 99, 235, ${_opacity})`,
-    labelColor: (_opacity = 1) => colors.textPrimary,
-    style: {
-      borderRadius: radius.lg,
-    },
-    propsForLabels: {
-      fontSize: fontSizes.xs,
-    },
-  };
-
   const renderEmptyState = (messageKey: string) => (
     <View style={s.emptyState}>
       <Icon name="account-balance-wallet" size={HomepageConstants.EmptyIconSize} color={colors.textSecondary} />
@@ -572,33 +557,22 @@ export default function DashboardScreen() {
                     ))}
                   </View>
                   <View style={s.chartContainer}>
-                    <BarChart
-                      data={{
-                        labels: data.sixMonthTrend.map(item =>
-                          new Date(item.year, item.month - 1).toLocaleDateString('en-GB', {month: 'short'})
-                        ),
-                        datasets: [
-                          {
-                            data: data.sixMonthTrend.map(item => item.amount),
-                            color: () => colors.buttonPrimary,
-                          },
-                          {
-                            data: data.sixMonthTrend.map(item => item.previousMonthAmount),
-                            color: () => colors.buttonPrimaryDisabled,
-                          },
-                        ],
-                      }}
-                      width={chartWidth}
-                      height={HomepageConstants.ChartHeight}
-                      chartConfig={chartConfig}
-                      yAxisLabel=""
-                      yAxisSuffix=""
-                      fromZero
-                      showBarTops={false}
-                      showValuesOnTopOfBars={false}
-                      style={{
-                        borderRadius: radius.md,
-                      }}
+                    <BarChartCard
+                      datasets={[
+                        {
+                          data: data.sixMonthTrend.map(item => item.amount),
+                          color: () => colors.buttonPrimary,
+                        },
+                        {
+                          data: data.sixMonthTrend.map(item => item.previousMonthAmount),
+                          color: () => colors.buttonPrimaryDisabled,
+                        },
+                      ]}
+                      labels={data.sixMonthTrend.map(item =>
+                        new Date(item.year, item.month - 1).toLocaleDateString('en-GB', {month: 'short'})
+                      )}
+                      chartWidth={chartWidth}
+                      chartHeight={HomepageConstants.ChartHeight}
                     />
                   </View>
                 </View>
