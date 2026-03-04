@@ -32,10 +32,6 @@ export type CategoryUpsertRequest = {
   merchantIds?: string[];
 };
 
-export type CategoryMerchantsRequest = {
-  merchantIds?: string[];
-};
-
 export const categoriesService = {
   getList: (params?: CategoryListRequest) => apiClient.get<CategoryListItem[]>(ApiEndpoints.Categories.Base, {params}),
   create: (payload: CategoryUpsertRequest) => apiClient.post<CategoryListItem>(ApiEndpoints.Categories.Base, payload),

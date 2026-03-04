@@ -8,3 +8,20 @@ public enum LoginProviderType
     Facebook
 }
 
+public enum UserSubscriptionDurationType
+{
+    Monthly,
+    Yearly
+}
+
+public enum UserSubscriptionPaymentStatusType
+{
+    WaitingForPayment,
+    Paid,
+}
+
+public enum SubscriptionType
+{
+    Trial,
+    Paid,
+}

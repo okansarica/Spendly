@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Entities.Subscription;
 using Spendly.Mobile.ViewModels.Auth;
 using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
@@ -18,6 +19,7 @@ using Spendly.Shared.ViewModels.Settings;
 
 public class AuthService(
 	IRepository<User> userRepository,
+	IRepository<UserSubscription> userSubscriptionRepository,
 	IRepository<UserRefreshToken> refreshTokenRepository,
 	JwtSettings jwtSettings,
 	IHttpClientFactory httpClientFactory,
@@ -69,6 +71,25 @@ public class AuthService(
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
+		var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == user.Id).ConfigureAwait(false);
+
+		var activeSubscription =
+			userSubscriptions.SingleOrDefault(p =>
+				p.StartDateTime.HasValue &&
+				p.StartDateTime.Value >= DateTime.UtcNow &&
+				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
+
+		DateTime? subscriptionEndDate = null;
+		if (activeSubscription != null)
+		{
+			subscriptionEndDate = activeSubscription.EndDateTime ?? activeSubscription.ExpectedEndDateTime;
+		}
+		else
+		{
+			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
+			subscriptionEndDate = trialSubscriptions.EndDateTime;
+		}
+
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
 			Id = user.Id.ToString(),
@@ -78,7 +99,8 @@ public class AuthService(
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
 			EmailVerificationRequired = false,
-			LanguageCode = user.LanguageCode
+			LanguageCode = user.LanguageCode,
+			SubscriptionEndDateTime = subscriptionEndDate,
 		});
 	}
 
@@ -194,8 +216,16 @@ public class AuthService(
 			IsNewsletterSubscribed = false,
 			LanguageCode = "en"
 		};
+		await userRepository.InsertAsync(user).ConfigureAwait(false);
 
-		await userRepository.InsertAsync(user);
+		var userSubscription = new UserSubscription
+		{
+			ExpectedEndDateTime = DateTime.UtcNow.AddDays(Constants.Constants.User.TrialDurationInDays),
+			StartDateTime = DateTime.UtcNow,
+			SubscriptionType = SubscriptionType.Trial,
+			UserId = user.Id,
+		};
+		await userSubscriptionRepository.InsertAsync(userSubscription).ConfigureAwait(false);
 
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
@@ -313,7 +343,7 @@ public class AuthService(
 		await userRepository.UpdateAsync(user);
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
-		
+
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		return FunctionResponse.Success(new AuthResponseViewModel

@@ -33,4 +33,9 @@ public static class Constants
             public const string Desc = "desc";
         }
     }
+
+    public static class User
+    {
+        public const int TrialDurationInDays = 7;
+    }
 }
