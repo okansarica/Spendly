@@ -1,6 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from './apiClient';
+import {ApiEndpoints} from '../constants/apiEndpoints';
 
 export const subscriptionService = {
+  async fetchSubscriptionEndDate(): Promise<void> {
+    const response = await apiClient.get<{subscriptionEndDateTime: string | null}>(
+      ApiEndpoints.Users.SubscriptionEnd,
+    );
+    if (response.data.subscriptionEndDateTime) {
+      await this.saveSubscriptionEndDate(response.data.subscriptionEndDateTime);
+    }
+  },
+
   async saveSubscriptionEndDate(endDateTime: string): Promise<void> {
     await AsyncStorage.setItem('subscriptionEndDateTime', endDateTime);
   },

@@ -71,5 +71,16 @@ public class UsersController(UserService userService) : ControllerBase
 
         return Ok(new { success = true });
     }
-}
 
+    [HttpGet("subscription-end")]
+    public async Task<IActionResult> GetSubscriptionEndDate()
+    {
+        var response = await userService.GetSubscriptionEndDateAsync();
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok(new { subscriptionEndDateTime = response.Data });
+    }
+}

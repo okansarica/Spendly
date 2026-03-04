@@ -40,5 +40,6 @@ export const ApiEndpoints = {
     ChangePassword: '/api/v1/users/change-password',
     Language: '/api/v1/users/language',
     DeleteAccount: '/api/v1/users/account',
+    SubscriptionEnd: '/api/v1/users/subscription-end',
   },
 };

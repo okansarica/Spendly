@@ -1,6 +1,7 @@
 // CHANGED_BY_AI: 2026-03-03 - Add user profile, password, language, and account deletion service
 namespace Spendly.Mobile.BusinessLayer.Services.User;
 
+using Spendly.Shared.Core.Interception;
 using Spendly.Mobile.ViewModels.User;
 using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
@@ -9,6 +10,7 @@ using Spendly.Shared.Entities.LocaleManagement;
 using Spendly.Shared.Entities.Reporting;
 using Spendly.Shared.Entities.TransactionManagement;
 using Spendly.Shared.Entities.UserManagement;
+using Spendly.Shared.Entities.Subscription;
 using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels;
 
@@ -27,6 +29,7 @@ public class UserService(
     IRepository<MonthlyUserExpense> monthlyUserExpenseRepository,
     IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
     IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository,
+    IRepository<UserSubscription> userSubscriptionRepository,
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<UserProfileResponseViewModel>> GetProfileAsync()
@@ -161,6 +164,28 @@ public class UserService(
         return FunctionResponse.Success();
     }
 
+    [Cacheable(DurationSeconds = 7200)]
+    public async Task<FunctionResponse<DateTime?>> GetSubscriptionEndDateAsync()
+    {
+        var userId = requestContextViewModel.UserId.ToObjectId();
+        var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == userId).ConfigureAwait(false);
+
+        var activeSubscription = userSubscriptions.SingleOrDefault(p =>
+            p.SubscriptionType == Shared.Enums.SubscriptionType.Paid &&
+            p.StartDateTime.HasValue &&
+            p.StartDateTime.Value >= DateTime.UtcNow &&
+            ((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
+
+        DateTime? subscriptionEndDate = null;
+        if (activeSubscription == null)
+        {
+            var trialSubscriptions = userSubscriptions.SingleOrDefault(p => p.SubscriptionType == Shared.Enums.SubscriptionType.Trial);
+            subscriptionEndDate = trialSubscriptions?.EndDateTime ?? trialSubscriptions?.ExpectedEndDateTime;
+        }
+
+        return FunctionResponse.Success(subscriptionEndDate);
+    }
+
     private static UserProfileResponseViewModel ToProfile(User user)
     {
         return new UserProfileResponseViewModel
@@ -174,4 +199,3 @@ public class UserService(
         };
     }
 }
-

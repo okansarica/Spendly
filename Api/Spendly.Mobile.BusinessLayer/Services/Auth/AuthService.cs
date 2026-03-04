@@ -224,12 +224,15 @@ public class AuthService(
 		};
 		await userSubscriptionRepository.InsertAsync(userSubscription).ConfigureAwait(false);
 
+		DateTime? subscriptionEndDate = userSubscription.EndDateTime ?? userSubscription.ExpectedEndDateTime;
+		
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
 			Id = user.Id.ToString(),
 			Email = user.Email,
 			EmailVerificationRequired = true,
-			LanguageCode = user.LanguageCode
+			LanguageCode = user.LanguageCode,
+			SubscriptionEndDateTime = subscriptionEndDate
 		});
 	}
 
