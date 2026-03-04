@@ -95,20 +95,25 @@ export default function MerchantsListScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       flex: 1,
+      marginRight: spacing.sm,
     },
     title: {
       fontSize: fontSizes.md,
       fontWeight: fontWeights.semiBold,
       color: colors.textPrimary,
+      flexShrink: 1,
     },
     categoryText: {
       fontSize: fontSizes.sm,
       color: colors.textSecondary,
+      flexShrink: 1,
     },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      flexWrap: 'wrap',
+      flex: 1,
     },
     menuButton: {
       padding: spacing.xs,
