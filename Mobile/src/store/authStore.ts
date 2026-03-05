@@ -1,4 +1,5 @@
 // CHANGED_BY_AI: 2026-03-03 - Integrate backend logout in auth store
+// CHANGED_BY_AI: 2026-03-05 - Add Firebase token to auth flows
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import {apiCall} from '../services/apiClient';
 import {authService, LoginRequest, SocialLoginRequest, RegisterRequest, VerifyEmailRequest} from '../services/authService';
@@ -7,6 +8,7 @@ import sessionService from '../services/sessionService';
 import {subscriptionService} from '../services/subscriptionService';
 import {clearUserState} from './userStore';
 import {setLanguage} from '../utils/translations';
+import {firebaseService} from '../services/firebaseService';
 
 type AuthState = {
   userId: string | undefined;
@@ -35,7 +37,10 @@ export const checkAuth = createAsyncThunk('auth/checkAuth', async () => {
 export const login = createAsyncThunk(
   'auth/login',
   async (data: LoginRequest, {rejectWithValue}) => {
-    const response = await apiCall(() => authService.login(data));
+    const firebaseToken = await firebaseService.getCachedToken();
+    const requestData = firebaseToken ? {...data, firebaseToken} : data;
+    
+    const response = await apiCall(() => authService.login(requestData));
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
     }
@@ -58,7 +63,10 @@ export const login = createAsyncThunk(
 export const socialLogin = createAsyncThunk(
   'auth/socialLogin',
   async (data: SocialLoginRequest, {rejectWithValue}) => {
-    const response = await apiCall(() => authService.socialLogin(data));
+    const firebaseToken = await firebaseService.getCachedToken();
+    const requestData = firebaseToken ? {...data, firebaseToken} : data;
+    
+    const response = await apiCall(() => authService.socialLogin(requestData));
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
     }
@@ -113,7 +121,10 @@ export const logoutLocal = createAsyncThunk('auth/logoutLocal', async (_, {dispa
 export const register = createAsyncThunk(
   'auth/register',
   async (data: RegisterRequest, {rejectWithValue}) => {
-    const response = await apiCall(() => authService.register(data));
+    const firebaseToken = await firebaseService.getCachedToken();
+    const requestData = firebaseToken ? {...data, firebaseToken} : data;
+    
+    const response = await apiCall(() => authService.register(requestData));
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
     }

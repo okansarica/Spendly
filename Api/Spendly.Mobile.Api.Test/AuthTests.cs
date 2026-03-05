@@ -16,7 +16,7 @@ public class AuthTests(TestFixture fixture) : IClassFixture<TestFixture>
     [Fact]
     public async Task RegisterThenVerifyReturnsToken()
     {
-        var authClient = new AuthApiClient(fixture.Client);
+        var authClient = fixture.AuthClient;
         var registerRequest = fixture.GenerateRegisterRequest();
 
         var registerResponse = await authClient.RegisterAsync(registerRequest);
@@ -45,7 +45,7 @@ public class AuthTests(TestFixture fixture) : IClassFixture<TestFixture>
         verifiedResponse.Should().NotBeNull();
         verifiedResponse.AccessToken.Should().NotBeNullOrEmpty();
 
-        var authClient = new AuthApiClient(fixture.Client);
+        var authClient = fixture.AuthClient;
         var loginResponse = await authClient.LoginAsync(new LoginRequestViewModel { Email = registerRequest.Email, Password = registerRequest.Password, FirebaseToken = registerRequest.FirebaseToken });
         loginResponse.Should().NotBeNull();
         loginResponse.AccessToken.Should().NotBeNullOrEmpty();
@@ -54,7 +54,7 @@ public class AuthTests(TestFixture fixture) : IClassFixture<TestFixture>
     [Fact]
     public async Task ForgotPasswordAllowsRequestAndResendGeneratesCode()
     {
-        var authClient = new AuthApiClient(fixture.Client);
+        var authClient = fixture.AuthClient;
         var registerRequest = fixture.GenerateRegisterRequest();
 
         var verifiedResponse = await fixture.RegisterAndVerifyAsync(registerRequest);
@@ -72,7 +72,7 @@ public class AuthTests(TestFixture fixture) : IClassFixture<TestFixture>
     [Fact]
     public async Task ResendVerificationReturnsSuccess()
     {
-        var authClient = new AuthApiClient(fixture.Client);
+        var authClient = fixture.AuthClient;
         var registerRequest = fixture.GenerateRegisterRequest();
 
         var registerResponse = await authClient.RegisterAsync(registerRequest);
@@ -89,7 +89,7 @@ public class AuthTests(TestFixture fixture) : IClassFixture<TestFixture>
     [Fact]
     public async Task RefreshAccessTokenReturnsNewTokens()
     {
-        var authApiClient = new AuthApiClient(fixture.Client);
+        var authApiClient = fixture.AuthClient;
         var verifiedUser = await fixture.PrepareVerifiedUserAsync();
         verifiedUser.Should().NotBeNull();
 

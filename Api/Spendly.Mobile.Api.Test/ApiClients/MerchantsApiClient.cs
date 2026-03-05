@@ -1,9 +1,6 @@
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Spendly.Mobile.ViewModels.Finance;
-using System.Collections.Generic;
 
 namespace Spendly.Mobile.Api.Test.ApiClients;
 

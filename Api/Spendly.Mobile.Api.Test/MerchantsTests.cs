@@ -17,8 +17,7 @@ public class MerchantsTests(TestFixture fixture) : IClassFixture<TestFixture>
         var verifiedUser = await fixture.PrepareVerifiedUserAsync();
         verifiedUser.Should().NotBeNull();
 
-        var authenticatedClient = fixture.CreateAuthenticatedClient(verifiedUser.AccessToken);
-        var merchantsClient = new MerchantsApiClient(authenticatedClient);
+        var merchantsClient = fixture.MerchantsClient;
 
         var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<Merchant>>();
 

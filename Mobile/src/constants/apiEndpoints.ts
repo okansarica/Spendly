@@ -41,5 +41,8 @@ export const ApiEndpoints = {
     Language: '/api/v1/users/language',
     DeleteAccount: '/api/v1/users/account',
     SubscriptionEnd: '/api/v1/users/subscription-end',
+    SubscriptionPlans: '/api/v1/users/subscription-plans',
+    CreatePaymentUrl: '/api/v1/users/create-payment-url',
+    FirebaseToken: '/api/v1/users/firebase-token',
   },
 };

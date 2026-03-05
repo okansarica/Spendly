@@ -16,11 +16,17 @@ public class TestFixture : IAsyncDisposable
     public WebApplicationFactory Factory { get; }
     public HttpClient Client { get; }
     public IMongoClient MongoClient { get; }
+    public string? GlobalAccessToken { get; private set; }
+    public AuthApiClient AuthClient { get; }
+    public CategoriesApiClient CategoriesClient => new CategoriesApiClient(CreateAuthenticatedClient(GlobalAccessToken ?? string.Empty));
+    public MerchantsApiClient MerchantsClient => new MerchantsApiClient(CreateAuthenticatedClient(GlobalAccessToken ?? string.Empty));
+    public UsersApiClient UsersClient => new UsersApiClient(CreateAuthenticatedClient(GlobalAccessToken ?? string.Empty));
 
     public TestFixture()
     {
         Factory = new WebApplicationFactory();
         Client = Factory.CreateClient();
+        AuthClient = new AuthApiClient(Client);
 
         var port = int.Parse(Environment.GetEnvironmentVariable("TEST_MONGO_PORT")!);
         var host = Environment.GetEnvironmentVariable("TEST_MONGO_HOST") ?? "localhost";
@@ -36,9 +42,7 @@ public class TestFixture : IAsyncDisposable
 
     public async Task<string> RegisterAndLoginAsync(RegisterRequestViewModel register)
     {
-        var authClient = new AuthApiClient(Client);
-        var regResponse = await authClient.RegisterAsync(register);
-        // regResponse not used further here
+        var regResponse = await AuthClient.RegisterAsync(register);
 
         // Mark user email as verified in test Mongo so login returns tokens
         var dbName = Environment.GetEnvironmentVariable("DbSettings__DatabaseName") ?? "SpendlyTestDb";
@@ -50,14 +54,14 @@ public class TestFixture : IAsyncDisposable
 
         // After register, perform login
         var loginRequest = new LoginRequestViewModel { Email = register.Email, Password = register.Password, FirebaseToken = register.FirebaseToken ?? "test-firebase-token" };
-        var loginResponse = await authClient.LoginAsync(loginRequest);
+        var loginResponse = await AuthClient.LoginAsync(loginRequest);
+        GlobalAccessToken = loginResponse.AccessToken;
         return loginResponse.AccessToken!;
     }
 
     public async Task<AuthResponseViewModel> RegisterAndVerifyAsync(RegisterRequestViewModel register)
     {
-        var authClient = new AuthApiClient(Client);
-        var registerResponse = await authClient.RegisterAsync(register);
+        var registerResponse = await AuthClient.RegisterAsync(register);
 
         var userRepository = Factory.Services.GetRequiredService<IRepository<User>>();
         var user = await userRepository.GetAsync(u => u.Email == register.Email);
@@ -69,7 +73,8 @@ public class TestFixture : IAsyncDisposable
             throw new Exception("Verification code not set for registered user");
 
         var verifyRequest = new VerifyEmailRequestViewModel { UserId = user.Id.ToString(), Code = code };
-        var verifyResp = await authClient.VerifyEmailAsync(verifyRequest);
+        var verifyResp = await AuthClient.VerifyEmailAsync(verifyRequest);
+        GlobalAccessToken = verifyResp?.AccessToken;
 
         // Adjust user's trial subscription to be expired so Login endpoint (which currently checks subscription) will succeed in tests
         var userSubscriptionRepository = Factory.Services.GetRequiredService<IRepository<Spendly.Shared.Entities.Subscription.UserSubscription>>();

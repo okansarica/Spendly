@@ -19,8 +19,7 @@ public class CategoriesTests(TestFixture fixture) : IClassFixture<TestFixture>
         var verifiedUser = await fixture.PrepareVerifiedUserAsync();
         verifiedUser.Should().NotBeNull();
 
-        var authenticatedClient = fixture.CreateAuthenticatedClient(verifiedUser.AccessToken);
-        var categoriesClient = new CategoriesApiClient(authenticatedClient);
+        var categoriesClient = fixture.CategoriesClient;
 
         // 1) List should be empty initially
         var list = await categoriesClient.ListAsync();
