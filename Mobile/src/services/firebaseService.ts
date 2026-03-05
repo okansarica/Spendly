@@ -1,8 +1,16 @@
 // CHANGED_BY_AI: 2026-03-05 - Register remote messages before token fetch
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {SubscriptionPaymentResultStatus} from './subscriptionService';
 
 const FIREBASE_TOKEN_KEY = 'firebase_token';
+
+type NotificationMessage = {
+  data?: {
+    type?: string;
+    status?: string;
+  };
+};
 
 export const firebaseService = {
   async requestPermission(): Promise<boolean> {
@@ -39,9 +47,25 @@ export const firebaseService = {
 
   setupNotificationListeners(
     onNotification: (message: any) => Promise<void>,
+    onSubscriptionPaymentResult: (status: SubscriptionPaymentResultStatus) => Promise<void>,
   ) {
-    const unsubscribe = messaging().onMessage(async message => {
+    const handleMessage = async (message: NotificationMessage) => {
+      if (message.data?.type === 'subscription_payment_result') {
+        const status = message.data?.status;
+        if (status === 'success' || status === 'fail') {
+          await onSubscriptionPaymentResult(status);
+          return;
+        }
+      }
       await onNotification(message);
+    };
+
+    const unsubscribe = messaging().onMessage(async message => {
+      await handleMessage(message);
+    });
+
+    const unsubscribeOpened = messaging().onNotificationOpenedApp(async message => {
+      await handleMessage(message);
     });
 
     const unsubscribeTokenRefresh = messaging().onTokenRefresh(async token => {
@@ -50,7 +74,22 @@ export const firebaseService = {
 
     return () => {
       unsubscribe();
+      unsubscribeOpened();
       unsubscribeTokenRefresh();
     };
+  },
+
+  async handleInitialNotification(
+    onSubscriptionPaymentResult: (status: SubscriptionPaymentResultStatus) => Promise<void>,
+  ): Promise<void> {
+    const message = await messaging().getInitialNotification();
+    if (message?.data?.type !== 'subscription_payment_result') {
+      return;
+    }
+
+    const status = message.data.status;
+    if (status === 'success' || status === 'fail') {
+      await onSubscriptionPaymentResult(status);
+    }
   },
 };

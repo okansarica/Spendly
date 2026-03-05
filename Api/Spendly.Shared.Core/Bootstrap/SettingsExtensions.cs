@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-05 - Register Firebase settings for notification service
 namespace Spendly.Shared.Core.Bootstrap;
 
 using Microsoft.Extensions.Configuration;
@@ -39,6 +40,8 @@ public static class SettingsExtensions
 				.AddSingleton<FacebookSettings>(sp => sp.GetRequiredService<IOptions<FacebookSettings>>().Value)
 				.Configure<StripeSettings>(configuration.GetSection(nameof(StripeSettings)))
 				.AddSingleton<StripeSettings>(sp => sp.GetRequiredService<IOptions<StripeSettings>>().Value)
+				.Configure<FirebaseSettings>(configuration.GetSection(nameof(FirebaseSettings)))
+				.AddSingleton<FirebaseSettings>(sp => sp.GetRequiredService<IOptions<FirebaseSettings>>().Value)
 				.Configure<VersionSettings>(configuration.GetSection(nameof(VersionSettings)))
 				.AddSingleton<VersionSettings>(sp => sp.GetRequiredService<IOptions<VersionSettings>>().Value)
 			// .Configure<UploadSettings>(configuration.GetSection(nameof(UploadSettings)))

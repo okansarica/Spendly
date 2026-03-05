@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-05 - Add subscription state listeners for payment push updates
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
@@ -7,18 +8,38 @@ type SubscriptionPlan = {
   price: number;
 };
 
+type SubscriptionStateListener = () => void;
+
+export type SubscriptionPaymentResultStatus = 'success' | 'fail';
+
+const subscriptionStateListeners = new Set<SubscriptionStateListener>();
+
+const notifySubscriptionStateListeners = () => {
+  subscriptionStateListeners.forEach(listener => listener());
+};
+
 export const subscriptionService = {
+  subscribeToSubscriptionState(listener: SubscriptionStateListener): () => void {
+    subscriptionStateListeners.add(listener);
+    return () => {
+      subscriptionStateListeners.delete(listener);
+    };
+  },
+
   async fetchSubscriptionEndDate(): Promise<void> {
     const response = await apiClient.get<{subscriptionEndDateTime: string | null}>(
       ApiEndpoints.Users.SubscriptionEnd,
     );
     if (response.data.subscriptionEndDateTime) {
       await this.saveSubscriptionEndDate(response.data.subscriptionEndDateTime);
+      return;
     }
+    await this.clearSubscriptionEndDate();
   },
 
   async saveSubscriptionEndDate(endDateTime: string): Promise<void> {
     await AsyncStorage.setItem('subscriptionEndDateTime', endDateTime);
+    notifySubscriptionStateListeners();
   },
 
   async getSubscriptionEndDate(): Promise<string | null> {
@@ -27,6 +48,7 @@ export const subscriptionService = {
 
   async clearSubscriptionEndDate(): Promise<void> {
     await AsyncStorage.removeItem('subscriptionEndDateTime');
+    notifySubscriptionStateListeners();
   },
 
   async isSubscriptionExpired(): Promise<boolean> {
@@ -102,4 +124,3 @@ export const subscriptionService = {
     return response.data.paymentUrl;
   },
 };
-

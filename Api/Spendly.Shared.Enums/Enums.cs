@@ -27,3 +27,9 @@ public enum SubscriptionType
     Trial,
     Paid,
 }
+
+public enum SubscriptionPaymentResultStatusType
+{
+    Success,
+    Fail,
+}

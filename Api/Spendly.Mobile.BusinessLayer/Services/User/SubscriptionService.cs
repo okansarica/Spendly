@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using Shared.Core;
 using Shared.Entities.UserManagement;
+using Spendly.Mobile.BusinessLayer.Services.Notification;
 using Spendly.Mobile.ViewModels.User;
 using Spendly.Shared.DataLayer;
 using Spendly.Shared.Entities.Subscription;
@@ -21,6 +22,7 @@ public class SubscriptionService(
 	IRepository<FirebaseToken> firebaseTokenRepository,
 	RequestContextViewModel requestContextViewModel,
 	StripeSettings stripeSettings,
+	FirebaseNotificationService firebaseNotificationService,
 	ILogger<SubscriptionService> logger)
 {
 	private const decimal MonthlyPrice = 3.99m;
@@ -72,7 +74,14 @@ public class SubscriptionService(
 			Mode = "payment",
 			SuccessUrl = stripeSettings.SuccessUrl,
 			CancelUrl = stripeSettings.CancelUrl,
-			ClientReferenceId = clientReferenceId
+			ClientReferenceId = clientReferenceId,
+			PaymentIntentData = new SessionPaymentIntentDataOptions
+			{
+				Metadata = new Dictionary<string, string>
+				{
+					["client_reference_id"] = clientReferenceId,
+				}
+			}
 		};
 
 		var requestPayload = System.Text.Json.JsonSerializer.Serialize(options);
@@ -132,7 +141,6 @@ public class SubscriptionService(
 		
 		await stripeCommunicationLogRepository.InsertAsync(log);
 
-		Session? session = null;
 		try
 		{
 			var stripeEvent = EventUtility.ConstructEvent(
@@ -140,48 +148,89 @@ public class SubscriptionService(
 				signature,
 				stripeSettings.WebhookSecret
 			);
-			session = stripeEvent.Data.Object as Session;
-			
-			if (session?.ClientReferenceId == null)
-			{
-				logger.LogWarning("Stripe webhook received without ClientReferenceId. SessionId: {SessionId}", session?.Id);
-				return FunctionResponse.Failure("WEBHOOK_REFERENCE_EMPTY");
-			}
-				
-			log.ClientReferenceId = session.ClientReferenceId;
+
+			log.ResponsePayload = System.Text.Json.JsonSerializer.Serialize(stripeEvent.Data.Object);
 			await stripeCommunicationLogRepository.UpdateAsync(log);
-
-			if (stripeEvent.Type == "payment_intent.succeeded")
+			
+			if (stripeEvent.Type != "payment_intent.succeeded" && stripeEvent.Type != "payment_intent.payment_failed" && stripeEvent.Type != "payment_intent.failed" && stripeEvent.Type != "checkout.session.completed" && stripeEvent.Type != "checkout.session.async_payment_failed" && stripeEvent.Type != "checkout.session.expired")
 			{
-				var clientReferenceId = session.ClientReferenceId;
-				var paymentUrl = await paymentUrlRepository.GetAsync(x => x.Id == clientReferenceId.ToObjectId());
-				if (paymentUrl == null)
+				logger.LogInformation($"Ignored the type: {stripeEvent.Type}");
+				return FunctionResponse.Success();
+			}
+
+			string? clientReferenceId = null;
+			string? paymentIntentId = null;
+
+			if (stripeEvent.Data.Object is PaymentIntent paymentIntent)
+			{
+				paymentIntentId = paymentIntent.Id;
+				if (paymentIntent.Metadata != null && paymentIntent.Metadata.TryGetValue("client_reference_id", out var metadataReferenceId))
 				{
-					logger.LogWarning("Payment URL not found for ClientReferenceId: {ClientReferenceId}", clientReferenceId);
-					return FunctionResponse.Failure("WEBHOOK_PAYMENT_URL_NOT_FOUND");
+					clientReferenceId = metadataReferenceId;
 				}
+			}
+			else if (stripeEvent.Data.Object is Charge charge)
+			{
+				paymentIntentId = charge.PaymentIntentId;
+			}
+			else if (stripeEvent.Data.Object is Session session)
+			{
+				clientReferenceId = session.ClientReferenceId;
+				paymentIntentId = session.PaymentIntentId;
+			}
 
-				var subscription = await userSubscriptionRepository.GetRequiredAsync(paymentUrl.UserSubscriptionId);
+			if (string.IsNullOrWhiteSpace(clientReferenceId) && !string.IsNullOrWhiteSpace(paymentIntentId))
+			{
+				var stripeSessionService = new SessionService();
+				var sessions = await stripeSessionService.ListAsync(new SessionListOptions
+				{
+					PaymentIntent = paymentIntentId,
+					Limit = 1,
+				});
+				clientReferenceId = sessions.Data.FirstOrDefault()?.ClientReferenceId;
+			}
 
+			if (string.IsNullOrWhiteSpace(clientReferenceId))
+			{
+				logger.LogWarning("Stripe webhook received without ClientReferenceId");
+				throw new Exception("CLIENTREFERENCE_ID_NOT_FOUND");
+			}
+
+			log.ClientReferenceId = clientReferenceId;
+			await stripeCommunicationLogRepository.UpdateAsync(log);
+			
+			var paymentUrl = await paymentUrlRepository.GetAsync(x => x.Id == clientReferenceId.ToObjectId());
+			if (paymentUrl == null)
+			{
+				logger.LogWarning("Payment URL not found for ClientReferenceId: {ClientReferenceId}", clientReferenceId);
+				return FunctionResponse.Failure("WEBHOOK_PAYMENT_URL_NOT_FOUND");
+			}
+			
+			var subscription = await userSubscriptionRepository.GetRequiredAsync(paymentUrl.UserSubscriptionId);
+			var firebaseToken = await firebaseTokenRepository.GetRequiredAsync(p => p.UserId == subscription.UserId);
+			
+			if (stripeEvent.Type == "payment_intent.succeeded" || stripeEvent.Type == "checkout.session.completed")
+			{
 				subscription.Payment.PaymentStatus = UserSubscriptionPaymentStatusType.Paid;
 				subscription.StartDateTime = DateTime.UtcNow;
 				subscription.ExpectedEndDateTime = subscription.Payment.Duration == UserSubscriptionDurationType.Monthly ? DateTime.UtcNow.AddMonths(1) : DateTime.UtcNow.AddYears(1);
-
+			
 				await userSubscriptionRepository.UpdateAsync(subscription);
-
+			
 				logger.LogInformation("Subscription updated successfully. SubscriptionId: {SubscriptionId}, ClientReferenceId: {ClientReferenceId}",
 					subscription.Id,
 					clientReferenceId);
 				
-				//TODO send firebase notification with success
-		
+				await firebaseNotificationService.SendSubscriptionPaymentResultAsync(firebaseToken.Token, SubscriptionPaymentResultStatusType.Success);
+			
 				return FunctionResponse.Success();
 			}
-			else if (stripeEvent.Type == "payment_intent.failed")
-			{
-				//TODO send firebase notification with failure
-				return FunctionResponse.Success();
-			}
+			
+			subscription.Payment.PaymentStatus = UserSubscriptionPaymentStatusType.Failed;
+			await userSubscriptionRepository.UpdateAsync(subscription);
+			
+			await firebaseNotificationService.SendSubscriptionPaymentResultAsync(firebaseToken.Token, SubscriptionPaymentResultStatusType.Fail);
+			return FunctionResponse.Success();
 		}
 		catch (StripeException ex)
 		{
@@ -193,9 +242,8 @@ public class SubscriptionService(
 			logger.LogError(ex, "Stripe webhook processing failed");
 			return FunctionResponse.Failure("WEBHOOK_PROCESSING_FAILED");
 		}
-		
-		return FunctionResponse.Success();
 	}
+	
 	public async Task<FunctionResponse> SaveFirebaseToken(SaveFirebaseTokenRequest request)
 	{
 		var userId = requestContextViewModel.TryToGetUserId();
@@ -209,7 +257,15 @@ public class SubscriptionService(
 				UserId = userId?.ToObjectId()
 			};
 			await firebaseTokenRepository.InsertAsync(firebaseToken);
+			return FunctionResponse.Success();
 		}
+
+		if (userId != null)
+		{
+			firebaseToken.UserId = userId.ToObjectId();
+			await firebaseTokenRepository.UpdateAsync(firebaseToken);
+		}
+		
 		return FunctionResponse.Success();
 	}
 }

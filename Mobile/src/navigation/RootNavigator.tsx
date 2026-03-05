@@ -1,5 +1,6 @@
+// CHANGED_BY_AI: 2026-03-05 - Re-check blocker visibility on subscription state updates
 // CHANGED_BY_AI: 2026-03-03 - Re-render root on language changes
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useAppSelector} from '../store/hooks';
 import SplashScreen from '../screens/splash/SplashScreen';
@@ -22,17 +23,24 @@ export default function RootNavigator() {
   useAppSelector(s => s.user.languageCode);
   const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
 
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (isAuthenticated) {
-        const expired = await subscriptionService.isSubscriptionExpired();
-        setIsSubscriptionExpired(expired);
-      } else {
-        setIsSubscriptionExpired(false);
-      }
-    };
-    checkSubscription();
+  const checkSubscription = useCallback(async () => {
+    if (isAuthenticated) {
+      const expired = await subscriptionService.isSubscriptionExpired();
+      setIsSubscriptionExpired(expired);
+      return;
+    }
+    setIsSubscriptionExpired(false);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [checkSubscription]);
+
+  useEffect(() => {
+    return subscriptionService.subscribeToSubscriptionState(() => {
+      checkSubscription();
+    });
+  }, [checkSubscription]);
 
   return (
     <>

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-05 - Handle subscription payment push results in app root
 import React, {useEffect, useRef} from 'react';
 import {Provider} from 'react-redux';
 import {NavigationContainer} from '@react-navigation/native';
@@ -7,9 +8,10 @@ import {AppState} from 'react-native';
 import {ThemeProvider} from './src/theme/ThemeContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import {store} from './src/store';
-import {subscriptionService} from './src/services/subscriptionService';
+import {subscriptionService, SubscriptionPaymentResultStatus} from './src/services/subscriptionService';
 import {firebaseService} from './src/services/firebaseService';
 import {userService} from './src/services/userService';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 
 export default function App() {
   const appState = useRef(AppState.currentState);
@@ -19,12 +21,32 @@ export default function App() {
 
     const initializeApp = async () => {
       try {
-        subscriptionService.fetchSubscriptionEndDate();
-
-        const token = await firebaseService.getToken();
-        if (token) {
-            await userService.sendFirebaseToken(token);
+        const isAuthenticated = store.getState().auth.isAuthenticated;
+        if (isAuthenticated) {
+          await subscriptionService.fetchSubscriptionEndDate();
         }
+
+        const handleSubscriptionPaymentResult = async (status: SubscriptionPaymentResultStatus) => {
+          if (await InAppBrowser.isAvailable()) {
+            InAppBrowser.close();
+          }
+
+          if (status === 'success') {
+            await subscriptionService.fetchSubscriptionEndDate();
+            Toast.show({
+              type: 'success',
+              text1: 'Payment completed',
+            });
+            return;
+          }
+
+          Toast.show({
+            type: 'error',
+            text1: 'Payment failed',
+          });
+        };
+
+        await firebaseService.handleInitialNotification(handleSubscriptionPaymentResult);
 
         unsubscribe = firebaseService.setupNotificationListeners(
           async message => {
@@ -34,7 +56,13 @@ export default function App() {
               text2: message.notification?.body || '',
             });
           },
+          handleSubscriptionPaymentResult,
         );
+
+        const token = await firebaseService.getToken();
+        if (token && isAuthenticated) {
+          await userService.sendFirebaseToken(token);
+        }
       } catch (error) {
         console.error('App initialization error:', error);
       }
@@ -46,7 +74,9 @@ export default function App() {
 
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        subscriptionService.fetchSubscriptionEndDate();
+        if (store.getState().auth.isAuthenticated) {
+          subscriptionService.fetchSubscriptionEndDate();
+        }
       }
       appState.current = nextAppState;
     });

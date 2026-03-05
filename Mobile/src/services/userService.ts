@@ -47,8 +47,5 @@ export const userService = {
   deleteAccount: () => apiClient.delete(ApiEndpoints.Users.DeleteAccount),
 
   sendFirebaseToken: (token: string) =>
-    apiClient.post(ApiEndpoints.Users.FirebaseToken, {token}, {
-      headers: {'X-Disable-Auth': 'true'},
-    }),
+    apiClient.post(ApiEndpoints.Users.FirebaseToken, {token}),
 };
-
