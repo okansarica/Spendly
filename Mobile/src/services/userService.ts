@@ -1,4 +1,5 @@
 // CHANGED_BY_AI: 2026-03-03 - Add user profile API service
+// CHANGED_BY_AI: 2026-03-05 - Add Firebase token endpoint
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
 
@@ -44,5 +45,10 @@ export const userService = {
     apiClient.put<LanguagePreferenceResponse>(ApiEndpoints.Users.Language, payload),
 
   deleteAccount: () => apiClient.delete(ApiEndpoints.Users.DeleteAccount),
+
+  sendFirebaseToken: (token: string) =>
+    apiClient.post(ApiEndpoints.Users.FirebaseToken, {token}, {
+      headers: {'X-Disable-Auth': 'true'},
+    }),
 };
 

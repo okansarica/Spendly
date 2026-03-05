@@ -8,12 +8,41 @@ import {ThemeProvider} from './src/theme/ThemeContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import {store} from './src/store';
 import {subscriptionService} from './src/services/subscriptionService';
+import {firebaseService} from './src/services/firebaseService';
+import {userService} from './src/services/userService';
 
 export default function App() {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
-    subscriptionService.fetchSubscriptionEndDate();
+    let unsubscribe: (() => void) | undefined;
+
+    const initializeApp = async () => {
+      try {
+        subscriptionService.fetchSubscriptionEndDate();
+
+        const token = await firebaseService.getToken();
+        if (token) {
+            await userService.sendFirebaseToken(token);
+        }
+
+        unsubscribe = firebaseService.setupNotificationListeners(
+          async message => {
+            Toast.show({
+              type: 'info',
+              text1: message.notification?.title || 'Notification',
+              text2: message.notification?.body || '',
+            });
+          },
+        );
+      } catch (error) {
+        console.error('App initialization error:', error);
+      }
+    };
+
+    setTimeout(() => {
+      initializeApp();
+    }, 100);
 
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
@@ -24,6 +53,9 @@ export default function App() {
 
     return () => {
       subscription.remove();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
 

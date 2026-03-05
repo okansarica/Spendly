@@ -1,15 +1,18 @@
 // CHANGED_BY_AI: 2026-03-03 - Add logout API call
+// CHANGED_BY_AI: 2026-03-05 - Add Firebase token to auth requests
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
 
 export type LoginRequest = {
   email: string;
   password: string;
+  firebaseToken: string;
 };
 
 export type SocialLoginRequest = {
   provider: 'google' | 'facebook'; //TODO enum yapilmali. enumlar ayri bir dosyada tutulmali
   token: string;
+  firebaseToken: string;
 };
 
 export type ForgotPasswordRequest = {
@@ -21,6 +24,7 @@ export type RegisterRequest = {
   surname: string;
   email: string;
   password: string;
+  firebaseToken: string;
 };
 
 export type VerifyEmailRequest = {

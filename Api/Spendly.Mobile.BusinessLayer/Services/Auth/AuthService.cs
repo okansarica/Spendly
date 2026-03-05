@@ -130,18 +130,14 @@ public class AuthService(
 
 	public async Task<FunctionResponse<AuthResponseViewModel>> SocialLoginAsync(SocialLoginRequestViewModel request)
 	{
-		//TODO enum olacak
-		var providerType = request.Provider.ToLowerInvariant() switch
+		var providerType = request.Provider;
+
+		SocialUserInfo? socialUser = providerType switch
 		{
-			"google" => (LoginProviderType?) LoginProviderType.Google,
-			"facebook" => LoginProviderType.Facebook,
+			LoginProviderType.Google => await ValidateGoogleTokenAsync(request.Token),
+			LoginProviderType.Facebook => await ValidateFacebookTokenAsync(request.Token),
 			_ => null
 		};
-
-		if (providerType == null)
-			return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.InvalidToken);
-
-		SocialUserInfo? socialUser = providerType == LoginProviderType.Google ? await ValidateGoogleTokenAsync(request.Token) : await ValidateFacebookTokenAsync(request.Token);
 
 		if (socialUser == null)
 			return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.InvalidToken);
@@ -157,7 +153,7 @@ public class AuthService(
 				EmailVerification = new EmailVerification {IsVerified = true},
 				LoginProviders = new List<UserLoginProvider>
 				{
-					new() {Provider = providerType.Value, ProviderUserId = socialUser.ProviderId}
+					new() {Provider = providerType, ProviderUserId = socialUser.ProviderId}
 				},
 				IsActive = true
 			};
@@ -165,9 +161,9 @@ public class AuthService(
 		}
 		else
 		{
-			if (!user.LoginProviders.Any(p => p.Provider == providerType.Value))
+			if (!user.LoginProviders.Any(p => p.Provider == providerType))
 			{
-				user.LoginProviders.Add(new UserLoginProvider {Provider = providerType.Value, ProviderUserId = socialUser.ProviderId});
+				user.LoginProviders.Add(new UserLoginProvider {Provider = providerType, ProviderUserId = socialUser.ProviderId});
 				user.UpdatedAt = DateTime.UtcNow;
 				await userRepository.UpdateAsync(user);
 			}
@@ -319,8 +315,7 @@ public class AuthService(
 
 		var (accessToken, accessTokenExpiry, newRefreshToken, newRefreshTokenExpiry) = GenerateTokens(user);
 
-		//TODO 5 gun farki, constantlara alinacak
-		var shouldRenewRefreshToken = (DateTime.UtcNow - tokenEntity.CreatedAt).TotalDays >= 5;
+		var shouldRenewRefreshToken = (DateTime.UtcNow - tokenEntity.CreatedAt).TotalDays >= jwtSettings.RefreshRenewDays;
 
 		if (shouldRenewRefreshToken)
 		{
