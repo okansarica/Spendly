@@ -72,7 +72,7 @@ export const darkColors: typeof lightColors = {
   inputText: '#F9FAFB',
   inputPlaceholder: '#6B7280',
 
-  cardBackground: '#1F2937',
+  cardBackground: '#263244',
   cardShadow: '#000000',
   overlay: 'rgba(0,0,0,0.4)',
 

@@ -1,4 +1,4 @@
-// CHANGED_BY_AI: 2026-03-02 - Add shared header component
+// CHANGED_BY_AI: 2026-03-05 - Add header right light/dark mode buttons
 import React, {useEffect, useState} from 'react';
 import {SafeAreaView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -14,7 +14,9 @@ type HeaderProps = {
 };
 
 export default function Header({title, showBack}: HeaderProps) {
-  const {colors, spacing, fontSizes, fontWeights} = useTheme();
+  const {colors, spacing, fontSizes, fontWeights, mode, setLightMode, setDarkMode} = useTheme();
+  const toggleTheme = mode === 'light' ? setDarkMode : setLightMode;
+  const toggleIconName = mode === 'light' ? HeaderConstants.DarkModeIconName : HeaderConstants.LightModeIconName;
   const navigation = useNavigation();
   const canGoBack = navigation.canGoBack();
   const shouldShowBack = showBack ?? canGoBack;
@@ -42,15 +44,35 @@ export default function Header({title, showBack}: HeaderProps) {
       backgroundColor: colors.buttonPrimary,
       width: '100%',
     },
+    sideContainer: {
+      width: spacing.xl * 2,
+      height: spacing.xl + spacing.sm,
+      justifyContent: 'center',
+    },
     backButton: {
       width: spacing.xl + spacing.sm,
       height: spacing.xl + spacing.sm,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    backPlaceholder: {
-      width: spacing.xl + spacing.sm,
+    rightActions: {
+      width: spacing.xl * 2,
       height: spacing.xl + spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    modeButton: {
+      width: spacing.xl,
+      height: spacing.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: spacing.sm,
+      opacity: 0.75,
+    },
+    activeModeButton: {
+      opacity: 1,
+      backgroundColor: 'rgba(255,255,255,0.2)',
     },
     title: {
       flex: 1,
@@ -78,16 +100,24 @@ export default function Header({title, showBack}: HeaderProps) {
       <SafeAreaView style={s.safeArea}>
         <View style={s.container}>
           {shouldShowBack ? (
-            <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
-              <Icon name={HeaderConstants.BackIconName} size={fontSizes.xxl} color={colors.buttonPrimaryText} />
-            </TouchableOpacity>
+            <View style={s.sideContainer}>
+              <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
+                <Icon name={HeaderConstants.BackIconName} size={fontSizes.xxl} color={colors.buttonPrimaryText} />
+              </TouchableOpacity>
+            </View>
           ) : (
-            <View style={s.backPlaceholder} />
+            <View style={s.sideContainer} />
           )}
           <Text style={s.title} numberOfLines={1}>
             {title ?? ''}
           </Text>
-          <View style={s.backPlaceholder} />
+          <View style={s.rightActions}>
+            <TouchableOpacity
+              style={s.modeButton}
+              onPress={toggleTheme}>
+              <Icon name={toggleIconName} size={fontSizes.xl} color={colors.buttonPrimaryText} />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
       {showWarning && timeUntilExpiration !== null && (
