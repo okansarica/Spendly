@@ -17,15 +17,28 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 
     public Repository(DbSettings dbSettings)
     {
+        // Allow tests to override the Mongo port via environment variable TEST_MONGO_PORT
+        int port = 27017;
+        var portEnv = Environment.GetEnvironmentVariable("TEST_MONGO_PORT");
+        if (!string.IsNullOrEmpty(portEnv) && int.TryParse(portEnv, out var parsed))
+        {
+            port = parsed;
+        }
+
         var settings = new MongoClientSettings
         {
-            Server = new MongoServerAddress("localhost", 27017),
-            Credential = MongoCredential.CreateCredential(
+            Server = new MongoServerAddress(Environment.GetEnvironmentVariable("TEST_MONGO_HOST") ?? "localhost", port),
+        };
+
+        // Only add credentials when username is provided (allows running Mongo without auth in tests)
+        if (!string.IsNullOrEmpty(dbSettings?.UserName))
+        {
+            settings.Credential = MongoCredential.CreateCredential(
                 dbSettings.DatabaseName,      // authSource
                 dbSettings.UserName,  // username
                 dbSettings.Password             // password
-            )
-        };
+            );
+        }
 
         Client = new MongoClient(settings);
         var database = Client.GetDatabase(dbSettings.DatabaseName);

@@ -18,3 +18,10 @@ public class MerchantUpdateRequestViewModel
     public string? CategoryId { get; set; }
     public string? Nickname { get; set; }
 }
+
+public class MerchantCreateRequestViewModel
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Nickname { get; set; }
+    public string? CategoryId { get; set; }
+}

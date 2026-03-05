@@ -1,0 +1,9 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=86c8a5ce_002D2340_002D4255_002D9c55_002D4f0ae14cacd3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Register_then_login_returns_tokens" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::6F0F8A3F-A54C-469D-8112-9779A0838A25::net10.0::Spendly.Mobile.Api.Test.AuthE2ETests.Register_then_login_returns_tokens&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=d5bfbf0f_002De50d_002D4734_002Daf8b_002D04b80abe874e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Register_then_login_returns_tokens #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Project Location="/Users/okan/Documents/Software/Projects/Spendly/Api/Spendly.Mobile.Api.Test" Presentation="&amp;lt;Tests&amp;gt;\&amp;lt;Spendly.Mobile.Api.Test&amp;gt;" /&gt;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

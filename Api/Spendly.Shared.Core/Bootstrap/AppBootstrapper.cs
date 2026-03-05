@@ -91,7 +91,14 @@ public class AppBootstrapper
 
 			ConfigureLogging(configuration, "Job");
 			
-			BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+			try
+			{
+				BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+			}
+			catch (MongoDB.Bson.BsonSerializationException)
+			{
+				// serializer already registered by another test run / hostthanks
+			}
 
 			Log.Information("Job Başlatılıyor: {AppName}", _appName);
 
@@ -150,7 +157,14 @@ public class AppBootstrapper
             builder.Configuration.Sources.Clear();
             builder.Configuration.AddConfiguration(customConfig);
             
-            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            try
+            {
+                BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            }
+            catch (MongoDB.Bson.BsonSerializationException)
+            {
+                // serializer already registered by another host in same process
+            }
             
             // ---- SERVICE SCANNING ----
             if (_assembliesToScan != null)
