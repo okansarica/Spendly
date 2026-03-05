@@ -1,4 +1,4 @@
-// CHANGED_BY_AI: 2026-03-03 - Add users controller for profile/password/language/account endpoints
+// CHANGED_BY_AI: 2026-03-04 - Add users controller for profile/password/language/account endpoints and subscription
 namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +10,7 @@ using Spendly.Mobile.ViewModels.User;
 [ApiController]
 [Route("api/v1/users")]
 [Authorize]
-public class UsersController(UserService userService) : ControllerBase
+public class UsersController(UserService userService, SubscriptionService subscriptionService) : ControllerBase
 {
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
@@ -82,5 +82,58 @@ public class UsersController(UserService userService) : ControllerBase
         }
 
         return Ok(new { subscriptionEndDateTime = response.Data });
+    }
+
+    [HttpGet("subscription-plans")]
+    public async Task<IActionResult> GetSubscriptionPlans()
+    {
+        var response = await subscriptionService.GetSubscriptionPlansAsync();
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok(response.Data);
+    }
+
+    [HttpPost("create-payment-url")]
+    public async Task<IActionResult> CreatePaymentUrl([FromBody] CreatePaymentUrlRequestViewModel request)
+    {
+        var response = await subscriptionService.CreatePaymentUrlAsync(request);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok(response.Data);
+    }
+
+    [HttpPost("stripe-webhook")]
+    [AllowAnonymous]
+    public async Task<IActionResult> StripeWebhook()
+    {
+        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+        var signature = Request.Headers["Stripe-Signature"].ToString();
+
+        var response = await subscriptionService.HandleStripeWebhookAsync(json, signature);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok();
+    }
+    
+    [HttpPost("firebase-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> FirebaseToken([FromBody] SaveFirebaseTokenRequest request)
+    {
+        var response = await subscriptionService.SaveFirebaseToken(request);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok();
     }
 }

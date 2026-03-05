@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Entities.Subscription;
+using Shared.Entities.UserManagement;
 using Spendly.Mobile.ViewModels.Auth;
 using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
@@ -21,6 +22,7 @@ public class AuthService(
 	IRepository<User> userRepository,
 	IRepository<UserSubscription> userSubscriptionRepository,
 	IRepository<UserRefreshToken> refreshTokenRepository,
+	IRepository<FirebaseToken> firebaseTokenRepository,
 	JwtSettings jwtSettings,
 	IHttpClientFactory httpClientFactory,
 	RequestContextViewModel requestContextViewModel)
@@ -84,7 +86,32 @@ public class AuthService(
 		if (activeSubscription == null)
 		{
 			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
+			if ((trialSubscriptions.EndDateTime.HasValue && trialSubscriptions.EndDateTime.Value > DateTime.UtcNow) ||
+			    trialSubscriptions.ExpectedEndDateTime > DateTime.UtcNow)
+			{
+				return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.NoActiveSubscription);
+			}
+			
 			subscriptionEndDate = trialSubscriptions.EndDateTime??trialSubscriptions.ExpectedEndDateTime;
+		}
+
+		if (!string.IsNullOrEmpty(request.FirebaseToken))
+		{
+			var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.Token == request.FirebaseToken);
+			if (firebaseToken == null)
+			{
+				firebaseToken = new FirebaseToken
+				{
+					Token = request.FirebaseToken,
+					UserId = user.Id
+				};
+				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
+			}
+			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			{
+				firebaseToken.UserId = user.Id;
+				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
+			}
 		}
 
 		return FunctionResponse.Success(new AuthResponseViewModel
@@ -148,6 +175,25 @@ public class AuthService(
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
+		
+		if (!string.IsNullOrEmpty(request.FirebaseToken))
+		{
+			var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.Token == request.FirebaseToken);
+			if (firebaseToken == null)
+			{
+				firebaseToken = new FirebaseToken
+				{
+					Token = request.FirebaseToken,
+					UserId = user.Id
+				};
+				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
+			}
+			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			{
+				firebaseToken.UserId = user.Id;
+				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
+			}
+		}
 
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
@@ -225,6 +271,25 @@ public class AuthService(
 		await userSubscriptionRepository.InsertAsync(userSubscription).ConfigureAwait(false);
 
 		DateTime? subscriptionEndDate = userSubscription.EndDateTime ?? userSubscription.ExpectedEndDateTime;
+		
+		if (!string.IsNullOrEmpty(request.FirebaseToken))
+		{
+			var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.Token == request.FirebaseToken);
+			if (firebaseToken == null)
+			{
+				firebaseToken = new FirebaseToken
+				{
+					Token = request.FirebaseToken,
+					UserId = user.Id
+				};
+				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
+			}
+			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			{
+				firebaseToken.UserId = user.Id;
+				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
+			}
+		}
 		
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{

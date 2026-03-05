@@ -36,4 +36,5 @@ public class MessageCodes
 	public const string CategoryMerchantLinkInvalid = "CategoryMerchantLinkInvalid";
 	public const string CategoryHasChildren = "CategoryHasChildren";
 	public const string InvalidLanguage = "InvalidLanguage";
+	public const string NoActiveSubscription = "NoActiveSubscription";
 }

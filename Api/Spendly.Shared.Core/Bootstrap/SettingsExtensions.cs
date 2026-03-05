@@ -37,6 +37,10 @@ public static class SettingsExtensions
 				// .AddSingleton<IQueueDbSettings>(sp => sp.GetRequiredService<IOptions<QueueDbSettings>>().Value)
 				.Configure<FacebookSettings>(configuration.GetSection(nameof(FacebookSettings)))
 				.AddSingleton<FacebookSettings>(sp => sp.GetRequiredService<IOptions<FacebookSettings>>().Value)
+				.Configure<StripeSettings>(configuration.GetSection(nameof(StripeSettings)))
+				.AddSingleton<StripeSettings>(sp => sp.GetRequiredService<IOptions<StripeSettings>>().Value)
+				.Configure<VersionSettings>(configuration.GetSection(nameof(VersionSettings)))
+				.AddSingleton<VersionSettings>(sp => sp.GetRequiredService<IOptions<VersionSettings>>().Value)
 			// .Configure<UploadSettings>(configuration.GetSection(nameof(UploadSettings)))
 			// .AddSingleton<IUploadSettings>(sp => sp.GetRequiredService<IOptions<UploadSettings>>().Value)
 			// .Configure<RestaurantAppAvailabilityDbSettings>(configuration.GetSection(nameof(RestaurantAppAvailabilityDbSettings)))
@@ -47,4 +51,3 @@ public static class SettingsExtensions
 			;
 	}
 }
-

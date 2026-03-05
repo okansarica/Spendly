@@ -16,8 +16,10 @@ public enum UserSubscriptionDurationType
 
 public enum UserSubscriptionPaymentStatusType
 {
-    WaitingForPayment,
+    Waiting,
     Paid,
+    Failed,
+    Cancelled,
 }
 
 public enum SubscriptionType

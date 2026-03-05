@@ -4,5 +4,6 @@ public class LoginRequestViewModel
 {
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
+    public string FirebaseToken { get; set; } = null!;
 }
 

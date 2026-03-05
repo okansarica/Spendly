@@ -35,7 +35,10 @@ public class RequestContextFilter(RequestContextViewModel requestContextViewMode
         {
             requestContextViewModel.Timezone = timezone.ToString();
         }
-        requestContextViewModel.SessionId = Guid.Parse(httpContext.Request.Headers["X-session-id"]); //TODO 
+        if (httpContext.Request.Headers.TryGetValue("X-session-id", out var sessionId))
+        {
+            requestContextViewModel.SessionId = Guid.Parse(sessionId.ToString());
+        }
     }
     public void OnActionExecuted(ActionExecutedContext context)
     {
