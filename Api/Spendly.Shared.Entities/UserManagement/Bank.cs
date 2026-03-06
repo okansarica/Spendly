@@ -7,7 +7,11 @@ public class Bank:BaseEntity,ISoftDeletable
 {
 	public ObjectId UserId { get; set; }
 	public ObjectId? BankDefinitionId { get; set; }
-	public string Name { get; set; } =  string.Empty;
+	
+	/// <summary>
+	/// When the BankDefinitionId is populated this will be empty
+	/// </summary>
+	public string? Name { get; set; } =  string.Empty;
 	public string? Description { get; set; }
 
 	/// <summary>

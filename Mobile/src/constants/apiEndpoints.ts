@@ -29,6 +29,13 @@ export const ApiEndpoints = {
     Merchants: (id: string) => `/api/v1/categories/${id}/merchants`,
     MerchantLink: (id: string, merchantId: string) => `/api/v1/categories/${id}/merchants/${merchantId}`,
   },
+  Banks: {
+    Base: '/api/v1/banks',
+    BankDefinitions: '/api/v1/banks/bank-definitions',
+    ById: (id: string) => `/api/v1/banks/${id}`,
+    Accounts: (bankId: string) => `/api/v1/banks/${bankId}/accounts`,
+    AccountById: (bankId: string, id: string) => `/api/v1/banks/${bankId}/accounts/${id}`,
+  },
   Merchants: {
     Base: '/api/v1/merchants',
     ById: (id: string) => `/api/v1/merchants/${id}`,

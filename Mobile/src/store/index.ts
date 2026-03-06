@@ -8,6 +8,7 @@ import homepageReducer from './homepageStore';
 import reportsReducer from './reportsStore';
 import categoriesReducer from './categoriesStore';
 import merchantsReducer from './merchantsStore';
+import banksReducer from './banksStore';
 import userReducer from './userStore';
 
 export const store = configureStore({
@@ -17,6 +18,7 @@ export const store = configureStore({
     reports: reportsReducer,
     categories: categoriesReducer,
     merchants: merchantsReducer,
+    banks: banksReducer,
     user: userReducer,
   },
 });

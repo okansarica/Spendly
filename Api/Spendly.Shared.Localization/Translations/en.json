@@ -13,5 +13,13 @@
   "InvalidVerificationCode": "Invalid verification code",
   "UserNotFound": "User not found",
   "VerificationCodeExpired": "Verification code has expired",
-  "TooManyVerificationAttempts": "Too many verification attempts. Please contact support"
+  "TooManyVerificationAttempts": "Too many verification attempts. Please contact support",
+  "InvalidBankId": "Invalid bank",
+  "InvalidBankDefinitionId": "Invalid bank definition",
+  "BankNotFound": "Bank not found",
+  "BankDefinitionNotFound": "Bank definition not found",
+  "DuplicateBankName": "Bank name already exists",
+  "BankNameRequired": "Bank name is required",
+  "AccountNotFound": "Account not found",
+  "AccountNameRequired": "Account name is required"
 }

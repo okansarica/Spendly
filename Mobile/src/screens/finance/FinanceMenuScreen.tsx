@@ -12,10 +12,10 @@ import Header from '../../components/Header';
 type FinanceNavProp = NativeStackNavigationProp<FinanceStackParamList, 'FinanceMenu'>;
 
 type FinanceItem = {
-  id: 'categories' | 'merchants';
+  id: 'banksAccounts' | 'categories' | 'merchants';
   titleKey: string;
   icon: string;
-  route: 'CategoriesList' | 'MerchantsList';
+  route: 'BanksAccountsList' | 'CategoriesList' | 'MerchantsList';
 };
 
 export default function FinanceMenuScreen() {
@@ -23,6 +23,7 @@ export default function FinanceMenuScreen() {
   const navigation = useNavigation<FinanceNavProp>();
 
   const items: FinanceItem[] = [
+    {id: 'banksAccounts', titleKey: 'BanksAccountsTitle', icon: 'account-balance', route: 'BanksAccountsList'},
     {id: 'categories', titleKey: 'CategoriesTitle', icon: 'donut-large', route: 'CategoriesList'},
     {id: 'merchants', titleKey: 'MerchantsTitle', icon: 'store', route: 'MerchantsList'},
   ];

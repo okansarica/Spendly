@@ -37,4 +37,12 @@ public class MessageCodes
 	public const string CategoryHasChildren = "CategoryHasChildren";
 	public const string InvalidLanguage = "InvalidLanguage";
 	public const string NoActiveSubscription = "NoActiveSubscription";
+	public const string InvalidBankId = "InvalidBankId";
+	public const string InvalidBankDefinitionId = "InvalidBankDefinitionId";
+	public const string BankNotFound = "BankNotFound";
+	public const string BankDefinitionNotFound = "BankDefinitionNotFound";
+	public const string DuplicateBank = "DuplicateBank";
+	public const string BankNameRequired = "BankNameRequired";
+	public const string AccountNotFound = "AccountNotFound";
+	public const string AccountNameRequired = "AccountNameRequired";
 }

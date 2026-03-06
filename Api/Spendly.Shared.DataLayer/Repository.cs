@@ -345,7 +345,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         return list.ToDictionary(e => e.Id);
     }
 
-    public async Task<Dictionary<ObjectId, T>> ListAsync(
+    public async Task<Dictionary<ObjectId, List<T>>> ListAsync(
         IEnumerable<ObjectId> ids,
         Expression<Func<T, ObjectId?>> propertySelector)
     {
@@ -366,10 +366,14 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         if (property == null)
             throw new ArgumentException("Property selector must be a property access expression.", nameof(propertySelector));
 
-        var dictionary = list.ToDictionary(
-            e => (ObjectId)typeof(T).GetProperty(property.Name)!.GetValue(e)!,
-            e => e
-        );
+        var propInfo = typeof(T).GetProperty(property.Name)!;
+
+        var dictionary = list
+            .GroupBy(e => (ObjectId)propInfo.GetValue(e)!)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToList()
+            );
 
         return dictionary;
     }

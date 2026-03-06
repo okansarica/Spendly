@@ -131,6 +131,10 @@ If a service requires a userId, add `RequestContextViewModel` as a constructor p
 
 If an unexpected error occurs (for example: an id arrives as a string in the request but cannot be parsed to an `ObjectId`), do not return a `Function Failure`; instead throw an exception that includes the affected Id in the message. `Function Failure` should be used only for business-rule failures that result in a 400 response to the UI.
 
+Some of the DB entities has IsDeleted property and DeletedAt property. This is handled in the repository, so dont include them in query, dont try to update them, just ignore them. The repository will automatically filter out deleted records and set these properties when deleting.
+
+All entities has CreatedAt and UpdatedAt properties. The repository will automatically set these when inserting or updating records, so do not set them manually in the service layer.
+
 ## Data Access
 
 **Repository Pattern:**
