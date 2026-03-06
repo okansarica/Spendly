@@ -86,8 +86,8 @@ public class AuthService(
 		if (activeSubscription == null)
 		{
 			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
-			if ((trialSubscriptions.EndDateTime.HasValue && trialSubscriptions.EndDateTime.Value > DateTime.UtcNow) ||
-			    trialSubscriptions.ExpectedEndDateTime > DateTime.UtcNow)
+			if ((trialSubscriptions.EndDateTime.HasValue && trialSubscriptions.EndDateTime.Value <= DateTime.UtcNow) ||
+			    trialSubscriptions.ExpectedEndDateTime <= DateTime.UtcNow)
 			{
 				return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.NoActiveSubscription);
 			}

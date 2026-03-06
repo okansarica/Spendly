@@ -9,8 +9,14 @@ public class Account : BaseEntity
     public ObjectId CurrencyId { get; set; }
     
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
     
     public AccountType Type { get; set; }
+    
+    /// <summary>
+    /// Shows if connected to open banking and the data is being queries autimatically
+    /// </summary>
+    public bool IsConnected { get; set; }
 }
 
 public enum AccountType

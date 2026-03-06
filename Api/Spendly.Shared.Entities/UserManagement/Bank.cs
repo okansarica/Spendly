@@ -6,6 +6,20 @@ using MongoDB.Bson;
 public class Bank:BaseEntity
 {
 	public ObjectId UserId { get; set; }
+	public ObjectId? BankDefinitionId { get; set; }
 	public string Name { get; set; } =  string.Empty;
-	public string AccessToken { get; set; } =  string.Empty;
+	public string? Description { get; set; }
+
+	/// <summary>
+	/// Shows if connected to open banking and the data is being queries autimatically
+	/// </summary>
+	public bool IsConnected { get; set; }
+	
+	public string? AccessToken { get; set; }
+}
+
+public class BankDefinition : BaseEntity
+{
+	public string Name { get; set; } = string.Empty;
+	public string? LogoName { get; set; }
 }
