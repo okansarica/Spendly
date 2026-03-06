@@ -361,21 +361,15 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 
         var list = await _entities.Find(filter).ToListAsync().ConfigureAwait(false);
 
-        var property = (propertySelector.Body as MemberExpression)?.Member;
+        var selector = propertySelector.Compile();
 
-        if (property == null)
-            throw new ArgumentException("Property selector must be a property access expression.", nameof(propertySelector));
-
-        var propInfo = typeof(T).GetProperty(property.Name)!;
-
-        var dictionary = list
-            .GroupBy(e => (ObjectId)propInfo.GetValue(e)!)
+        return list
+            .Where(x => selector(x).HasValue)
+            .GroupBy(x => selector(x)!.Value)
             .ToDictionary(
                 g => g.Key,
                 g => g.ToList()
             );
-
-        return dictionary;
     }
 
     public async Task<Dictionary<ObjectId, List<T>>> ListAsync(

@@ -7,7 +7,7 @@ export const lightColors = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
 
-  buttonPrimary: '#2563EB',
+  buttonPrimary: '#1E40AF',
   buttonPrimaryText: '#FFFFFF',
   buttonPrimaryDisabled: '#93C5FD',
 
@@ -49,7 +49,7 @@ export const darkColors: typeof lightColors = {
   textPrimary: '#F9FAFB',
   textSecondary: '#9CA3AF',
 
-  buttonPrimary: '#3B82F6',
+  buttonPrimary: '#1E40AF',
   buttonPrimaryText: '#FFFFFF',
   buttonPrimaryDisabled: '#1E40AF',
 
