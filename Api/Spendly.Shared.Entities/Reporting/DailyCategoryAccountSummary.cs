@@ -7,6 +7,7 @@ public class DailyCategoryAccountExpense : BaseEntity
 {
     public ObjectId UserId { get; set; }
     public DateTime Date { get; set; }
+    public ObjectId BankId { get; set; }
     public ObjectId CategoryId { get; set; }
     public ObjectId AccountId { get; set; }
     public decimal TotalAmount { get; set; }

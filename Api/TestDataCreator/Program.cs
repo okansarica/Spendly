@@ -46,11 +46,30 @@ class Program
 	{
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
-		var (accounts, currencies) = await CreateAccounts(users);
+		var banks = await CreateBanks(users);
+		var (accounts, currencies) = await CreateAccounts(banks);
 		var categories = await CreateCategories(users);
 		var merchants = await CreateMerchants(categories);
-		var normalizedTransactions = await CreateNormalizedTransactions(users, accounts, categories, merchants);
-		await CreateSummaryTables(normalizedTransactions);
+		var normalizedTransactions = await CreateNormalizedTransactions(users, accounts, categories, merchants, banks);
+		await CreateSummaryTables(normalizedTransactions, accounts);
+	}
+	private async static Task<List<Bank>> CreateBanks(List<User> users)
+	{
+		var banks = new List<Bank>();
+		foreach (var user in users)
+		{
+			for (int i = 0; i < 2; i++)
+			{
+				var bank = new Bank
+				{
+					UserId = user.Id,
+					Name = $"{user.Name} Bank {i}"
+				};
+				await _database.GetCollection<Bank>("Bank").InsertOneAsync(bank);
+				banks.Add(bank);
+			}
+		}
+		return banks;
 	}
 
 	static async Task<List<User>> CreateUsers()
@@ -126,7 +145,7 @@ class Program
 		return PasswordHelper.HashPassword(password);
 	}
 
-	static async Task<(List<Account>, List<ObjectId>)> CreateAccounts(List<User> users)
+	static async Task<(List<Account>, List<ObjectId>)> CreateAccounts(List<Bank> banks)
 	{
 		var collection = _database.GetCollection<Account>("Account");
 		await collection.DeleteManyAsync(FilterDefinition<Account>.Empty);
@@ -135,15 +154,15 @@ class Program
 		var accounts = new List<Account>();
 		var accountTypes = new[] { AccountType.Bank, AccountType.CreditCard, AccountType.Cash };
 
-		foreach (var user in users)
+		foreach (var bank in banks)
 		{
 			for (int i = 0; i < 3; i++)
 			{
 				accounts.Add(new Account
 				{
 					Id = ObjectId.GenerateNewId(),
-					UserId = user.Id,
-					Name = $"{accountTypes[i]} Account - {user.Name}",
+					BankId = bank.Id,
+					Name = $"{accountTypes[i]} Account - {bank.Name}",
 					Type = accountTypes[i],
 					CurrencyId = currencyIds[0]
 				});
@@ -281,7 +300,7 @@ class Program
 	}
 
 	static async Task<List<NormalizedTransaction>> CreateNormalizedTransactions(
-		List<User> users, List<Account> accounts, List<Category> categories, List<Merchant> merchants)
+		List<User> users, List<Account> accounts, List<Category> categories, List<Merchant> merchants, List<Bank> banks)
 	{
 		var collection = _database.GetCollection<NormalizedTransaction>("NormalizedTransaction");
 		await collection.DeleteManyAsync(FilterDefinition<NormalizedTransaction>.Empty);
@@ -300,9 +319,15 @@ class Program
 
 		foreach (var user in users)
 		{
-			var userAccounts = accounts.Where(a => a.UserId == user.Id).ToList();
+			var userBankIds = banks.Where(b => b.UserId == user.Id).Select(b => b.Id).ToList();
+			var userAccounts = accounts.Where(a => userBankIds.Contains(a.BankId)).ToList();
 			var userCategories = categories.Where(c => c.UserId == user.Id).ToList();
 			var userMerchants = merchants.Where(m => m.UserId == user.Id).ToList();
+
+			if (!userAccounts.Any())
+			{
+				continue;
+			}
 
 			for (int i = 0; i < 150; i++)
 			{
@@ -413,12 +438,12 @@ class Program
 		return transactions;
 	}
 
-	static async Task CreateSummaryTables(List<NormalizedTransaction> transactions)
+	static async Task CreateSummaryTables(List<NormalizedTransaction> transactions, List<Account> accounts)
 	{
 		await CreateDailyUserExpenses(transactions);
 		await CreateDailyCategoryExpenses(transactions);
-		await CreateDailyAccountExpenses(transactions);
-		await CreateDailyCategoryAccountExpenses(transactions);
+		await CreateDailyAccountExpenses(transactions, accounts);
+		await CreateDailyCategoryAccountExpenses(transactions, accounts);
 		await CreateMonthlyCategoryExpenses(transactions);
 		await CreateMonthlyMerchantExpenses(transactions);
 		await CreateMonthlyUserExpenses(transactions);
@@ -467,10 +492,12 @@ class Program
 		Console.WriteLine($"✓ Created {grouped.Count} daily category expenses");
 	}
 
-	static async Task CreateDailyAccountExpenses(List<NormalizedTransaction> transactions)
+	static async Task CreateDailyAccountExpenses(List<NormalizedTransaction> transactions, List<Account> accounts)
 	{
 		var collection = _database.GetCollection<DailyAccountExpense>("DailyAccountExpense");
 		await collection.DeleteManyAsync(FilterDefinition<DailyAccountExpense>.Empty);
+
+		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
 
 		var grouped = transactions
 			.GroupBy(t => new { t.UserId, t.AccountId, Date = t.Date.Date })
@@ -478,8 +505,9 @@ class Program
 			{
 				Id = ObjectId.GenerateNewId(),
 				UserId = g.Key.UserId,
-				AccountId = g.Key.AccountId,
 				DateTime = g.Key.Date,
+				BankId = accountBankMap.TryGetValue(g.Key.AccountId, out var bId) ? bId : ObjectId.Empty,
+				AccountId = g.Key.AccountId,
 				TotalAmount = g.Sum(t => t.Amount),
 				CreatedAt = DateTime.UtcNow
 			})
@@ -489,10 +517,12 @@ class Program
 		Console.WriteLine($"✓ Created {grouped.Count} daily account expenses");
 	}
 
-	static async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> transactions)
+	static async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> transactions, List<Account> accounts)
 	{
 		var collection = _database.GetCollection<DailyCategoryAccountExpense>("DailyCategoryAccountExpense");
 		await collection.DeleteManyAsync(FilterDefinition<DailyCategoryAccountExpense>.Empty);
+
+		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
 
 		var grouped = transactions
 			.GroupBy(t => new { t.UserId, t.CategoryId, t.AccountId, Date = t.Date.Date })
@@ -501,6 +531,7 @@ class Program
 				Id = ObjectId.GenerateNewId(),
 				UserId = g.Key.UserId,
 				CategoryId = g.Key.CategoryId ?? ObjectId.Empty,
+				BankId = accountBankMap.TryGetValue(g.Key.AccountId, out var bId) ? bId : ObjectId.Empty,
 				AccountId = g.Key.AccountId,
 				Date = g.Key.Date,
 				TotalAmount = g.Sum(t => t.Amount),

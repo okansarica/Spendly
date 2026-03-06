@@ -5,8 +5,9 @@ using MongoDB.Bson;
 
 public class Account : BaseEntity
 {
+    public ObjectId BankId { get; set; }
     public ObjectId CurrencyId { get; set; }
-    public ObjectId UserId { get; set; }
+    
     public string Name { get; set; } = string.Empty;
     
     public AccountType Type { get; set; }

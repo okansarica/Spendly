@@ -30,6 +30,7 @@ public class UserService(
     IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
     IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository,
     IRepository<UserSubscription> userSubscriptionRepository,
+    IRepository<Bank> bankRepository,
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<UserProfileResponseViewModel>> GetProfileAsync()
@@ -140,9 +141,13 @@ public class UserService(
             await merchantMonthlyExpenseRepository.DeleteAsync(merchantMonthlyExpense.Id);
         }
 
-        foreach (var account in await accountRepository.ListAsync(x => x.UserId == userId))
+        foreach (var bank in await bankRepository.ListAsync(p=>p.UserId == userId))
         {
-            await accountRepository.DeleteAsync(account.Id);
+            foreach (var account in await accountRepository.ListAsync(x => x.BankId == bank.Id))
+            {
+                await accountRepository.DeleteAsync(account.Id);
+            }
+            await bankRepository.DeleteAsync(bank.Id);
         }
 
         foreach (var category in categories)
