@@ -40,7 +40,6 @@ export const ApiEndpoints = {
     Base: '/api/v1/merchants',
     ById: (id: string) => `/api/v1/merchants/${id}`,
     Category: (id: string) => `/api/v1/merchants/${id}/category`,
-    Nickname: (id: string) => `/api/v1/merchants/${id}/nickname`,
   },
   Users: {
     Profile: '/api/v1/users/profile',

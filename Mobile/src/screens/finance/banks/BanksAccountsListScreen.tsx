@@ -12,7 +12,6 @@ import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {FinanceStackParamList} from '../../../navigation/FinanceNavigator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
-import Button from '../../../components/Button';
 import Toast from 'react-native-toast-message';
 import {BankAccountItem, BankListItem} from '../../../services/banksService';
 
@@ -56,9 +55,10 @@ export default function BanksAccountsListScreen() {
   const [menuState, setMenuState] = useState<MenuState | undefined>(undefined);
   const [menuPosition, setMenuPosition] = useState<{x: number; y: number} | undefined>(undefined);
   const [isAddBankOptionsOpen, setIsAddBankOptionsOpen] = useState(false);
+  const [addBankMode, setAddBankMode] = useState<'openBanking' | 'manual' | undefined>('openBanking');
 
   useEffect(() => {
-    dispatch(loadBanks(undefined));
+    dispatch(loadBanks());
   }, [dispatch]);
 
   const data = useMemo(() => {
@@ -208,24 +208,120 @@ export default function BanksAccountsListScreen() {
     },
     chooserCard: {
       backgroundColor: colors.cardBackground,
-      borderRadius: radius.md,
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
       padding: spacing.lg,
+      width: '100%',
+      maxWidth: 360,
+      alignSelf: 'center',
+      shadowColor: colors.cardShadow,
+      shadowOffset: {width: 0, height: 6},
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    chooserHeaderIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.buttonPrimary + '18',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginBottom: spacing.sm,
+    },
+    chooserHeaderIconText: {
+      color: colors.buttonPrimary,
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.bold,
     },
     chooserTitle: {
       fontSize: fontSizes.lg,
       color: colors.textPrimary,
       fontWeight: fontWeights.semiBold,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
+      textAlign: 'center',
     },
     chooserDescription: {
       color: colors.textSecondary,
       fontSize: fontSizes.sm,
-      marginBottom: spacing.lg,
+      marginBottom: spacing.md,
+      textAlign: 'center',
     },
-    chooserButtonPrimary: {
+    optionItem: {
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       marginBottom: spacing.sm,
+      backgroundColor: colors.backgroundPrimary,
+    },
+    optionItemSelected: {
+      borderColor: colors.buttonPrimary,
+      backgroundColor: colors.buttonPrimary + '10',
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    optionLabel: {
+      color: colors.textPrimary,
+      fontSize: fontSizes.md,
+      fontWeight: fontWeights.medium,
+    },
+    optionDescription: {
+      color: colors.textSecondary,
+      fontSize: fontSizes.sm,
+      marginTop: spacing.xs,
+    },
+    optionCheck: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.buttonPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.buttonPrimary,
+    },
+    optionCheckText: {
+      color: colors.buttonPrimaryText,
+      fontSize: fontSizes.xs,
+      fontWeight: fontWeights.bold,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    actionButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs + 2,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      backgroundColor: colors.cardBackground,
+      minWidth: 88,
+      alignItems: 'center',
+    },
+    actionButtonPrimary: {
+      backgroundColor: colors.buttonPrimary,
+      borderColor: colors.buttonPrimary,
+    },
+    actionButtonDisabled: {
+      opacity: 0.5,
+    },
+    actionButtonText: {
+      color: colors.textPrimary,
+      fontSize: fontSizes.sm,
+      fontWeight: fontWeights.semiBold,
+    },
+    actionButtonPrimaryText: {
+      color: colors.buttonPrimaryText,
     },
   });
 
@@ -356,7 +452,12 @@ export default function BanksAccountsListScreen() {
               placeholderTextColor={colors.textSecondary}
               style={s.searchInput}
             />
-            <TouchableOpacity style={s.addBankButton} onPress={() => setIsAddBankOptionsOpen(true)}>
+            <TouchableOpacity
+              style={s.addBankButton}
+              onPress={() => {
+                setAddBankMode('openBanking');
+                setIsAddBankOptionsOpen(true);
+              }}>
               <Text style={s.addBankText}>{translate('AddBank')}</Text>
             </TouchableOpacity>
           </View>
@@ -447,29 +548,89 @@ export default function BanksAccountsListScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-      <Modal visible={isAddBankOptionsOpen} transparent animationType="fade" onRequestClose={() => setIsAddBankOptionsOpen(false)}>
-        <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setIsAddBankOptionsOpen(false)}>
+      <Modal
+        visible={isAddBankOptionsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          // Intentionally no-op: modal should only close via Cancel/Continue
+        }}>
+        <View style={s.modalBackdrop}>
           <View style={s.chooserCard}>
+            <View style={s.chooserHeaderIcon}>
+              <Text style={s.chooserHeaderIconText}>$</Text>
+            </View>
             <Text style={s.chooserTitle}>{translate('AddBank')}</Text>
-            <Text style={s.chooserDescription}>{translate('OpenBankingDescription')}</Text>
-            <Button
-              text={translate('OpenBanking')}
-              onPress={() => {
-                setIsAddBankOptionsOpen(false);
-                showTodo();
-              }}
-              style={s.chooserButtonPrimary}
-            />
-            <Button
-              text={translate('ManualSetup')}
-              variant="secondary"
-              onPress={() => {
-                setIsAddBankOptionsOpen(false);
-                navigation.navigate('BankEdit', {mode: 'create'});
-              }}
-            />
+            <Text style={s.chooserDescription}>{translate('SelectAddBankMethod')}</Text>
+
+            <TouchableOpacity
+              style={[s.optionItem, addBankMode === 'openBanking' ? s.optionItemSelected : undefined]}
+              onPress={() => setAddBankMode('openBanking')}>
+              <View style={s.optionRow}>
+                <Text style={s.optionLabel}>{translate('OpenBanking')}</Text>
+                {addBankMode === 'openBanking' ? (
+                  <View style={s.optionCheck}>
+                    <Text style={s.optionCheckText}>✓</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={s.optionDescription}>{translate('OpenBankingDescription')}</Text>
+              {addBankMode === 'openBanking' ? (
+                <Text style={[s.optionDescription, {marginTop: 8}]}>{translate('OpenBankingUsageExplanation')}</Text>
+              ) : null}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[s.optionItem, addBankMode === 'manual' ? s.optionItemSelected : undefined]}
+              onPress={() => setAddBankMode('manual')}>
+              <View style={s.optionRow}>
+                <Text style={s.optionLabel}>{translate('ManualSetup')}</Text>
+                {addBankMode === 'manual' ? (
+                  <View style={s.optionCheck}>
+                    <Text style={s.optionCheckText}>✓</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={s.optionDescription}>{translate('ManualSetupDescription')}</Text>
+              {addBankMode === 'manual' ? (
+                <Text style={[s.optionDescription, {marginTop: 8}]}>{translate('ManualSetupUsageExplanation')}</Text>
+              ) : null}
+            </TouchableOpacity>
+
+            <View style={s.actionRow}>
+              <TouchableOpacity
+                style={s.actionButton}
+                onPress={() => {
+                  setIsAddBankOptionsOpen(false);
+                  setAddBankMode(undefined);
+                }}>
+                <Text style={s.actionButtonText}>{translate('Cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  s.actionButton,
+                  s.actionButtonPrimary,
+                  !addBankMode ? s.actionButtonDisabled : undefined,
+                ]}
+                disabled={!addBankMode}
+                onPress={() => {
+                  if (addBankMode === 'openBanking') {
+                    setIsAddBankOptionsOpen(false);
+                    setAddBankMode(undefined);
+                    showTodo();
+                    return;
+                  }
+
+                  setIsAddBankOptionsOpen(false);
+                  setAddBankMode(undefined);
+                  navigation.navigate('BankEdit', {mode: 'create'});
+                }}>
+                <Text style={[s.actionButtonText, s.actionButtonPrimaryText]}>{translate('Continue')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
       {isSaving ? <View /> : null}
     </View>

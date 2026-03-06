@@ -87,6 +87,10 @@ Backend API
 - Use apiClient.ts (existing Axios instance with interceptors)
 - Return typed response objects
 
+## Translation
+- Every string in the UI must be translatable
+- Whole application languge can be translatable
+
 ## API Client
 
 - Existing `src/services/apiClient.ts` is the single Axios instance

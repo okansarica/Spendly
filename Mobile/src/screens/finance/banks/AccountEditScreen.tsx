@@ -22,10 +22,19 @@ export default function AccountEditScreen() {
   const params = route.params as FinanceStackParamList['AccountEdit'];
   const isSaving = useAppSelector(state => state.banks.isSaving);
   const [name, setName] = useState(params.mode === 'edit' ? params.account.name : '');
+  const [validationError, setValidationError] = useState<string | undefined>(undefined);
 
   const onSave = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setValidationError(translate('AccountNameRequired'));
+      return;
+    }
+
+    setValidationError(undefined);
+
     if (params.mode === 'create') {
-      const result = await dispatch(createBankAccount({bankId: params.bankId, data: {name}}));
+      const result = await dispatch(createBankAccount({bankId: params.bankId, data: {name: trimmedName}}));
       if (result.meta.requestStatus !== 'fulfilled') {
         Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
         return;
@@ -34,7 +43,7 @@ export default function AccountEditScreen() {
       return;
     }
 
-    const result = await dispatch(updateBankAccount({bankId: params.bankId, id: params.account.id, data: {name}}));
+    const result = await dispatch(updateBankAccount({bankId: params.bankId, id: params.account.id, data: {name: trimmedName}}));
     if (result.meta.requestStatus !== 'fulfilled') {
       Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
       return;
@@ -65,6 +74,15 @@ export default function AccountEditScreen() {
       borderColor: colors.borderSubtle,
       marginBottom: spacing.lg,
     },
+    inputError: {
+      borderColor: colors.danger,
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      color: colors.danger,
+      marginBottom: spacing.md,
+      fontSize: fontSizes.sm,
+    },
   });
 
   const title = params.mode === 'edit' ? translate('UpdateAccount') : translate('CreateAccount');
@@ -74,10 +92,19 @@ export default function AccountEditScreen() {
       <Header title={title} />
       <View style={s.content}>
         <Text style={s.label}>{translate('AccountName')}</Text>
-        <TextInput value={name} onChangeText={setName} style={s.input} />
+        <TextInput
+          value={name}
+          onChangeText={value => {
+            setName(value);
+            if (validationError) {
+              setValidationError(undefined);
+            }
+          }}
+          style={[s.input, validationError ? s.inputError : undefined]}
+        />
+        {validationError ? <Text style={s.errorText}>{validationError}</Text> : null}
         <Button text={translate('Save')} onPress={onSave} isLoading={isSaving} disabled={isSaving} />
       </View>
     </View>
   );
 }
-

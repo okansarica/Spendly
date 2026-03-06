@@ -29,6 +29,7 @@ export default function BankEditScreen() {
   const [name, setName] = useState(bank?.name ?? '');
   const [description, setDescription] = useState(bank?.description ?? '');
   const [isDefinitionsOpen, setIsDefinitionsOpen] = useState(false);
+  const [validationError, setValidationError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (mode === 'create') {
@@ -62,9 +63,23 @@ export default function BankEditScreen() {
   }, [definitions, selectedDefinitionId]);
 
   const onSave = async () => {
+    const trimmedName = name.trim();
+
+    if (mode === 'create' && isDefinitionMode && !selectedDefinitionId) {
+      setValidationError(translate('BankSelectionRequired'));
+      return;
+    }
+
+    if ((!isDefinitionMode || mode === 'edit') && !trimmedName) {
+      setValidationError(translate('BankNameRequired'));
+      return;
+    }
+
+    setValidationError(undefined);
+
     const payload = isDefinitionMode && mode === 'create'
       ? {bankDefinitionId: selectedDefinitionId, description}
-      : {name, description};
+      : {name: trimmedName, description};
 
     if (mode === 'create') {
       const result = await dispatch(createBank(payload));
@@ -141,6 +156,15 @@ export default function BankEditScreen() {
     inputDisabled: {
       opacity: 0.6,
     },
+    inputError: {
+      borderColor: colors.danger,
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      color: colors.danger,
+      marginBottom: spacing.md,
+      fontSize: fontSizes.sm,
+    },
     pickerButton: {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.md,
@@ -199,7 +223,7 @@ export default function BankEditScreen() {
             </TouchableOpacity>
             <Text style={s.label}>{translate('BankName')}</Text>
             <TouchableOpacity
-              style={[s.pickerButton, !isDefinitionMode ? s.inputDisabled : undefined]}
+              style={[s.pickerButton, !isDefinitionMode ? s.inputDisabled : undefined, validationError ? s.inputError : undefined]}
               disabled={!isDefinitionMode}
               onPress={() => setIsDefinitionsOpen(true)}>
               <Text style={s.pickerValue}>{selectedDefinitionName}</Text>
@@ -208,7 +232,19 @@ export default function BankEditScreen() {
         ) : null}
 
         <Text style={s.label}>{translate('BankName')}</Text>
-        <TextInput value={name} onChangeText={setName} style={[s.input, !isNameEditable ? s.inputDisabled : undefined]} editable={isNameEditable} />
+        <TextInput
+          value={name}
+          onChangeText={value => {
+            setName(value);
+            if (validationError) {
+              setValidationError(undefined);
+            }
+          }}
+          style={[s.input, !isNameEditable ? s.inputDisabled : undefined, validationError ? s.inputError : undefined]}
+          editable={isNameEditable}
+        />
+
+        {validationError ? <Text style={s.errorText}>{validationError}</Text> : null}
 
         <Text style={s.label}>{translate('Description')}</Text>
         <TextInput value={description} onChangeText={setDescription} style={s.input} />
@@ -225,6 +261,9 @@ export default function BankEditScreen() {
                 onPress={() => {
                   setSelectedDefinitionId(item.id);
                   setIsDefinitionsOpen(false);
+                  if (validationError) {
+                    setValidationError(undefined);
+                  }
                 }}>
                 <Text style={s.modalItemText}>{item.name}</Text>
               </TouchableOpacity>

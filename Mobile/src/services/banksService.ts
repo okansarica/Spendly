@@ -24,10 +24,6 @@ export type BankDefinitionItem = {
   logoName?: string;
 };
 
-export type BankListRequest = {
-  search?: string;
-};
-
 export type BankUpsertRequest = {
   name?: string;
   bankDefinitionId?: string;
@@ -39,7 +35,8 @@ export type BankAccountUpsertRequest = {
 };
 
 export const banksService = {
-  getList: (params?: BankListRequest) => apiClient.get<BankListItem[]>(ApiEndpoints.Banks.Base, {params}),
+  getList: () => apiClient.get<BankListItem[]>(ApiEndpoints.Banks.Base),
+  getDefinitions: () => apiClient.get<BankDefinitionItem[]>(ApiEndpoints.Banks.BankDefinitions),
   getBankDefinitions: () => apiClient.get<BankDefinitionItem[]>(ApiEndpoints.Banks.BankDefinitions),
   create: (payload: BankUpsertRequest) => apiClient.post<BankListItem>(ApiEndpoints.Banks.Base, payload),
   update: (id: string, payload: BankUpsertRequest) => apiClient.put<BankListItem>(ApiEndpoints.Banks.ById(id), payload),
@@ -50,4 +47,3 @@ export const banksService = {
     apiClient.put<BankAccountItem>(ApiEndpoints.Banks.AccountById(bankId, id), payload),
   removeAccount: (bankId: string, id: string) => apiClient.delete(ApiEndpoints.Banks.AccountById(bankId, id)),
 };
-

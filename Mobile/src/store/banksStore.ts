@@ -4,7 +4,6 @@ import {apiCall} from '../services/apiClient';
 import {
   banksService,
   BankListItem,
-  BankListRequest,
   BankUpsertRequest,
   BankAccountUpsertRequest,
   BankAccountItem,
@@ -27,8 +26,8 @@ const initialState: BanksState = {
   error: undefined,
 };
 
-export const loadBanks = createAsyncThunk('banks/load', async (params: BankListRequest | undefined, {rejectWithValue}) => {
-  const response = await apiCall(() => banksService.getList(params));
+export const loadBanks = createAsyncThunk('banks/load', async (_, {rejectWithValue}) => {
+  const response = await apiCall(() => banksService.getList());
   if (!response.isSuccess) {
     return rejectWithValue(response.errorMessage);
   }

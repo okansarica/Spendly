@@ -44,6 +44,8 @@ public static class SettingsExtensions
 				.AddSingleton<FirebaseSettings>(sp => sp.GetRequiredService<IOptions<FirebaseSettings>>().Value)
 				.Configure<VersionSettings>(configuration.GetSection(nameof(VersionSettings)))
 				.AddSingleton<VersionSettings>(sp => sp.GetRequiredService<IOptions<VersionSettings>>().Value)
+				.Configure<PlaidSettings>(configuration.GetSection(nameof(PlaidSettings)))
+				.AddSingleton<PlaidSettings>(sp => sp.GetRequiredService<IOptions<PlaidSettings>>().Value)
 			// .Configure<UploadSettings>(configuration.GetSection(nameof(UploadSettings)))
 			// .AddSingleton<IUploadSettings>(sp => sp.GetRequiredService<IOptions<UploadSettings>>().Value)
 			// .Configure<RestaurantAppAvailabilityDbSettings>(configuration.GetSection(nameof(RestaurantAppAvailabilityDbSettings)))
