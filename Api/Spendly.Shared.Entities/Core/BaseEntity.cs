@@ -25,3 +25,10 @@ public class BaseLocalQueueEntity : BaseEntity
 {
 	public ObjectId SellerId { get; set; }
 }
+
+public interface ISoftDeletable
+{
+	bool IsDeleted { get; set; }
+	
+	DateTime? DeletedAt { get; set; }
+}

@@ -3,7 +3,7 @@ namespace Spendly.Shared.Entities.UserManagement;
 using Core;
 using MongoDB.Bson;
 
-public class Bank:BaseEntity
+public class Bank:BaseEntity,ISoftDeletable
 {
 	public ObjectId UserId { get; set; }
 	public ObjectId? BankDefinitionId { get; set; }
@@ -16,6 +16,8 @@ public class Bank:BaseEntity
 	public bool IsConnected { get; set; }
 	
 	public string? AccessToken { get; set; }
+	public bool IsDeleted { get; set; }
+	public DateTime? DeletedAt { get; set; }
 }
 
 public class BankDefinition : BaseEntity
