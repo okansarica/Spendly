@@ -2,3 +2,4 @@
 bin
 obj
 Api/shared.local.json
+Api/Spendly.Jobs.DataProcessor/appsettings.json
