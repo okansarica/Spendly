@@ -13,10 +13,11 @@ import type { FinanceStackParamList } from '../../../navigation/FinanceNavigator
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from 'react-native-toast-message';
-import { BankAccountItem, BankListItem, createPlaidLinkToken, exchangePlaidPublicToken } from '../../../services/banksService';
+import { BankAccountItem, BankListItem } from '../../../services/banksService';
 
 import { create, open, dismissLink, LinkSuccess, LinkExit, LinkOpenProps, LinkTokenConfiguration } from 'react-native-plaid-link-sdk';
 import Button from '../../../components/Button';
+import { CompleteIntegrationRequest, plaidService } from "../../../services/plaidService.ts";
 
 type FinanceNavProp = NativeStackNavigationProp<FinanceStackParamList, 'BanksAccountsList'>;
 
@@ -407,11 +408,32 @@ export default function BanksAccountsListScreen() {
         };
         
         const openProps: LinkOpenProps = {
-            onSuccess: (success: LinkSuccess) => {
-                const publicToken = success.publicToken;
-                const metadata = success.metadata;
+            onSuccess: (linkSuccess: LinkSuccess) => {
+                if(!linkSuccess.metadata?.accounts?.length || !linkSuccess.metadata?.institution) {
+                    showPlaidError(new Error('No accounts were linked. Please link at least one account to continue.')); //TODO translate 
+                    dismissLink();
+                    return;
+                }                
+                
+                const request: CompleteIntegrationRequest = {
+                    publicToken: linkSuccess.publicToken,
+                    accounts: linkSuccess.metadata.accounts.map(a => ({
+                        verificationStatus: a.verificationStatus?.toString(),
+                        type: a.type,
+                        mask: a.mask,
+                        name: a.name,
+                        subtype: a.subtype?.toString(),
+                        id: a.id,
+                    })),
+                    institution: {
+                        name: linkSuccess.metadata.institution.name,
+                        id: linkSuccess.metadata.institution.id,
+                    },
+                    linkSessionId: linkSuccess.metadata.linkSessionId,
+                };               
+                
 
-                exchangePlaidPublicToken(publicToken)
+                plaidService.completeIntegration(request)
                     .then(() => {
                         dispatch(loadBanks());
                         setIsAddBankOptionsOpen(false);
@@ -443,8 +465,11 @@ export default function BanksAccountsListScreen() {
         if (addBankMode === 'openBanking') {
             try {
                 setIsPlaidLoading(true);
-                const linkToken = await createPlaidLinkToken();
-                await openPlaidFlow(linkToken);
+                const linkTokenResponse = await plaidService.createPlaidLinkToken();
+                
+                //TODO linkTokenResponse success donmeyebilir kontrol et
+                
+                await openPlaidFlow(linkTokenResponse.data.linkToken);
             } catch (err: any) {
                 console.log(err);
                 showPlaidError(err);

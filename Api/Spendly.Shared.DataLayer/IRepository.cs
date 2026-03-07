@@ -20,6 +20,7 @@ public interface IRepository<T> where T : BaseEntity
 	Task<T> GetRequiredAsync(FilterDefinition<T> filterDefinition);
 	Task<T> GetRequiredAsync(Expression<Func<T, bool>> filter);
 	Task InsertAsync(T model);
+	Task InsertManyAsync(List<T> models);
 	Task UpdateAsync(T model);
 	Task<UpdateResult> UpdateWithIdAsync(ObjectId id, UpdateDefinition<T> updateDef);
 	Task<UpdateResult> UpdateAsync(FilterDefinition<T> filterDefinition, UpdateDefinition<T> updateDefinition);

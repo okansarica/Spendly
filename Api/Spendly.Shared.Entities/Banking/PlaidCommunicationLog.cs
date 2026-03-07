@@ -21,4 +21,6 @@ public enum PlaidCommunicationLogType
 	GetInstitutionResponse,
 	GetAccountsRequest,
 	GetAccountsResponse,
+	GetTransactionsRequest,
+	GetTransactionsResponse,
 }

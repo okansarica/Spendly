@@ -18,6 +18,8 @@ using Microsoft.VisualBasic;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.Api.Infrastructure.Aop;
 using Spendly.Mobile.BusinessLayer.Services.Auth;
+using Spendly.Mobile.BusinessLayer.Services.Plaid;
+using Spendly.Shared.BusinessLayer;
 using Spendly.Shared.Core.Bootstrap;
 using Spendly.Shared.Core.Interception;
 using Spendly.Shared.Entities.LocaleManagement;
@@ -29,7 +31,8 @@ var app = AppBootstrapper
 	.WithServiceScanning([
 		typeof(Constants).Assembly,
 		typeof(AuthService).Assembly,
-		typeof(TranslationService).Assembly
+		typeof(TranslationService).Assembly,
+		typeof(SharedPlaidService).Assembly
 	])
 	.ConfigureServices((services, config) =>
 	{
@@ -57,8 +60,13 @@ var app = AppBootstrapper
 		
 		// Plaid configuration
 		services.Configure<Spendly.Shared.ViewModels.Settings.PlaidSettings>(config.GetSection("Plaid"));
-		services.AddScoped<Spendly.Mobile.Api.Services.PlaidService>();
-		services.AddHttpClient<Spendly.Mobile.Api.Services.PlaidService>();
+		services.AddScoped<PlaidService>();
+		services.AddHttpClient<PlaidService>();
+		
+		var plaidChannel = new Spendly.Mobile.Api.Services.PlaidDataProcessingChannel();
+		services.AddSingleton(plaidChannel);
+		services.AddSingleton(plaidChannel.GetChannel());
+		services.AddHostedService<Spendly.Mobile.Api.Services.PlaidDataProcessorHostedService>();
 
 		var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>()!;
 		services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -18,6 +18,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Spendly.Mobile.BusinessLayer\Spendly.Mobile.BusinessLayer.csproj" />
       <ProjectReference Include="..\Spendly.Mobile.ViewModels\Spendly.Mobile.ViewModels.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.BusinessLayer\Spendly.Shared.BusinessLayer.csproj" />
       <ProjectReference Include="..\Spendly.Shared.Core\Spendly.Shared.Core.csproj" />
       <ProjectReference Include="..\Spendly.Shared.Enums\Spendly.Shared.Enums.csproj" />
       <ProjectReference Include="..\Spendly.Shared.Localization\Spendly.Shared.Localization.csproj" />

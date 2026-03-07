@@ -46,12 +46,14 @@ class Program
 	{
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
-		var banks = await CreateBanks(users);
-		var (accounts, currencies) = await CreateAccounts(banks);
+		// ...existing code...
+		// var banks = await CreateBanks(users);
+		// var (accounts, currencies) = await CreateAccounts(banks);
 		var categories = await CreateCategories(users);
 		var merchants = await CreateMerchants(categories);
-		var normalizedTransactions = await CreateNormalizedTransactions(users, accounts, categories, merchants, banks);
-		await CreateSummaryTables(normalizedTransactions, accounts);
+		// ...existing code...
+		// var normalizedTransactions = await CreateNormalizedTransactions(users, accounts, categories, merchants, banks);
+		// await CreateSummaryTables(normalizedTransactions, accounts);
 	}
 	private async static Task<List<Bank>> CreateBanks(List<User> users)
 	{
@@ -338,8 +340,8 @@ class Program
 				{
 					Id = ObjectId.GenerateNewId(),
 					UserId = user.Id,
-					Amount = amount,
-					MerchantName = merchant.Name,
+					// Amount = amount,
+					// MerchantName = merchant.Name,
 					CreatedAt = DateTime.UtcNow
 				};
 
@@ -372,8 +374,8 @@ class Program
 				{
 					Id = ObjectId.GenerateNewId(),
 					UserId = user.Id,
-					Amount = amount,
-					MerchantName = merchant.Name,
+					//Amount = amount,
+					//MerchantName = merchant.Name,
 					CreatedAt = DateTime.UtcNow
 				};
 
@@ -406,8 +408,8 @@ class Program
 				{
 					Id = ObjectId.GenerateNewId(),
 					UserId = user.Id,
-					Amount = amount,
-					MerchantName = merchant.Name,
+					//Amount = amount,
+					//MerchantName = merchant.Name,
 					CreatedAt = DateTime.UtcNow
 				};
 

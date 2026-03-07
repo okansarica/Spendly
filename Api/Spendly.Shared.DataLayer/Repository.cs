@@ -229,6 +229,15 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         model.CreatedAt = DateTime.UtcNow;
         return _entities.InsertOneAsync(model);
     }
+    
+    public Task InsertManyAsync(List<T> models)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var model in models)
+            model.CreatedAt = now;
+
+        return _entities.InsertManyAsync(models);
+    }
 
     public Task UpdateAsync(T model)
     {

@@ -142,6 +142,11 @@ export const ApiEndpoints = {
 };
 ```
 
+## Types, and Interfaces
+
+- All types including service reqests and responses  and interfaces should be defined in a singple folder in `src/models`
+- 
+
 ## Error Display
 
 - 400 errors: show the `errorMessage` from `ApiResponse` to the user

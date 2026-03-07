@@ -14,4 +14,6 @@ public class Merchant : BaseEntity
     public string? Nickname { get; set; }
     public int TransactionCount { get; set; }
     public decimal TransactionAmount { get; set; }
+    public string? PlaidId { get; set; }
+    public string? LogoUrl { get; set; }
 }

@@ -1,17 +1,20 @@
 namespace Spendly.Mobile.Api.Controllers;
 
+using BusinessLayer.Services.Plaid;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.Api.Services;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
+using ViewModels.Plaid;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
 public class PlaidController(
     PlaidService plaid,
-    BankService bankService) : ControllerBase
+    BankService bankService,
+    PlaidDataProcessingChannel plaidDataProcessingChannel) : ControllerBase
 {
 
     [HttpPost("create-link-token")]
@@ -21,17 +24,22 @@ public class PlaidController(
         return Ok(new { linkToken = token });
     }
 
-    //TODO move to view models and sent to business service
-    public class ExchangeRequestViewModel { public string PublicToken { get; set; } = string.Empty; }
 
-    [HttpPost("exchange-public-token")]
-    public async Task<IActionResult> CompleteIntegration([FromBody] ExchangeRequestViewModel exchangeRequestViewModel)
+    [HttpPost("complete-integration")]
+    public async Task<IActionResult> CompleteIntegration([FromBody] CompleteIntegrationRequestViewModel completeIntegrationRequestViewModel)
     {
-        var completeResponse = await plaid.CompleteIntegration(exchangeRequestViewModel.PublicToken);
+        var completeResponse = await plaid.CompleteIntegration(completeIntegrationRequestViewModel);
         if (!completeResponse.IsSuccess)
         {
             return this.BadRequestFrom(completeResponse);
         }
+
+        await plaidDataProcessingChannel.EnqueueAsync(new PlaidDataProcessingRequest
+        {
+            UserId = User.Identity!.Name!,
+            AccessToken = completeResponse.Data!
+        });
+        
         return Ok();
     }
 }
