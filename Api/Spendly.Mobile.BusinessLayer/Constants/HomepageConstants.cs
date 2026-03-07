@@ -38,4 +38,9 @@ public static class Constants
     {
         public const int TrialDurationInDays = 7;
     }
+
+    public static class Application
+    {
+        public const string ApplicationNAme = "Spendly";
+    }
 }

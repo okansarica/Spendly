@@ -129,6 +129,7 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
+  - Plaid (6.4.3)
   - PromisesObjC (2.4.0)
   - RCT-Folly (2024.11.18.00):
     - boost
@@ -1787,6 +1788,9 @@ PODS:
     - React-Core
   - react-native-get-random-values (1.11.0):
     - React-Core
+  - react-native-plaid-link-sdk (12.8.0):
+    - Plaid (~> 6.4.3)
+    - React-Core
   - react-native-safe-area-context (5.7.0):
     - React-Core
   - React-NativeModulesApple (0.80.0):
@@ -2501,6 +2505,7 @@ DEPENDENCIES:
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-fbsdk-next (from `../node_modules/react-native-fbsdk-next`)
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
+  - react-native-plaid-link-sdk (from `../node_modules/react-native-plaid-link-sdk`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -2569,6 +2574,7 @@ SPEC REPOS:
     - GTMAppAuth
     - GTMSessionFetcher
     - nanopb
+    - Plaid
     - PromisesObjC
     - SocketRocket
 
@@ -2660,6 +2666,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-fbsdk-next"
   react-native-get-random-values:
     :path: "../node_modules/react-native-get-random-values"
+  react-native-plaid-link-sdk:
+    :path: "../node_modules/react-native-plaid-link-sdk"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2778,6 +2786,7 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 7068e976238b29e97b3bafd09a994542af7d5c0b
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  Plaid: defe81f56261e503209b5d28ed538834fd377a3c
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCT-Folly: 59ec0ac1f2f39672a0c6e6cecdd39383b764646f
   RCTDeprecation: ff787f6c860a1b97dd1bc27264b61d23ad1994da
@@ -2814,6 +2823,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: abd0447fc2a02ba07a3ba84517139bfad87dbe0c
   react-native-fbsdk-next: 4fa40d3b1df411ed9bc3cca899572b41f58a4dae
   react-native-get-random-values: 21325b2244dfa6b58878f51f9aa42821e7ba3d06
+  react-native-plaid-link-sdk: cebe9dd0fd5c7ddc19a6af10789c5b1a298775a0
   react-native-safe-area-context: 37b720094bcaa36abcd593e08f2ad16507a94769
   React-NativeModulesApple: 00a351dc8d609cb24f068f70c5a469bf00533c75
   React-oscompat: 7c0a341cc31e350da71ddf2e46de0a845d1d1626

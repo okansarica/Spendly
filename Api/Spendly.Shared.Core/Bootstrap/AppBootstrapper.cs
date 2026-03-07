@@ -221,6 +221,8 @@ public class AppBootstrapper
             // ---- HEALTH CHECKS (2.13) ----
             builder.Services.AddHealthChecks();
 
+            builder.Services.AddDataProtection();
+
             // ---- SETTINGS & SHARED REPOS ----
             builder.Services.AddSettingsConfiguration(builder.Configuration);
             builder.Services.AddMongoRepositories(builder.Configuration);

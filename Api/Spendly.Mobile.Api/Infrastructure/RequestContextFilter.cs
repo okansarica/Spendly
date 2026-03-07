@@ -39,6 +39,11 @@ public class RequestContextFilter(RequestContextViewModel requestContextViewMode
         {
             requestContextViewModel.SessionId = Guid.Parse(sessionId.ToString());
         }
+        if (httpContext.Request.Headers.TryGetValue("X-language", out var language))
+        {
+            requestContextViewModel.SessionId = Guid.Parse(sessionId.ToString());
+        }
+        
     }
     public void OnActionExecuted(ActionExecutedContext context)
     {

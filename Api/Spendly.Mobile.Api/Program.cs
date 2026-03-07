@@ -54,6 +54,11 @@ var app = AppBootstrapper
 		services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
 
 		services.AddHttpClient();
+		
+		// Plaid configuration
+		services.Configure<Spendly.Shared.ViewModels.Settings.PlaidSettings>(config.GetSection("Plaid"));
+		services.AddScoped<Spendly.Mobile.Api.Services.PlaidService>();
+		services.AddHttpClient<Spendly.Mobile.Api.Services.PlaidService>();
 
 		var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>()!;
 		services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

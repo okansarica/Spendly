@@ -33,5 +33,6 @@ public class RequestContextViewModel
 
 	public Guid SessionId { get; set; }
 	public string Timezone { get; set; } = "Europe/London";
+	public string Language { get; set; } = "en";
 	//TODO review timezone
 }

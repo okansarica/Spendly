@@ -47,3 +47,12 @@ export const banksService = {
     apiClient.put<BankAccountItem>(ApiEndpoints.Banks.AccountById(bankId, id), payload),
   removeAccount: (bankId: string, id: string) => apiClient.delete(ApiEndpoints.Banks.AccountById(bankId, id)),
 };
+
+export const createPlaidLinkToken = async (): Promise<string> => {
+  const res = await apiClient.post<{ linkToken?: string; link_token?: string }>('/api/v1/plaid/create-link-token');
+  return res.data?.linkToken ?? res.data?.link_token ?? '';
+};
+
+export const exchangePlaidPublicToken = async (publicToken: string): Promise<void> => {
+  await apiClient.post('/api/v1/plaid/exchange-public-token', { publicToken });
+};

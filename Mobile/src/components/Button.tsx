@@ -1,5 +1,5 @@
 import React from 'react';
-import {TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle} from 'react-native';
+import {TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, StyleProp} from 'react-native';
 import {useTheme} from '../theme/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
@@ -10,8 +10,9 @@ type ButtonProps = {
   variant?: ButtonVariant;
   isLoading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  size?: 'small' | 'medium' | 'large';
 };
 
 export default function Button({
@@ -22,6 +23,7 @@ export default function Button({
   disabled = false,
   style,
   textStyle,
+  size = 'medium',
 }: ButtonProps) {
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
 
@@ -52,10 +54,32 @@ export default function Button({
     }
   };
 
+  const getPadding = () => {
+    switch (size) {
+      case 'small':
+        return spacing.sm;
+      case 'large':
+        return spacing.lg;
+      default:
+        return spacing.md;
+    }
+  };
+
+  const getFontSize = () => {
+    switch (size) {
+      case 'small':
+        return fontSizes.sm;
+      case 'large':
+        return fontSizes.lg;
+      default:
+        return fontSizes.md;
+    }
+  };
+
   const s = StyleSheet.create({
     btn: {
-      borderRadius: radius.md,
-      padding: spacing.md,
+      borderRadius: size === 'small' ? radius.sm : radius.md,
+      padding: getPadding(),
       alignItems: 'center' as const,
       backgroundColor: getBackgroundColor(),
       shadowColor: colors.cardShadow,
@@ -63,10 +87,11 @@ export default function Button({
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
+      minWidth: size === 'small' ? 72 : 88,
     },
     btnText: {
       color: getTextColor(),
-      fontSize: fontSizes.md,
+      fontSize: getFontSize(),
       fontWeight: fontWeights.semiBold,
     },
   });
@@ -77,4 +102,3 @@ export default function Button({
     </TouchableOpacity>
   );
 }
-
