@@ -6,7 +6,7 @@ using System.Threading.Channels;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
 
 public class PlaidDataProcessorHostedService(
-    Channel<PlaidDataProcessingRequest> channel,
+    Channel<PlaidDataProcessingBAcgorundServiceRequest> channel,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<PlaidDataProcessorHostedService> logger)
     : BackgroundService
@@ -53,7 +53,7 @@ public class PlaidDataProcessorHostedService(
     }
 }
 
-public class PlaidDataProcessingRequest
+public class PlaidDataProcessingBAcgorundServiceRequest
 {
     public string UserId { get; set; } = string.Empty;
     public string AccessToken { get; set; } = string.Empty;

@@ -4,18 +4,18 @@ using System.Threading.Channels;
 
 public class PlaidDataProcessingChannel
 {
-    private readonly Channel<PlaidDataProcessingRequest> _channel;
+    private readonly Channel<PlaidDataProcessingBAcgorundServiceRequest> _channel;
 
     public PlaidDataProcessingChannel()
     {
-        _channel = Channel.CreateUnbounded<PlaidDataProcessingRequest>();
+        _channel = Channel.CreateUnbounded<PlaidDataProcessingBAcgorundServiceRequest>();
     }
 
-    public async Task EnqueueAsync(PlaidDataProcessingRequest request)
+    public async Task EnqueueAsync(PlaidDataProcessingBAcgorundServiceRequest bAcgorundServiceRequest)
     {
-        await _channel.Writer.WriteAsync(request);
+        await _channel.Writer.WriteAsync(bAcgorundServiceRequest);
     }
 
-    public Channel<PlaidDataProcessingRequest> GetChannel() => _channel;
+    public Channel<PlaidDataProcessingBAcgorundServiceRequest> GetChannel() => _channel;
 }
 

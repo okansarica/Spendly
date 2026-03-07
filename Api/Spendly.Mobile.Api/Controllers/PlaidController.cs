@@ -34,7 +34,7 @@ public class PlaidController(
             return this.BadRequestFrom(completeResponse);
         }
 
-        await plaidDataProcessingChannel.EnqueueAsync(new PlaidDataProcessingRequest
+        await plaidDataProcessingChannel.EnqueueAsync(new PlaidDataProcessingBAcgorundServiceRequest
         {
             UserId = User.Identity!.Name!,
             AccessToken = completeResponse.Data!

@@ -114,7 +114,7 @@ public class PlaidService(
 				BankId = bankId,
 				CurrencyCode = "GBP", //TODO hard coded for now, requires more changes in the ui for future
 				IsConnected = true,
-				Name = plaidAccount.Name,
+				Name = plaidAccount.Name, //TODO check
 				PlaidAccountId = plaidAccount.Id,
 				CardLast4Digits = plaidAccount.Mask,
 				ConnectionDateTime = DateTime.UtcNow,

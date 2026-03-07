@@ -4,7 +4,7 @@ using MongoDB.Bson;
 using Spendly.Shared.Entities.Core;
 
 /// <summary>
-/// Each bank connection should have separate token.
+/// Each bank connection should have separate token. Bank entity has a FK to this table
 /// </summary>
 public class UserPlaidToken : BaseEntity
 {

@@ -95,6 +95,15 @@ public class SharedPlaidService(
 	}
 
 
+	/// <summary>
+	/// Access token sayesinde
+	/// </summary>
+	/// <param name="accessToken"></param>
+	/// <param name="startDate"></param>
+	/// <param name="endDate"></param>
+	/// <param name="userId"></param>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
 	public async Task<List<PlaidTransactionsGetResponseViewModel>> GetAllTransactionsAsync(string accessToken,
 		DateOnly startDate,
 		DateOnly endDate,
