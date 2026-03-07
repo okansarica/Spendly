@@ -17,6 +17,7 @@ public class BankAccountListItemViewModel
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsConnected { get; set; }
+    public string? CardLast4Digits { get; set; }
 }
 
 public class BankDefinitionListItemViewModel
@@ -25,4 +26,3 @@ public class BankDefinitionListItemViewModel
     public string Name { get; set; } = string.Empty;
     public string? LogoName { get; set; }
 }
-

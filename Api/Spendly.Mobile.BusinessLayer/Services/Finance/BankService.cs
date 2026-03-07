@@ -41,6 +41,7 @@ public class BankService(
                         Name = x.Name,
                         Description = x.Description,
                         IsConnected = x.IsConnected,
+                        CardLast4Digits = x.CardLast4Digits,
                     })
                     .ToList(),
             })
@@ -170,8 +171,6 @@ public class BankService(
         {
             BankId = bank.Id,
             Name = request.Name!.Trim(),
-            Type = AccountType.Bank,
-            CurrencyId = ObjectId.Empty,
             IsConnected = false,
         };
 
@@ -255,7 +254,7 @@ public class BankService(
             Description = bank.Description,
             BankDefinitionId = bank.BankDefinitionId?.ToString(),
             IsConnected = bank.IsConnected,
-            Accounts = [],
+            Accounts = bank is null ? new List<BankAccountListItemViewModel>() : new List<BankAccountListItemViewModel>(),
         };
     }
 
@@ -267,7 +266,15 @@ public class BankService(
             Name = account.Name,
             Description = account.Description,
             IsConnected = account.IsConnected,
+            CardLast4Digits = account.CardLast4Digits,
         };
     }
+}
+
+public class PlaidAccountInfo
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
 }
 

@@ -2,12 +2,16 @@ namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.Api.Services;
+using Spendly.Mobile.BusinessLayer.Services.Finance;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
-public class PlaidController(PlaidService plaid) : ControllerBase
+public class PlaidController(
+    PlaidService plaid,
+    BankService bankService) : ControllerBase
 {
 
     [HttpPost("create-link-token")]
@@ -21,10 +25,14 @@ public class PlaidController(PlaidService plaid) : ControllerBase
     public class ExchangeRequestViewModel { public string PublicToken { get; set; } = string.Empty; }
 
     [HttpPost("exchange-public-token")]
-    public async Task<IActionResult> ExchangePublicToken([FromBody] ExchangeRequestViewModel req)
+    public async Task<IActionResult> CompleteIntegration([FromBody] ExchangeRequestViewModel exchangeRequestViewModel)
     {
-        await plaid.ExchangePublicTokenAsync(req.PublicToken);
-        return Ok(new { status = "ok" });
+        var completeResponse = await plaid.CompleteIntegration(exchangeRequestViewModel.PublicToken);
+        if (!completeResponse.IsSuccess)
+        {
+            return this.BadRequestFrom(completeResponse);
+        }
+        return Ok();
     }
 }
 

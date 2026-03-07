@@ -433,7 +433,7 @@ export default function BanksAccountsListScreen() {
             },
         };
         
-        await create(tokenConfiguration);
+        create(tokenConfiguration);
         open(openProps);
     };
 
@@ -502,8 +502,9 @@ export default function BanksAccountsListScreen() {
                         </View>
                         <View style={{flex: 1}}>
                             <Text style={s.title}>{item.account.name}</Text>
-                            <Text
-                                style={s.subtitle}>{item.account.isConnected ? translate('Connected') : translate('ManualSetup')}</Text>
+                            <Text style={s.subtitle}>
+                                {item.account.cardLast4Digits ? `**** **** **** ${item.account.cardLast4Digits}` : (item.account.isConnected ? translate('Connected') : translate('ManualSetup'))}
+                            </Text>
                         </View>
                     </View>
                     <TouchableOpacity

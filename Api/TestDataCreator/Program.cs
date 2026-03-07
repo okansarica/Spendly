@@ -152,7 +152,6 @@ class Program
 
 		var currencyIds = new List<ObjectId> { ObjectId.GenerateNewId(), ObjectId.GenerateNewId() };
 		var accounts = new List<Account>();
-		var accountTypes = new[] { AccountType.Bank, AccountType.CreditCard, AccountType.Cash };
 
 		foreach (var bank in banks)
 		{
@@ -162,9 +161,7 @@ class Program
 				{
 					Id = ObjectId.GenerateNewId(),
 					BankId = bank.Id,
-					Name = $"{accountTypes[i]} Account - {bank.Name}",
-					Type = accountTypes[i],
-					CurrencyId = currencyIds[0]
+					Name = $"Account - {bank.Name}",
 				});
 			}
 		}

@@ -4,6 +4,10 @@
       <ProjectReference Include="..\Spendly.Shared.Entities\Spendly.Shared.Entities.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Plaid\" />
+    </ItemGroup>
+
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>

@@ -1,10 +1,11 @@
 namespace Spendly.Shared.Entities.Banking;
 
+using MongoDB.Bson;
 using Spendly.Shared.Entities.Core;
 
 public class UserPlaidToken : BaseEntity
 {
-    public string UserId { get; set; } = string.Empty;
+    public required string UserId { get; set; } = string.Empty;
 
     public string EncryptedAccessToken { get; set; } = string.Empty;
 

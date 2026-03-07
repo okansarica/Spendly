@@ -15,4 +15,10 @@ public enum PlaidCommunicationLogType
 	CreateTLinkTokenResponse,
 	ExchangePublicTokenRequest,
 	ExchangePublicTokenResponse,
+	GetItemRequest,
+	GetItemResponse,
+	GetInstitutionRequest,
+	GetInstitutionResponse,
+	GetAccountsRequest,
+	GetAccountsResponse,
 }

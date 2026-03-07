@@ -6,25 +6,23 @@ using MongoDB.Bson;
 public class Account : BaseEntity,ISoftDeletable
 {
     public ObjectId BankId { get; set; }
-    public ObjectId CurrencyId { get; set; }
+    public string CurrencyCode { get; set; } = String.Empty;
     
     public string Name { get; set; } = string.Empty;
+    public string? CardLast4Digits { get; set; }
     public string? Description { get; set; }
-    
-    public AccountType Type { get; set; }
-    
+   
     /// <summary>
     /// Shows if connected to open banking and the data is being queries autimatically
     /// </summary>
     public bool IsConnected { get; set; }
+    
+    public string? PlaidAccountId { get; set; }
+    
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    
+    public DateTime? ConnectionDateTime { get; set; }
 }
 
-public enum AccountType
-{
-    Bank = 0,
-    CreditCard = 1,
-    Cash = 2
-}
 

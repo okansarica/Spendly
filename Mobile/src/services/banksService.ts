@@ -7,6 +7,7 @@ export type BankAccountItem = {
   name: string;
   description?: string;
   isConnected: boolean;
+  cardLast4Digits?: string;
 };
 
 export type BankListItem = {
