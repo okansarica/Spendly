@@ -39,6 +39,9 @@ public class PlaidTransaction
 
     public DateTime? AuthorizedDateTime { get; set; }
 
+    /// <summary>
+    /// When datetime is not available use Date
+    /// </summary>
     public DateTime? DateTime { get; set; }
 
     public string Name { get; set; } = string.Empty;

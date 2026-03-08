@@ -132,14 +132,14 @@ public class ReportsService(
             pageSize);
 
         var accountLookup = await GetAccountLookupAsync(transactions.Select(x => x.AccountId).Distinct().ToList());
-        var merchantLookup = await GetMerchantLookupAsync(transactions.Select(x => x.MerchantId).Distinct().ToList());
+        var merchantLookup = await GetMerchantLookupAsync(transactions.Where(p=>p.MerchantId.HasValue).Select(x => x.MerchantId!.Value).Distinct().ToList());
 
         var items = transactions.Select(x => new ReportTransactionItemViewModel
         {
             TransactionId = x.Id.ToString(),
-            Date = x.Date,
-            MerchantName = merchantLookup.TryGetValue(x.MerchantId, out var merchant) ? merchant.Name : "Unknown",
-            AccountName = accountLookup.TryGetValue(x.AccountId, out var account) ? account.Name : "Unknown",
+            Date = x.DateTime,
+            MerchantName = merchantLookup.TryGetValue(x.MerchantId!.Value, out var merchant) ? merchant.Name : "", //TODO 
+            AccountName = accountLookup.TryGetValue(x.AccountId, out var account) ? account.Name : "",
             Amount = x.Amount
         }).ToList();
 
@@ -377,8 +377,8 @@ public class ReportsService(
         var filter = Builders<NormalizedTransaction>.Filter.And(
             Builders<NormalizedTransaction>.Filter.Eq(x => x.UserId, userId),
             Builders<NormalizedTransaction>.Filter.Eq(x => x.CategoryId, categoryId),
-            Builders<NormalizedTransaction>.Filter.Gte(x => x.Date, startUtc),
-            Builders<NormalizedTransaction>.Filter.Lte(x => x.Date, endUtc)
+            Builders<NormalizedTransaction>.Filter.Gte(x => x.DateTime, startUtc),
+            Builders<NormalizedTransaction>.Filter.Lte(x => x.DateTime, endUtc)
         );
 
         if (accountId.HasValue)
@@ -388,7 +388,7 @@ public class ReportsService(
 
         var total = await transactionRepository.CountAsync(filter);
 
-        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Date);
+        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.DateTime);
 
         var paging = new PagingParameter
         {
@@ -397,7 +397,7 @@ public class ReportsService(
         };
 
         var transactions = await transactionRepository.ListPagingAsync(
-            x => x.UserId == userId && x.CategoryId == categoryId && x.Date >= startUtc && x.Date <= endUtc && (!accountId.HasValue || x.AccountId == accountId.Value),
+            x => x.UserId == userId && x.CategoryId == categoryId && x.DateTime >= startUtc && x.DateTime <= endUtc && (!accountId.HasValue || x.AccountId == accountId.Value),
             paging,
             sort);
 
@@ -472,7 +472,7 @@ public class ReportsService(
         {
             return new Dictionary<ObjectId, Category>();
         }
-        return await categoryRepository.ListAsync(ids);
+        return await categoryRepository.ListDictionaryAsync(ids);
     }
 
     private async Task<Dictionary<ObjectId, Account>> GetAccountLookupAsync(List<ObjectId> ids)
@@ -481,7 +481,7 @@ public class ReportsService(
         {
             return new Dictionary<ObjectId, Account>();
         }
-        return await accountRepository.ListAsync(ids);
+        return await accountRepository.ListDictionaryAsync(ids);
     }
 
     private async Task<Dictionary<ObjectId, Merchant>> GetMerchantLookupAsync(List<ObjectId> ids)
@@ -490,7 +490,7 @@ public class ReportsService(
         {
             return new Dictionary<ObjectId, Merchant>();
         }
-        return await merchantRepository.ListAsync(ids);
+        return await merchantRepository.ListDictionaryAsync(ids);
     }
 
     private async Task<string> GetCategoryNameAsync(ObjectId categoryId)

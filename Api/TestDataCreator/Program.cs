@@ -264,8 +264,8 @@ class Program
 					UserId = userId,
 					Name = merchantName,
 					CategoryId = userCats[random.Next(userCats.Count)].Id,
-					TransactionCount = transactionCount,
-					TransactionAmount = transactionAmount
+					TotalTransactionCount = transactionCount,
+					TotalTransactionAmount = transactionAmount
 				});
 			}
 		}
@@ -351,7 +351,7 @@ class Program
 					RawTransactionId = rawTxn.Id,
 					UserId = user.Id,
 					AccountId = account.Id,
-					Date = txnDate,
+					DateTime = txnDate,
 					Amount = amount,
 					CategoryId = category.Id,
 					MerchantId = merchant.Id,
@@ -385,7 +385,7 @@ class Program
 					RawTransactionId = rawTxn.Id,
 					UserId = user.Id,
 					AccountId = account.Id,
-					Date = txnDate,
+					DateTime = txnDate,
 					Amount = amount,
 					CategoryId = category.Id,
 					MerchantId = merchant.Id,
@@ -419,7 +419,7 @@ class Program
 					RawTransactionId = rawTxn.Id,
 					UserId = user.Id,
 					AccountId = account.Id,
-					Date = txnDate,
+					DateTime = txnDate,
 					Amount = amount,
 					CategoryId = category.Id,
 					MerchantId = merchant.Id,
@@ -454,7 +454,7 @@ class Program
 		await collection.DeleteManyAsync(FilterDefinition<DailyUserExpense>.Empty);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.UserId, Date = t.Date.Date })
+			.GroupBy(t => new { t.UserId, Date = t.DateTime.Date })
 			.Select(g => new DailyUserExpense
 			{
 				Id = ObjectId.GenerateNewId(),
@@ -475,7 +475,7 @@ class Program
 		await collection.DeleteManyAsync(FilterDefinition<DailyCategoryExpense>.Empty);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.CategoryId, Date = t.Date.Date })
+			.GroupBy(t => new { t.UserId, t.CategoryId, Date = t.DateTime.Date })
 			.Select(g => new DailyCategoryExpense
 			{
 				Id = ObjectId.GenerateNewId(),
@@ -499,7 +499,7 @@ class Program
 		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.AccountId, Date = t.Date.Date })
+			.GroupBy(t => new { t.UserId, t.AccountId, Date = t.DateTime.Date })
 			.Select(g => new DailyAccountExpense
 			{
 				Id = ObjectId.GenerateNewId(),
@@ -524,7 +524,7 @@ class Program
 		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.CategoryId, t.AccountId, Date = t.Date.Date })
+			.GroupBy(t => new { t.UserId, t.CategoryId, t.AccountId, Date = t.DateTime.Date })
 			.Select(g => new DailyCategoryAccountExpense
 			{
 				Id = ObjectId.GenerateNewId(),
@@ -548,7 +548,7 @@ class Program
 		await collection.DeleteManyAsync(FilterDefinition<CategoryMonthlyExpense>.Empty);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.CategoryId, Year = t.Date.Year, Month = t.Date.Month })
+			.GroupBy(t => new { t.CategoryId, Year = t.DateTime.Year, Month = t.DateTime.Month })
 			.Select(g => new CategoryMonthlyExpense
 			{
 				Id = ObjectId.GenerateNewId(),
@@ -571,11 +571,12 @@ class Program
 		await collection.DeleteManyAsync(FilterDefinition<MerchantMonthlyExpense>.Empty);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.MerchantId, Year = t.Date.Year, Month = t.Date.Month })
+			.Where(p=>p.MerchantId.HasValue)
+			.GroupBy(t => new { t.MerchantId, Year = t.DateTime.Year, Month = t.DateTime.Month })
 			.Select(g => new MerchantMonthlyExpense
 			{
 				Id = ObjectId.GenerateNewId(),
-				MerchantId = g.Key.MerchantId,
+				MerchantId = g.Key.MerchantId!.Value,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
 				TransactionCount = g.Count(),
@@ -594,7 +595,7 @@ class Program
 		await collection.DeleteManyAsync(FilterDefinition<MonthlyUserExpense>.Empty);
 
 		var grouped = transactions
-			.GroupBy(t => new { t.UserId, Year = t.Date.Year, Month = t.Date.Month })
+			.GroupBy(t => new { t.UserId, Year = t.DateTime.Year, Month = t.DateTime.Month })
 			.Select(g => new MonthlyUserExpense
 			{
 				Id = ObjectId.GenerateNewId(),

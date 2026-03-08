@@ -31,10 +31,11 @@ public interface IRepository<T> where T : BaseEntity
 	Task<List<T>> ListPagingAsync(Expression<Func<T, bool>>? filter = null, PagingParameter? paging = null, SortDefinition<T>? sortDefinition = null);
 	Task<List<T>> ListAsync(FilterDefinition<T> filter, ProjectionDefinition<T>? projection = null);
 	Task<List<T>> ListAsync(Expression<Func<T, bool>>? filter, ProjectionDefinition<T>? projection = null);
-	Task<Dictionary<ObjectId, T>> ListAsync(IEnumerable<ObjectId> ids);
+	Task<List<T>> ListAsync(IEnumerable<ObjectId> ids);
+	Task<Dictionary<ObjectId, T>> ListDictionaryAsync(IEnumerable<ObjectId> ids);
 	Task<List<T>> ListPagingAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition, PagingParameter paging);
 	Task<long> CountAsync(FilterDefinition<T> filterDefinition);
-	Task<Dictionary<ObjectId, List<T>>> ListAsync(IEnumerable<ObjectId> ids,
+	Task<Dictionary<ObjectId, List<T>>> ListDictionaryAsync(IEnumerable<ObjectId> ids,
 		Expression<Func<T, ObjectId?>> propertySelector);
 	Task<Dictionary<ObjectId, List<T>>> ListAsync(IEnumerable<ObjectId> ids,
 		Expression<Func<T, ObjectId?>> propertySelector,

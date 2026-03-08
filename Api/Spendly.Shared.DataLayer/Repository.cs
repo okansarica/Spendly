@@ -344,8 +344,16 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         var entities = await _entities.FindAsync(mongoFilter, _options).ConfigureAwait(false);
         return await entities.ToListAsync().ConfigureAwait(false);
     }
+    
+    public async Task<List<T>> ListAsync(IEnumerable<ObjectId> ids)
+    {
+        var filter = Builders<T>.Filter.In(p => p.Id, ids.Distinct());
+        filter = ApplySoftDeleteFilter(filter);
 
-    public async Task<Dictionary<ObjectId, T>> ListAsync(IEnumerable<ObjectId> ids)
+        return await _entities.Find(filter).ToListAsync().ConfigureAwait(false);
+    }
+
+    public async Task<Dictionary<ObjectId, T>> ListDictionaryAsync(IEnumerable<ObjectId> ids)
     {
         var filter = Builders<T>.Filter.In(p => p.Id, ids.Distinct());
         filter = ApplySoftDeleteFilter(filter);
@@ -354,7 +362,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         return list.ToDictionary(e => e.Id);
     }
 
-    public async Task<Dictionary<ObjectId, List<T>>> ListAsync(
+    public async Task<Dictionary<ObjectId, List<T>>> ListDictionaryAsync(
         IEnumerable<ObjectId> ids,
         Expression<Func<T, ObjectId?>> propertySelector)
     {

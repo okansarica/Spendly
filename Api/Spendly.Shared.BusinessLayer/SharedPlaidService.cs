@@ -1,8 +1,10 @@
 namespace Spendly.Shared.BusinessLayer;
 
+using Core;
 using DataLayer;
 using Entities.Banking;
 using Entities.TransactionManagement;
+using Entities.UserManagement;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -15,38 +17,117 @@ public class SharedPlaidService(
 	PlaidSettings plaidSettings,
 	HttpClient httpClient,
 	ILogger<SharedPlaidService> logger,
+	IRepository<Account> accountRepository,
+	IRepository<Merchant> merchantRepository,
 	IRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
-	IRepository<UserPlaidToken> userPlaidTokenRepository,
-	IDataProtectionProvider dataProtectionProvider,
+	IRepository<NormalizedTransaction> normalizedTransactionRepository,
 	IRepository<RawTransaction> rawTransactionRepository)
 {
+	//TODO burasi sadece ilk hesap banka ve hesap(lart) ekleme flowunda gecerli, var olan bankaya hesap ekleme durumu degerlendirilecek
 	public async Task QueryAndSaveUserTransactionAsync(DateOnly startDate,
 		DateOnly endDate,
-		ObjectId userId)
+		PlaidDataProcessingBackgroundServiceRequestViewModel request)
 	{
 		//TODO eger tek gunlukse direk kaydet 
-		
-		var userPlaidToken = await userPlaidTokenRepository.GetRequiredAsync(p => p.UserId == userId);
-		
-		var protector = dataProtectionProvider.CreateProtector("UserPlaidTokenProtector");
-		var accessToken = protector.Unprotect(userPlaidToken.EncryptedAccessToken);
 
-		var allTransactionResponses = await GetAllTransactionsAsync(accessToken,
+		var allTransactionResponses = await GetAllTransactionsAsync(request.AccessToken,
 			startDate,
 			endDate,
-			userId);
+			request.UserId.ToObjectId());
 
-		await SaveAllTransactionResponses(allTransactionResponses,
+		//TODO kayit sirasinda da idempotency check gerkir
+		var rawTransactions = await SaveAllTransactionResponses(allTransactionResponses,
 			startDate,
 			endDate,
-			userId);
+			request.UserId.ToObjectId(),
+			[]);
+
+		//normalize et
+		await NormalizeTransactions(rawTransactions, request.BankId.ToObjectId(), request.UserId.ToObjectId());
+
+		//rapor tablolarini doldur
 	}
-	private async Task SaveAllTransactionResponses(List<PlaidTransactionsGetResponseViewModel> allTransactionResponses,
+	private async Task NormalizeTransactions(List<RawTransaction> rawTransactions, ObjectId bankId, ObjectId userId)
+	{
+		var allAccounts = await accountRepository.ListAsync(p => p.BankId == bankId);
+		var allMerchants = await merchantRepository.ListAsync(p => p.UserId == userId);
+
+		var normalizedTransactions = new List<NormalizedTransaction>();
+		
+		foreach (var rawTransaction in rawTransactions)
+		{
+			foreach (var plaidTransaction in rawTransaction.PlaidTransactionsGetResponse.Transactions)
+			{
+				if (plaidTransaction.Pending)
+				{
+					continue;
+				}
+				if (rawTransaction.PlaidTransactionsGetResponse.Accounts is null)
+				{
+					throw new Exception($"Account list is null. RawTransactionId: {rawTransaction.Id}");
+				}
+				if (string.IsNullOrEmpty(plaidTransaction.AccountId))
+				{
+					//TODO alarm email
+					throw new Exception($"Transaction account id is empty. rawTransactionId: {rawTransaction.Id} PlaidTransactionId: {plaidTransaction.TransactionId}");
+				}
+
+				var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Accounts.Single(p => p.AccountId == plaidTransaction.AccountId);
+				
+				var account = allAccounts.Single(p=>p.PlaidAccountId == plaidAccount.AccountId);
+
+				Merchant? merchant = null;
+				if (!string.IsNullOrEmpty(plaidTransaction.MerchantEntityId))
+				{
+					merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);
+					if (merchant == null)
+					{
+						//TODO category id set edilecek
+						merchant = new Merchant
+						{
+							CategoryId = null, //TODO
+							Name = plaidTransaction.MerchantName!,
+							PlaidId = plaidTransaction.MerchantEntityId!,
+							TotalTransactionAmount = 0,
+							TotalTransactionCount = 0,
+							UserId = userId
+						};
+						await merchantRepository.InsertAsync(merchant);
+						allMerchants.Add(merchant);
+					}
+					else
+					{
+						//TODO merchant total transaction amount ve count guncellenecek, bunu topluca yapabiliriz
+					}
+				}
+				
+				//TODO category Id set et
+				var normalizedTransaction = new NormalizedTransaction
+				{
+					AccountId = account.Id,
+					Amount = plaidTransaction.Amount,
+					DateTime = plaidTransaction.DateTime ?? plaidTransaction.Date.ToDateTime(TimeOnly.MinValue),
+					MerchantId = merchant?.Id,
+					PlaidTransactionId = plaidTransaction.TransactionId,
+					RawTransactionId = rawTransaction.Id,
+					UserId = userId
+				};
+				normalizedTransactions.Add(normalizedTransaction);
+			}
+		}
+
+		if (normalizedTransactions.Any())
+		{
+			await normalizedTransactionRepository.InsertManyAsync(normalizedTransactions);
+		}
+	}
+
+	private async Task<List<RawTransaction>> SaveAllTransactionResponses(List<PlaidTransactionsGetResponseViewModel> allTransactionResponses,
 		DateOnly startDate,
 		DateOnly endDate,
-		ObjectId userId)
+		ObjectId userId,
+		List<string> newAccountPlaidIds)
 	{
-
 		var daysToProcess = (endDate.ToDateTime(TimeOnly.MinValue) - startDate.ToDateTime(TimeOnly.MinValue)).Days + 1; //+1 is to include the last date
 
 		var rawTransactions = new List<RawTransaction>();
@@ -64,7 +145,8 @@ public class SharedPlaidService(
 				continue;
 			}
 
-			var plaidTransactionsInDate = plaidTransactionGetResponse.Transactions.Where(p => p.Date == date).ToList();
+			// Her yeni banka baglantisi yapildiginda newAccountPlaidIds callback sonucunda gelir. Zaten var olan bir banka tekrar baglanmak istenebilir (varolan account cikarilabilir ya da yeni account eklenebilir. newAccountPlaidIds sadece eklenen 
+			var plaidTransactionsInDate = plaidTransactionGetResponse.Transactions.Where(p => p.Date == date && !newAccountPlaidIds.Contains(p.AccountId)).ToList();
 
 			var plaidAccountsForTransactions = plaidTransactionGetResponse.Accounts?.Where(p => plaidTransactionsInDate.Select(t => t.AccountId).Contains(p.AccountId)).ToList();
 
@@ -91,19 +173,12 @@ public class SharedPlaidService(
 		if (rawTransactions.Any())
 		{
 			await rawTransactionRepository.InsertManyAsync(rawTransactions);
+			return rawTransactions;
 		}
+		return [];
 	}
 
 
-	/// <summary>
-	/// Access token sayesinde
-	/// </summary>
-	/// <param name="accessToken"></param>
-	/// <param name="startDate"></param>
-	/// <param name="endDate"></param>
-	/// <param name="userId"></param>
-	/// <returns></returns>
-	/// <exception cref="Exception"></exception>
 	public async Task<List<PlaidTransactionsGetResponseViewModel>> GetAllTransactionsAsync(string accessToken,
 		DateOnly startDate,
 		DateOnly endDate,
@@ -127,7 +202,7 @@ public class SharedPlaidService(
 				{
 					count = count,
 					offset = offset
-				}
+				},
 			};
 
 			var requestJson = JsonSerializer.Serialize(request);

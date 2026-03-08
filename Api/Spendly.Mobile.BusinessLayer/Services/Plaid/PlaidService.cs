@@ -3,6 +3,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Plaid;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
+using Shared.Localization;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Plaid;
 using Spendly.Shared.Core;
@@ -14,7 +15,6 @@ using Spendly.Shared.ViewModels.Plaid;
 using Spendly.Shared.ViewModels.Settings;
 using System.Net.Http.Json;
 using System.Text.Json;
-
 
 //https://plaid.com/docs/api/items/#itempublic_tokenexchange
 
@@ -90,37 +90,47 @@ public class PlaidService(
 		return linkToken;
 	}
 
-	public async Task<FunctionResponse<string>> CompleteIntegration(CompleteIntegrationRequestViewModel completeIntegrationRequestViewModel)
+	public async Task<FunctionResponse<CompleteIntegrationResponseViewModel>> CompleteIntegration(CompleteIntegrationRequestViewModel completeIntegrationRequestViewModel)
 	{
-		//TODO onceden secili banka tekrar secilirse requestte ne geliyor? onceden secili accountlar da tekrar geliyor mu?
+		var existingBank =  await bankRepository.GetAsync(p => p.UserId == requestContextViewModel.UserId.ToObjectId() &&p.PlaidInstitutionId == completeIntegrationRequestViewModel.Institution.Id);
+
+		if (existingBank != null)
+		{
+			//Eger varolan banka tekrar eklenmeye calisirsa plaid tarafinda duplicate item olusturmamak icin exchange token yapilmaz. Kullanici update mode a yonlendirilir
+			return FunctionResponse.Failure<CompleteIntegrationResponseViewModel>(MessageCodes.BankCanNotBeAddedMultipleTimes);
+		}
+		
 		var exchangePublicTokenResponse = await ExchangePublicTokenAsync(completeIntegrationRequestViewModel.PublicToken);
 		var userPlaidToken = await SaveAccessToken(exchangePublicTokenResponse);
 		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution);
-		await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
-		return FunctionResponse.Success(exchangePublicTokenResponse.AccessToken);
+		var newAccountIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
+
+		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
+		{
+			AccessToken = exchangePublicTokenResponse.AccessToken,
+			BankId = bank.Id.ToString(),
+			//NewAccountPlaidIds = newAccountIds.Select(p=>p.ToString()).ToList()
+		});
 	}
-	private async Task SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
+	private async Task<List<ObjectId>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
 	{
+		var newAccountIds = new List<ObjectId>();
 		foreach (var plaidAccount in plaidAccounts)
 		{
-			var existingAccount = await accountRepository.GetAsync(p => p.PlaidAccountId == plaidAccount.Id);
-			if (existingAccount != null)
-			{
-				continue;
-			}
-
 			var account = new Account
 			{
 				BankId = bankId,
 				CurrencyCode = "GBP", //TODO hard coded for now, requires more changes in the ui for future
 				IsConnected = true,
-				Name = plaidAccount.Name, //TODO check
+				Name = plaidAccount.Name??"N/A", //TODO check
 				PlaidAccountId = plaidAccount.Id,
-				CardLast4Digits = plaidAccount.Mask,
+				Mask = plaidAccount.Mask,
 				ConnectionDateTime = DateTime.UtcNow,
 			};
 			await accountRepository.InsertAsync(account).ConfigureAwait(false);
+			newAccountIds.Add(account.Id);
 		}
+		return newAccountIds;
 	}
 	private async Task<Bank> SaveBank(ObjectId userPlaidTokenId, PlaidInstitutionViewModel institude)
 	{

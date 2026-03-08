@@ -12,8 +12,8 @@ public class Merchant : BaseEntity
     public ObjectId? CategoryId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Nickname { get; set; }
-    public int TransactionCount { get; set; }
-    public decimal TransactionAmount { get; set; }
+    public int TotalTransactionCount { get; set; }
+    public decimal TotalTransactionAmount { get; set; }
     public string? PlaidId { get; set; }
     public string? LogoUrl { get; set; }
 }

@@ -528,7 +528,7 @@ export default function BanksAccountsListScreen() {
                         <View style={{flex: 1}}>
                             <Text style={s.title}>{item.account.name}</Text>
                             <Text style={s.subtitle}>
-                                {item.account.cardLast4Digits ? `**** **** **** ${item.account.cardLast4Digits}` : (item.account.isConnected ? translate('Connected') : translate('ManualSetup'))}
+                                {item.account.mask ? `**** ${item.account.mask}` : (item.account.isConnected ? translate('Connected') : translate('ManualSetup'))}
                             </Text>
                         </View>
                     </View>

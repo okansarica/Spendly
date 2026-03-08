@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Spendly.Shared.Core\Spendly.Shared.Core.csproj" />
       <ProjectReference Include="..\Spendly.Shared.DataLayer\Spendly.Shared.DataLayer.csproj" />
       <ProjectReference Include="..\Spendly.Shared.ViewModels\Spendly.Shared.ViewModels.csproj" />
     </ItemGroup>

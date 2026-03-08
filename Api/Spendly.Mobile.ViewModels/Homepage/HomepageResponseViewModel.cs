@@ -77,7 +77,7 @@ public class TopSpendingCategoryViewModel
 
 public class HighestSingleExpenseViewModel
 {
-    public string MerchantName { get; set; }
+    public string? MerchantName { get; set; }
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
 }

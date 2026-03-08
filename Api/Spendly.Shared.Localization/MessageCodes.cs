@@ -45,4 +45,5 @@ public class MessageCodes
 	public const string BankNameRequired = "BankNameRequired";
 	public const string AccountNotFound = "AccountNotFound";
 	public const string AccountNameRequired = "AccountNameRequired";
+	public const string BankCanNotBeAddedMultipleTimes = "BankCanNotBeAddedMultipleTimes";
 }

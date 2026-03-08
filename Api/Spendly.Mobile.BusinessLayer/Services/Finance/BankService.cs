@@ -19,10 +19,10 @@ public class BankService(
     {
         var userId = requestContextViewModel.UserId.ToObjectId();
         var banks = (await bankRepository.ListAsync(x => x.UserId == userId)).ToList();
-        var accounts = await accountRepository.ListAsync(banks.Select(p => p.Id),p=>p.BankId);
+        var accounts = await accountRepository.ListDictionaryAsync(banks.Select(p => p.Id),p=>p.BankId);
 
         var bankDefinitionIds = banks.Where(p => p.BankDefinitionId is not null).Select(p => p.BankDefinitionId!.Value);
-        var bankDefinitions = await bankDefinitionRepository.ListAsync(bankDefinitionIds);
+        var bankDefinitions = await bankDefinitionRepository.ListDictionaryAsync(bankDefinitionIds);
 
         var response = banks
             .OrderBy(x => x.Name)
@@ -41,7 +41,7 @@ public class BankService(
                         Name = x.Name,
                         Description = x.Description,
                         IsConnected = x.IsConnected,
-                        CardLast4Digits = x.CardLast4Digits,
+                        CardLast4Digits = x.Mask,
                     })
                     .ToList(),
             })
@@ -266,7 +266,7 @@ public class BankService(
             Name = account.Name,
             Description = account.Description,
             IsConnected = account.IsConnected,
-            CardLast4Digits = account.CardLast4Digits,
+            CardLast4Digits = account.Mask,
         };
     }
 }

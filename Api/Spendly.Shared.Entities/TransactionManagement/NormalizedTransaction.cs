@@ -9,9 +9,18 @@ public class NormalizedTransaction : BaseEntity
     public ObjectId UserId { get; set; }
     public ObjectId AccountId { get; set; }
     public ObjectId? CategoryId { get; set; }
-    public ObjectId MerchantId { get; set; }
     
-    public DateTime Date { get; set; }
+    /// <summary>
+    /// Merchant id can be null when
+    /// Transfer, deposit, withdrawal
+    ///  Manual transactions / corrections
+    /// Investment veya loan account transaction
+    /// Unrecognized / unknown merchant
+    /// </summary>
+    public ObjectId? MerchantId { get; set; }
+
+    public string PlaidTransactionId { get; set; } = string.Empty;
+    public DateTime DateTime { get; set; }
     public decimal Amount { get; set; }
 }
 

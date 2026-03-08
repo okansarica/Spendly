@@ -1,21 +1,18 @@
 namespace Spendly.Mobile.Api.Services;
 
+using Shared.ViewModels.Plaid;
 using System.Threading.Channels;
+using ViewModels.Plaid;
 
 public class PlaidDataProcessingChannel
 {
-    private readonly Channel<PlaidDataProcessingBAcgorundServiceRequest> _channel;
+    private readonly Channel<PlaidDataProcessingBackgroundServiceRequestViewModel> _channel = Channel.CreateUnbounded<PlaidDataProcessingBackgroundServiceRequestViewModel>();
 
-    public PlaidDataProcessingChannel()
+    public async Task EnqueueAsync(PlaidDataProcessingBackgroundServiceRequestViewModel backgroundServiceRequestViewModel)
     {
-        _channel = Channel.CreateUnbounded<PlaidDataProcessingBAcgorundServiceRequest>();
+        await _channel.Writer.WriteAsync(backgroundServiceRequestViewModel);
     }
 
-    public async Task EnqueueAsync(PlaidDataProcessingBAcgorundServiceRequest bAcgorundServiceRequest)
-    {
-        await _channel.Writer.WriteAsync(bAcgorundServiceRequest);
-    }
-
-    public Channel<PlaidDataProcessingBAcgorundServiceRequest> GetChannel() => _channel;
+    public Channel<PlaidDataProcessingBackgroundServiceRequestViewModel> GetChannel() => _channel;
 }
 

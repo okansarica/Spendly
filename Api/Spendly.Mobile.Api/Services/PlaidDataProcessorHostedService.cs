@@ -2,11 +2,13 @@ namespace Spendly.Mobile.Api.Services;
 
 using Shared.BusinessLayer;
 using Shared.Core;
+using Shared.ViewModels.Plaid;
 using System.Threading.Channels;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
+using ViewModels.Plaid;
 
 public class PlaidDataProcessorHostedService(
-    Channel<PlaidDataProcessingBAcgorundServiceRequest> channel,
+    Channel<PlaidDataProcessingBackgroundServiceRequestViewModel> channel,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<PlaidDataProcessorHostedService> logger)
     : BackgroundService
@@ -24,9 +26,9 @@ public class PlaidDataProcessorHostedService(
 
                 var sharedPlaidSservice = scope.ServiceProvider.GetRequiredService<SharedPlaidService>();
                 await sharedPlaidSservice.QueryAndSaveUserTransactionAsync(
+                    DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), // son gun dahil degil, bitis tarihi dahil, bugunun kayitlari gece cekilecek onlari cekme
                     DateOnly.FromDateTime(DateTime.Today.AddDays(-1)),
-                    DateOnly.FromDateTime(DateTime.Today.AddDays(-91)), // son gun dahil degil, bitis tarihi dahil, bugunun kayitlari gece cekilecek onlari cekme
-                    request.UserId.ToObjectId()
+                    request
                 );
                 
                 // var plaidDataProcessingService = scope.ServiceProvider.GetRequiredService<PlaidDataProcessingService>();
@@ -52,10 +54,3 @@ public class PlaidDataProcessorHostedService(
         }
     }
 }
-
-public class PlaidDataProcessingBAcgorundServiceRequest
-{
-    public string UserId { get; set; } = string.Empty;
-    public string AccessToken { get; set; } = string.Empty;
-}
-

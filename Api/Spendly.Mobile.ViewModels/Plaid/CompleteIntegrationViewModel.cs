@@ -1,5 +1,7 @@
 namespace Spendly.Mobile.ViewModels.Plaid;
 
+using MongoDB.Bson;
+
 public class CompleteIntegrationRequestViewModel
 {
 		public string PublicToken { get; set; } = null!;
@@ -31,4 +33,11 @@ public class PlaidInstitutionViewModel
 	public string Name { get; set; } = null!;
 
 	public string Id { get; set; } = null!;
+}
+
+public class CompleteIntegrationResponseViewModel
+{
+	public required string AccessToken { get; set; }
+	public required  string BankId { get; set; }
+	//public required List<string> NewAccountPlaidIds { get; set; }
 }

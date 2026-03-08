@@ -250,7 +250,7 @@ public class HomepageService(
 
     private async Task<List<LatestExpenseViewModel>> GetLatestExpensesAsync(ObjectId userId)
     {
-        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Date);
+        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.DateTime);
         var transactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
 
         var accountIds = transactions.Select(t => t.AccountId).Distinct().ToList();
@@ -278,7 +278,7 @@ public class HomepageService(
             return new LatestExpenseViewModel
             {
                 TransactionId = t.Id.ToString(),
-                Date = t.Date,
+                Date = t.DateTime,
                 Amount = t.Amount,
                 CategoryName = category?.Name ?? "Uncategorized",
                 MerchantName = merchant?.Name ?? "Unknown",
@@ -378,8 +378,8 @@ public class HomepageService(
 
     private async Task<HighestSingleExpenseViewModel> GetHighestSingleExpenseAsync(ObjectId userId, DateTime start, DateTime end)
     {
-        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount).Descending(x => x.Date);
-        var transaction = (await transactionRepository.ListAsync(p=>p.UserId == userId&&p.Date>=start &&p.Date<=end, sort, 1)).FirstOrDefault();
+        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount).Descending(x => x.DateTime);
+        var transaction = (await transactionRepository.ListAsync(p=>p.UserId == userId&&p.DateTime>=start &&p.DateTime<=end, sort, 1)).FirstOrDefault();
 
         if (transaction == null)
         {
@@ -391,13 +391,18 @@ public class HomepageService(
             };
         }
 
-        var merchant = await merchantRepository.GetAsync(transaction.MerchantId);
+        Merchant? merchant=null;
+        if (transaction.MerchantId.HasValue)
+        {
+            merchant = await merchantRepository.GetAsync(transaction.MerchantId.Value);    
+        }
+        
 
         return new HighestSingleExpenseViewModel
         {
-            MerchantName = merchant?.Name ?? "Unknown",
+            MerchantName = merchant?.Name,
             Amount = transaction.Amount,
-            Date = transaction.Date
+            Date = transaction.DateTime
         };
     }
 
