@@ -267,7 +267,7 @@ public class HomepageService(
         );
 
         var userMerchants = await userMerchantRepository.ListAsync(
-            Builders<UserMerchant>.Filter.In(x => x.Id, merchantIds)
+            Builders<UserMerchant>.Filter.In(x => x.Id, merchantIds) 
         );
 
         var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
