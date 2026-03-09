@@ -26,8 +26,8 @@ public class CategoriesTests(TestFixture fixture) : IClassFixture<TestFixture>
         list.Should().NotBeNull();
 
         // 2) Create a merchant and then create a category linking that merchant
-        var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<Merchant>>();
-        var merchant = new Merchant { UserId = ObjectId.Parse(verifiedUser.UserId), Name = "TestMerchant" };
+        var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<UserMerchant>>();
+        var merchant = new UserMerchant { UserId = ObjectId.Parse(verifiedUser.UserId) }; //TODO fix merchant id
         await merchantRepository.InsertAsync(merchant);
 
         var categoryCreateRequest = new CategoryUpsertRequestViewModel { Name = "Food", MerchantIds = new List<string> { merchant.Id.ToString() }, Color = "#fff", Icon = "cutlery" };

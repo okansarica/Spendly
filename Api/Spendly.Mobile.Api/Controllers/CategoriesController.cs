@@ -13,12 +13,12 @@ using Spendly.Shared.ViewModels;
 [ApiController]
 [Route("api/v1/categories")]
 [Authorize]
-public class CategoriesController(CategoryService categoryService) : ControllerBase
+public class CategoriesController(UserCategoryService userCategoryService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] CategoryListRequestViewModel request)
     {
-        var response = await categoryService.GetListAsync(request);
+        var response = await userCategoryService.GetListAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -30,7 +30,7 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CategoryUpsertRequestViewModel request)
     {
-        var response = await categoryService.CreateAsync(request);
+        var response = await userCategoryService.CreateAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -42,7 +42,7 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] CategoryUpsertRequestViewModel request)
     {
-        var response = await categoryService.UpdateAsync(id, request);
+        var response = await userCategoryService.UpdateAsync(id, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -54,7 +54,7 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var response = await categoryService.DeleteAsync(id);
+        var response = await userCategoryService.DeleteAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -66,7 +66,7 @@ public class CategoriesController(CategoryService categoryService) : ControllerB
     [HttpGet("{id}/merchants")]
     public async Task<IActionResult> GetMerchants(string id)
     {
-        var response = await categoryService.GetMerchantsAsync(id);
+        var response = await userCategoryService.GetMerchantsAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

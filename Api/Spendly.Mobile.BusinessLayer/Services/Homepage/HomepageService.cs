@@ -18,7 +18,8 @@ public class HomepageService(
     IRepository<DailyCategoryAccountExpense> dailySummaryRepository,
     IRepository<NormalizedTransaction> transactionRepository,
     IRepository<Account> accountRepository,
-    IRepository<Category> categoryRepository,
+    IRepository<UserCategory> userCategoryRepository,
+    IRepository<UserMerchant> userMerchantRepository,
     IRepository<Merchant> merchantRepository,
     RequestContextViewModel requestContextViewModel)
 {
@@ -56,8 +57,8 @@ public class HomepageService(
         var accounts = await accountRepository.ListAsync(
             Builders<Account>.Filter.In(x => x.Id, accountIds)
         );
-        var categories = await categoryRepository.ListAsync(
-            Builders<Category>.Filter.In(x => x.Id, categoryIds)
+        var categories = await userCategoryRepository.ListAsync(
+            Builders<UserCategory>.Filter.In(x => x.Id, categoryIds)
         );
 
         var accountLookup = accounts.ToDictionary(x => x.Id);
@@ -179,7 +180,7 @@ public class HomepageService(
 
     private static List<SpendingByCategoryViewModel> BuildCategoryDistribution(
         List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, Category> categories,
+        Dictionary<ObjectId, UserCategory> categories,
         decimal total)
     {
         var grouped = summaries
@@ -251,38 +252,53 @@ public class HomepageService(
     private async Task<List<LatestExpenseViewModel>> GetLatestExpensesAsync(ObjectId userId)
     {
         var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.DateTime);
-        var transactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
+        var normalizedTransactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
 
-        var accountIds = transactions.Select(t => t.AccountId).Distinct().ToList();
-        var categoryIds = transactions.Where(t => t.CategoryId.HasValue).Select(t => t.CategoryId.Value).Distinct().ToList();
-        var merchantIds = transactions.Select(t => t.MerchantId).Distinct().ToList();
+        var accountIds = normalizedTransactions.Select(t => t.AccountId).Distinct().ToList();
+        var userCategoryIds = normalizedTransactions.Where(t => t.UserCategoryId.HasValue).Select(t => t.UserCategoryId!.Value).Distinct().ToList();
+        var merchantIds = normalizedTransactions.Select(t => t.MerchantId).Distinct().ToList();
 
         var accounts = await accountRepository.ListAsync(
             Builders<Account>.Filter.In(x => x.Id, accountIds)
         );
 
-        var categories = await categoryRepository.ListAsync(
-            Builders<Category>.Filter.In(x => x.Id, categoryIds)
+        var userCategories = await userCategoryRepository.ListAsync(
+            Builders<UserCategory>.Filter.In(x => x.Id, userCategoryIds)
         );
 
-        var merchants = await merchantRepository.ListAsync(
-            Builders<Merchant>.Filter.In(x => x.Id, merchantIds)
+        var userMerchants = await userMerchantRepository.ListAsync(
+            Builders<UserMerchant>.Filter.In(x => x.Id, merchantIds)
         );
 
-        return transactions.Select(t =>
+        var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+
+        return normalizedTransactions.Select(transaction =>
         {
-            var account = accounts.FirstOrDefault(a => a.Id == t.AccountId);
-            var category = t.CategoryId.HasValue ? categories.FirstOrDefault(c => c.Id == t.CategoryId.Value) : null;
-            var merchant = merchants.FirstOrDefault(m => m.Id == t.MerchantId);
+            var account = accounts.FirstOrDefault(a => a.Id == transaction.AccountId);
+            var userCategory = transaction.UserCategoryId.HasValue ? userCategories.FirstOrDefault(c => c.Id == transaction.UserCategoryId.Value) : null;
+            
+            string? merchantName = null;
+            if (transaction.MerchantId.HasValue)
+            {
+                var userMerchant = userMerchants.Single(m => m.Id == transaction.MerchantId);
+                if (string.IsNullOrEmpty(userMerchant.Nickname))
+                {
+                    merchantName = allMerchants[transaction.MerchantId.Value].Name;    
+                }
+                else
+                {
+                    merchantName = userMerchant.Nickname;
+                }
+            }
 
             return new LatestExpenseViewModel
             {
-                TransactionId = t.Id.ToString(),
-                Date = t.DateTime,
-                Amount = t.Amount,
-                CategoryName = category?.Name ?? "Uncategorized",
-                MerchantName = merchant?.Name ?? "Unknown",
-                AccountName = account?.Name ?? "Unknown"
+                TransactionId = transaction.Id.ToString(),
+                Date = transaction.DateTime,
+                Amount = transaction.Amount,
+                CategoryName = userCategory?.Name ?? "",
+                MerchantName =  merchantName,
+                AccountName = account?.Name ?? "N/A"
             };
         }).ToList();
     }
@@ -318,7 +334,7 @@ public class HomepageService(
 
     private static TopSpendingCategoryViewModel BuildTopCategory(
         List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, Category> categories,
+        Dictionary<ObjectId, UserCategory> categories,
         decimal total)
     {
         var top = summaries
@@ -391,16 +407,24 @@ public class HomepageService(
             };
         }
 
-        Merchant? merchant=null;
+        string? merchantName = null;
         if (transaction.MerchantId.HasValue)
         {
-            merchant = await merchantRepository.GetAsync(transaction.MerchantId.Value);    
+            var userMerchant = await userMerchantRepository.GetRequiredAsync(p=>p.MerchantId ==transaction.MerchantId.Value);
+            if (string.IsNullOrEmpty(userMerchant.Nickname))
+            {
+                var merchant = await merchantRepository.GetRequiredAsync(transaction.MerchantId.Value);
+             merchantName   =merchant.Name;
+            }
+            else
+            {
+                merchantName = userMerchant.Nickname;
+            }
+            
         }
-        
-
         return new HighestSingleExpenseViewModel
         {
-            MerchantName = merchant?.Name,
+            MerchantName = merchantName,
             Amount = transaction.Amount,
             Date = transaction.DateTime
         };

@@ -14,21 +14,22 @@ using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels;
 
 public class MerchantService(
+    IRepository<UserMerchant> userMerchantRepository,
     IRepository<Merchant> merchantRepository,
-    IRepository<Category> categoryRepository,
+    IRepository<UserCategory> categoryRepository,
     RequestContextViewModel requestContextViewModel)
 {
     //TODO review
     public async Task<FunctionResponse<List<MerchantListItemViewModel>>> ListAsync(MerchantListRequestViewModel request)
     {
-        var merchants = (await merchantRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId())).ToList();
+        var userMerchants = (await userMerchantRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId())).ToList();
 
         if (request.IsUncategorized == true)
         {
-            merchants = merchants.Where(x => x.CategoryId == null).ToList();
+            userMerchants = userMerchants.Where(x => x.UserCategoryId == null).ToList();
         }
 
-        if (merchants.Count == 0)
+        if (userMerchants.Count == 0)
         {
             return FunctionResponse.Success(new List<MerchantListItemViewModel>());
         }
@@ -36,13 +37,15 @@ public class MerchantService(
         var categoryLookup = (await categoryRepository.ListAsync(x => x.UserId == requestContextViewModel.UserId.ToObjectId()))
             .ToDictionary(x => x.Id, x => x.Name);
 
-        var items = merchants.Select(x => new MerchantListItemViewModel
+        var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+
+        var items = userMerchants.Select(x => new MerchantListItemViewModel
         {
             Id = x.Id.ToString(),
-            Name = x.Name,
+            Name = allMerchants[x.MerchantId].Name,
             Nickname = x.Nickname,
-            CategoryId = x.CategoryId?.ToString(),
-            CategoryName = x.CategoryId != null && categoryLookup.TryGetValue(x.CategoryId.Value, out var name) ? name : "Uncategorized",
+            CategoryId = x.UserCategoryId?.ToString(),
+            CategoryName = x.UserCategoryId != null && categoryLookup.TryGetValue(x.UserCategoryId.Value, out var name) ? name : "Uncategorized",
         }).ToList();
 
         return FunctionResponse.Success(items);
@@ -56,9 +59,9 @@ public class MerchantService(
             return FunctionResponse.Failure(MessageCodes.MerchantNotFound);
         }
 
-        var merchant = await merchantRepository.GetRequiredAsync(x => x.Id == merchantId && x.UserId == requestContextViewModel.UserId.ToObjectId());
+        var merchant = await userMerchantRepository.GetRequiredAsync(x => x.Id == merchantId && x.UserId == requestContextViewModel.UserId.ToObjectId());
 
-        await merchantRepository.DeleteAsync(merchant.Id);
+        await userMerchantRepository.DeleteAsync(merchant.Id);
         return FunctionResponse.Success();
     }
 
@@ -71,18 +74,20 @@ public class MerchantService(
             return FunctionResponse.Failure<MerchantDetailViewModel>(MessageCodes.MerchantNotFound);
         }
 
-        var merchant = await merchantRepository.GetRequiredAsync(x => x.Id == merchantId && x.UserId == requestContextViewModel.UserId.ToObjectId());
+        var userMerchant = await userMerchantRepository.GetRequiredAsync(x => x.Id == merchantId && x.UserId == requestContextViewModel.UserId.ToObjectId());
 
-        merchant.CategoryId = request.CategoryId?.ToObjectId();
-        merchant.Nickname = request.Nickname;
-        await merchantRepository.UpdateAsync(merchant);
+        userMerchant.UserCategoryId = request.CategoryId?.ToObjectId();
+        userMerchant.Nickname = request.Nickname;
+        await userMerchantRepository.UpdateAsync(userMerchant);
+        
+        var merchant = await merchantRepository.GetRequiredAsync(x => x.Id == merchantId);
 
         var response = new MerchantDetailViewModel
         {
-            Id = merchant.Id.ToString(),
+            Id = userMerchant.Id.ToString(),
             Name = merchant.Name,
-            Nickname = merchant.Nickname,
-            CategoryId = merchant.CategoryId?.ToString(),
+            Nickname = userMerchant.Nickname,
+            CategoryId = userMerchant.UserCategoryId?.ToString(),
         };
 
         return FunctionResponse.Success(response);

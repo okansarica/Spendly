@@ -44,35 +44,13 @@ class Program
 
 	static async Task GenerateTestData()
 	{
+		
+		
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
-		// ...existing code...
-		// var banks = await CreateBanks(users);
-		// var (accounts, currencies) = await CreateAccounts(banks);
-		var categories = await CreateCategories(users);
-		var merchants = await CreateMerchants(categories);
-		// ...existing code...
-		// var normalizedTransactions = await CreateNormalizedTransactions(users, accounts, categories, merchants, banks);
-		// await CreateSummaryTables(normalizedTransactions, accounts);
+		await CreateCategories(users);
 	}
-	private async static Task<List<Bank>> CreateBanks(List<User> users)
-	{
-		var banks = new List<Bank>();
-		foreach (var user in users)
-		{
-			for (int i = 0; i < 2; i++)
-			{
-				var bank = new Bank
-				{
-					UserId = user.Id,
-					Name = $"{user.Name} Bank {i}"
-				};
-				await _database.GetCollection<Bank>("Bank").InsertOneAsync(bank);
-				banks.Add(bank);
-			}
-		}
-		return banks;
-	}
+	
 
 	static async Task<List<User>> CreateUsers()
 	{
@@ -147,31 +125,6 @@ class Program
 		return PasswordHelper.HashPassword(password);
 	}
 
-	static async Task<(List<Account>, List<ObjectId>)> CreateAccounts(List<Bank> banks)
-	{
-		var collection = _database.GetCollection<Account>("Account");
-		await collection.DeleteManyAsync(FilterDefinition<Account>.Empty);
-
-		var currencyIds = new List<ObjectId> { ObjectId.GenerateNewId(), ObjectId.GenerateNewId() };
-		var accounts = new List<Account>();
-
-		foreach (var bank in banks)
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				accounts.Add(new Account
-				{
-					Id = ObjectId.GenerateNewId(),
-					BankId = bank.Id,
-					Name = $"Account - {bank.Name}",
-				});
-			}
-		}
-
-		await collection.InsertManyAsync(accounts);
-		Console.WriteLine($"✓ Created {accounts.Count} accounts");
-		return (accounts, currencyIds);
-	}
 
 	static async Task CreateUserSubscriptions(List<User> users)
 	{
@@ -210,404 +163,43 @@ class Program
 		Console.WriteLine($"✓ Created {subscriptions.Count} trial subscriptions");
 	}
 
-	static async Task<List<Category>> CreateCategories(List<User> users)
+	static async Task CreateCategories(List<User> users)
 	{
 		var collection = _database.GetCollection<Category>("Category");
 		await collection.DeleteManyAsync(FilterDefinition<Category>.Empty);
 
 		var categories = new List<Category>();
-		var categoryNames = new[] { "Food", "Transport", "Entertainment", "Shopping", "Health", "Bills" };
+		var categoryData = new[]
+		{
+			new { Name = "Food & Dining", Color = "#FF6B6B", Icon = "🍔" },
+			new { Name = "Transportation", Color = "#4ECDC4", Icon = "🚗" },
+			new { Name = "Shopping", Color = "#45B7D1", Icon = "🛍️" },
+			new { Name = "Entertainment", Color = "#FFA07A", Icon = "🎬" },
+			new { Name = "Bills & Utilities", Color = "#98D8C8", Icon = "💡" }
+		};
 
 		foreach (var user in users)
 		{
-			foreach (var name in categoryNames)
+			foreach (var data in categoryData)
 			{
 				categories.Add(new Category
 				{
 					Id = ObjectId.GenerateNewId(),
 					UserId = user.Id,
-					Name = name,
-					ParentId = null
+					Name = data.Name,
+					Color = data.Color,
+					Icon = data.Icon,
+					CreatedAt = DateTime.UtcNow
 				});
 			}
 		}
 
-		await collection.InsertManyAsync(categories);
+		if (categories.Any())
+		{
+			await collection.InsertManyAsync(categories);
+		}
+
 		Console.WriteLine($"✓ Created {categories.Count} categories");
-		return categories;
 	}
-
-	static async Task<List<Merchant>> CreateMerchants(List<Category> categories)
-	{
-		var collection = _database.GetCollection<Merchant>("Merchant");
-		await collection.DeleteManyAsync(FilterDefinition<Merchant>.Empty);
-
-		var merchants = new List<Merchant>();
-		var merchantNames = new[] { "Walmart", "Amazon", "Starbucks", "Shell Gas", "Netflix", "Spotify", "McDonald's", "Target", "Best Buy", "Costco" };
-		var random = new Random();
-
-		var userCategories = categories.GroupBy(c => c.UserId).ToList();
-
-		foreach (var userCategoryGroup in userCategories)
-		{
-			var userId = userCategoryGroup.Key;
-			var userCats = userCategoryGroup.ToList();
-
-			foreach (var merchantName in merchantNames)
-			{
-				var transactionCount = random.Next(5, 50);
-				var transactionAmount = transactionCount * (decimal)random.Next(20, 200);
-
-				merchants.Add(new Merchant
-				{
-					Id = ObjectId.GenerateNewId(),
-					UserId = userId,
-					Name = merchantName,
-					CategoryId = userCats[random.Next(userCats.Count)].Id,
-					TotalTransactionCount = transactionCount,
-					TotalTransactionAmount = transactionAmount
-				});
-			}
-		}
-
-		await collection.InsertManyAsync(merchants);
-		Console.WriteLine($"✓ Created {merchants.Count} merchants");
-
-		// Update MerchantCount on categories based on created merchants
-		var categoryCollection = _database.GetCollection<Category>("Category");
-		var merchantCounts = merchants
-			.GroupBy(m => m.CategoryId ?? ObjectId.Empty)
-			.ToDictionary(g => g.Key, g => g.Count());
-
-		var updates = new List<WriteModel<Category>>();
-		foreach (var cat in categories)
-		{
-			var count = merchantCounts.TryGetValue(cat.Id, out var c) ? c : 0;
-			cat.MerchantCount = count;
-			var filter = Builders<Category>.Filter.Eq(x => x.Id, cat.Id);
-			var update = Builders<Category>.Update.Set(x => x.MerchantCount, count);
-			updates.Add(new UpdateOneModel<Category>(filter, update));
-		}
-
-		if (updates.Any())
-		{
-			await categoryCollection.BulkWriteAsync(updates);
-			Console.WriteLine($"✓ Updated merchant counts for {updates.Count} categories");
-		}
-
-		return merchants;
-	}
-
-	static async Task<List<NormalizedTransaction>> CreateNormalizedTransactions(
-		List<User> users, List<Account> accounts, List<Category> categories, List<Merchant> merchants, List<Bank> banks)
-	{
-		var collection = _database.GetCollection<NormalizedTransaction>("NormalizedTransaction");
-		await collection.DeleteManyAsync(FilterDefinition<NormalizedTransaction>.Empty);
-
-		var rawTxnCollection = _database.GetCollection<RawTransaction>("RawTransaction");
-		await rawTxnCollection.DeleteManyAsync(FilterDefinition<RawTransaction>.Empty);
-
-		var transactions = new List<NormalizedTransaction>();
-		var rawTransactions = new List<RawTransaction>();
-		var random = new Random();
-		var amounts = new[] { 10m, 25m, 50m, 100m, 150m, 200m, 350m, 500m, 750m, 1000m };
-
-		var startDate = DateTime.UtcNow.AddMonths(-6);
-		var currentMonth = new DateTime(2026, 3, 1);
-		var previousMonth = new DateTime(2026, 2, 1);
-
-		foreach (var user in users)
-		{
-			var userBankIds = banks.Where(b => b.UserId == user.Id).Select(b => b.Id).ToList();
-			var userAccounts = accounts.Where(a => userBankIds.Contains(a.BankId)).ToList();
-			var userCategories = categories.Where(c => c.UserId == user.Id).ToList();
-			var userMerchants = merchants.Where(m => m.UserId == user.Id).ToList();
-
-			if (!userAccounts.Any())
-			{
-				continue;
-			}
-
-			for (int i = 0; i < 150; i++)
-			{
-				var txnDate = startDate.AddDays(random.Next(0, 180));
-				var account = userAccounts[random.Next(userAccounts.Count)];
-				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = userMerchants[random.Next(userMerchants.Count)];
-				var amount = amounts[random.Next(amounts.Length)];
-
-				var rawTxn = new RawTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					UserId = user.Id,
-					// Amount = amount,
-					// MerchantName = merchant.Name,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				var normalizedTxn = new NormalizedTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					RawTransactionId = rawTxn.Id,
-					UserId = user.Id,
-					AccountId = account.Id,
-					DateTime = txnDate,
-					Amount = amount,
-					CategoryId = category.Id,
-					MerchantId = merchant.Id,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				rawTransactions.Add(rawTxn);
-				transactions.Add(normalizedTxn);
-			}
-
-			for (int i = 0; i < 200; i++)
-			{
-				var txnDate = previousMonth.AddDays(random.Next(0, 28));
-				var account = userAccounts[random.Next(userAccounts.Count)];
-				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = userMerchants[random.Next(userMerchants.Count)];
-				var amount = amounts[random.Next(amounts.Length)];
-
-				var rawTxn = new RawTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					UserId = user.Id,
-					//Amount = amount,
-					//MerchantName = merchant.Name,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				var normalizedTxn = new NormalizedTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					RawTransactionId = rawTxn.Id,
-					UserId = user.Id,
-					AccountId = account.Id,
-					DateTime = txnDate,
-					Amount = amount,
-					CategoryId = category.Id,
-					MerchantId = merchant.Id,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				rawTransactions.Add(rawTxn);
-				transactions.Add(normalizedTxn);
-			}
-
-			for (int i = 0; i < 250; i++)
-			{
-				var txnDate = currentMonth.AddDays(random.Next(0, 2));
-				var account = userAccounts[random.Next(userAccounts.Count)];
-				var category = userCategories[random.Next(userCategories.Count)];
-				var merchant = userMerchants[random.Next(userMerchants.Count)];
-				var amount = amounts[random.Next(amounts.Length)];
-
-				var rawTxn = new RawTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					UserId = user.Id,
-					//Amount = amount,
-					//MerchantName = merchant.Name,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				var normalizedTxn = new NormalizedTransaction
-				{
-					Id = ObjectId.GenerateNewId(),
-					RawTransactionId = rawTxn.Id,
-					UserId = user.Id,
-					AccountId = account.Id,
-					DateTime = txnDate,
-					Amount = amount,
-					CategoryId = category.Id,
-					MerchantId = merchant.Id,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				rawTransactions.Add(rawTxn);
-				transactions.Add(normalizedTxn);
-			}
-		}
-
-		await collection.InsertManyAsync(transactions);
-		await rawTxnCollection.InsertManyAsync(rawTransactions);
-		Console.WriteLine($"✓ Created {transactions.Count} normalized transactions");
-		return transactions;
-	}
-
-	static async Task CreateSummaryTables(List<NormalizedTransaction> transactions, List<Account> accounts)
-	{
-		await CreateDailyUserExpenses(transactions);
-		await CreateDailyCategoryExpenses(transactions);
-		await CreateDailyAccountExpenses(transactions, accounts);
-		await CreateDailyCategoryAccountExpenses(transactions, accounts);
-		await CreateMonthlyCategoryExpenses(transactions);
-		await CreateMonthlyMerchantExpenses(transactions);
-		await CreateMonthlyUserExpenses(transactions);
-	}
-
-	static async Task CreateDailyUserExpenses(List<NormalizedTransaction> transactions)
-	{
-		var collection = _database.GetCollection<DailyUserExpense>("DailyUserExpense");
-		await collection.DeleteManyAsync(FilterDefinition<DailyUserExpense>.Empty);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.UserId, Date = t.DateTime.Date })
-			.Select(g => new DailyUserExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				UserId = g.Key.UserId,
-				DateTime = g.Key.Date,
-				TotalAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} daily user expenses");
-	}
-
-	static async Task CreateDailyCategoryExpenses(List<NormalizedTransaction> transactions)
-	{
-		var collection = _database.GetCollection<DailyCategoryExpense>("DailyCategoryExpense");
-		await collection.DeleteManyAsync(FilterDefinition<DailyCategoryExpense>.Empty);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.CategoryId, Date = t.DateTime.Date })
-			.Select(g => new DailyCategoryExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				UserId = g.Key.UserId,
-				CategoryId = g.Key.CategoryId ?? ObjectId.Empty,
-				DateTime = g.Key.Date,
-				TotalAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} daily category expenses");
-	}
-
-	static async Task CreateDailyAccountExpenses(List<NormalizedTransaction> transactions, List<Account> accounts)
-	{
-		var collection = _database.GetCollection<DailyAccountExpense>("DailyAccountExpense");
-		await collection.DeleteManyAsync(FilterDefinition<DailyAccountExpense>.Empty);
-
-		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.AccountId, Date = t.DateTime.Date })
-			.Select(g => new DailyAccountExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				UserId = g.Key.UserId,
-				DateTime = g.Key.Date,
-				BankId = accountBankMap.TryGetValue(g.Key.AccountId, out var bId) ? bId : ObjectId.Empty,
-				AccountId = g.Key.AccountId,
-				TotalAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} daily account expenses");
-	}
-
-	static async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> transactions, List<Account> accounts)
-	{
-		var collection = _database.GetCollection<DailyCategoryAccountExpense>("DailyCategoryAccountExpense");
-		await collection.DeleteManyAsync(FilterDefinition<DailyCategoryAccountExpense>.Empty);
-
-		var accountBankMap = accounts.ToDictionary(a => a.Id, a => a.BankId);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.UserId, t.CategoryId, t.AccountId, Date = t.DateTime.Date })
-			.Select(g => new DailyCategoryAccountExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				UserId = g.Key.UserId,
-				CategoryId = g.Key.CategoryId ?? ObjectId.Empty,
-				BankId = accountBankMap.TryGetValue(g.Key.AccountId, out var bId) ? bId : ObjectId.Empty,
-				AccountId = g.Key.AccountId,
-				Date = g.Key.Date,
-				TotalAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} daily category account expenses");
-	}
-
-	static async Task CreateMonthlyCategoryExpenses(List<NormalizedTransaction> transactions)
-	{
-		var collection = _database.GetCollection<CategoryMonthlyExpense>("CategoryMonthlyExpense");
-		await collection.DeleteManyAsync(FilterDefinition<CategoryMonthlyExpense>.Empty);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.CategoryId, Year = t.DateTime.Year, Month = t.DateTime.Month })
-			.Select(g => new CategoryMonthlyExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				CategoryId = g.Key.CategoryId ?? ObjectId.Empty,
-				Year = g.Key.Year,
-				Month = g.Key.Month,
-				TransactionCount = g.Count(),
-				TransactionAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} monthly category expenses");
-	}
-
-	static async Task CreateMonthlyMerchantExpenses(List<NormalizedTransaction> transactions)
-	{
-		var collection = _database.GetCollection<MerchantMonthlyExpense>("MerchantMonthlyExpense");
-		await collection.DeleteManyAsync(FilterDefinition<MerchantMonthlyExpense>.Empty);
-
-		var grouped = transactions
-			.Where(p=>p.MerchantId.HasValue)
-			.GroupBy(t => new { t.MerchantId, Year = t.DateTime.Year, Month = t.DateTime.Month })
-			.Select(g => new MerchantMonthlyExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				MerchantId = g.Key.MerchantId!.Value,
-				Year = g.Key.Year,
-				Month = g.Key.Month,
-				TransactionCount = g.Count(),
-				TransactionAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} monthly merchant expenses");
-	}
-
-	static async Task CreateMonthlyUserExpenses(List<NormalizedTransaction> transactions)
-	{
-		var collection = _database.GetCollection<MonthlyUserExpense>("MonthlyUserExpense");
-		await collection.DeleteManyAsync(FilterDefinition<MonthlyUserExpense>.Empty);
-
-		var grouped = transactions
-			.GroupBy(t => new { t.UserId, Year = t.DateTime.Year, Month = t.DateTime.Month })
-			.Select(g => new MonthlyUserExpense
-			{
-				Id = ObjectId.GenerateNewId(),
-				UserId = g.Key.UserId,
-				Year = g.Key.Year,
-				Month = g.Key.Month,
-				TotalAmount = g.Sum(t => t.Amount),
-				CreatedAt = DateTime.UtcNow
-			})
-			.ToList();
-
-		await collection.InsertManyAsync(grouped);
-		Console.WriteLine($"✓ Created {grouped.Count} monthly user expenses");
-	}
+	
 }

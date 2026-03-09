@@ -19,6 +19,7 @@ public class SharedPlaidService(
 	ILogger<SharedPlaidService> logger,
 	IRepository<Account> accountRepository,
 	IRepository<Merchant> merchantRepository,
+	IRepository<UserMerchant> userMerchantRepository,
 	IRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
 	IRepository<NormalizedTransaction> normalizedTransactionRepository,
 	IRepository<RawTransaction> rawTransactionRepository)
@@ -50,7 +51,7 @@ public class SharedPlaidService(
 	private async Task NormalizeTransactions(List<RawTransaction> rawTransactions, ObjectId bankId, ObjectId userId)
 	{
 		var allAccounts = await accountRepository.ListAsync(p => p.BankId == bankId);
-		var allMerchants = await merchantRepository.ListAsync(p => p.UserId == userId);
+		var allMerchants = await merchantRepository.ListAsync(filter:null);
 
 		var normalizedTransactions = new List<NormalizedTransaction>();
 		
@@ -88,18 +89,27 @@ public class SharedPlaidService(
 							CategoryId = null, //TODO
 							Name = plaidTransaction.MerchantName!,
 							PlaidId = plaidTransaction.MerchantEntityId!,
-							TotalTransactionAmount = 0,
-							TotalTransactionCount = 0,
-							UserId = userId
 						};
 						await merchantRepository.InsertAsync(merchant);
 						allMerchants.Add(merchant);
+
+						var userMerchant = new UserMerchant
+						{
+							UserId = userId,
+							UserCategoryId = null, //TODO
+							MerchantId = merchant.Id,
+							TotalTransactionAmount = 0,
+							TotalTransactionCount = 0,
+						};
+						await userMerchantRepository.InsertAsync(userMerchant);
 					}
 					else
 					{
 						//TODO merchant total transaction amount ve count guncellenecek, bunu topluca yapabiliriz
 					}
 				}
+				
+				
 				
 				//TODO category Id set et
 				var normalizedTransaction = new NormalizedTransaction
@@ -232,6 +242,9 @@ public class SharedPlaidService(
 					userId,
 					response.StatusCode,
 					responseContent);
+				
+				//webhook
+				//{ "display_message" : null, "documentation_url" : "https://plaid.com/docs/?ref=error#item-errors", "error_code" : "PRODUCT_NOT_READY", "error_message" : "the requested product is not yet ready. please provide a webhook or try the request again later", "error_type" : "ITEM_ERROR", "request_id" : "Lxs5I67kSsOWFZR", "suggested_action" : null }
 
 				throw new Exception($"Plaid transactions/get failed. Response: {responseContent}");
 			}

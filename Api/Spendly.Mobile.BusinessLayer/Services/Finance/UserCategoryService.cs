@@ -11,8 +11,9 @@ using Spendly.Shared.Entities.UserManagement;
 using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels;
 
-public class CategoryService(
-	IRepository<Category> categoryRepository,
+public class UserCategoryService(
+	IRepository<UserCategory> categoryRepository,
+	IRepository<UserMerchant> userMerchantRepository,
 	IRepository<Merchant> merchantRepository,
 	IRepository<NormalizedTransaction> transactionRepository,
 	RequestContextViewModel requestContextViewModel)
@@ -75,14 +76,14 @@ public class CategoryService(
 
 		if (merchantIds.Count > 0)
 		{
-			var merchants = (await merchantRepository.ListAsync(x => x.UserId == userId && merchantIds.Contains(x.Id))).ToList();
+			var merchants = (await userMerchantRepository.ListAsync(x => x.UserId == userId && merchantIds.Contains(x.Id))).ToList();
 			if (merchants.Count != merchantIds.Count)
 			{
 				return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.MerchantNotFound);
 			}
 		}
 
-		var category = new Category
+		var category = new UserCategory
 		{
 			UserId = userId,
 			ParentId = parentId,
@@ -95,11 +96,11 @@ public class CategoryService(
 
 		if (merchantIds.Count > 0)
 		{
-			var merchants = await merchantRepository.ListAsync(x => x.UserId == userId && merchantIds.Contains(x.Id));
+			var merchants = await userMerchantRepository.ListAsync(x => x.UserId == userId && merchantIds.Contains(x.Id));
 			foreach (var merchant in merchants)
 			{
-				merchant.CategoryId = category.Id;
-				await merchantRepository.UpdateAsync(merchant);
+				merchant.UserCategoryId = category.Id;
+				await userMerchantRepository.UpdateAsync(merchant);
 			}
 		}
 
@@ -155,7 +156,7 @@ public class CategoryService(
 		// Merchant işlemleri
 		// ---------------------------
 
-		var merchants = (await merchantRepository.ListAsync(x => x.UserId == userId &&
+		var merchants = (await userMerchantRepository.ListAsync(x => x.UserId == userId &&
 		                                                         request.MerchantIds.Contains(x.Id.ToString())))
 			.ToList();
 
@@ -166,26 +167,26 @@ public class CategoryService(
 
 		var selectedMerchantIds = request.MerchantIds.ToHashSet();
 
-		var existingLinkedMerchants = await merchantRepository.ListAsync(x => x.UserId == userId &&
-		                                                                      x.CategoryId == category.Id);
+		var existingLinkedMerchants = await userMerchantRepository.ListAsync(x => x.UserId == userId &&
+		                                                                      x.UserCategoryId == category.Id);
 
 		// Unlink edilenler
 		foreach (var linkedMerchant in existingLinkedMerchants)
 		{
 			if (!selectedMerchantIds.Contains(linkedMerchant.Id.ToString()))
 			{
-				linkedMerchant.CategoryId = null;
-				await merchantRepository.UpdateAsync(linkedMerchant);
+				linkedMerchant.UserCategoryId = null;
+				await userMerchantRepository.UpdateAsync(linkedMerchant);
 			}
 		}
 
 		// Yeni linklenenler
 		foreach (var merchant in merchants)
 		{
-			if (merchant.CategoryId != category.Id)
+			if (merchant.UserCategoryId != category.Id)
 			{
-				merchant.CategoryId = category.Id;
-				await merchantRepository.UpdateAsync(merchant);
+				merchant.UserCategoryId = category.Id;
+				await userMerchantRepository.UpdateAsync(merchant);
 			}
 		}
 
@@ -193,8 +194,8 @@ public class CategoryService(
 		// ✅ MerchantCount güncelle
 		// ---------------------------
 
-		var finalMerchantCount = (await merchantRepository.ListAsync(x => x.UserId == userId &&
-		                                                                  x.CategoryId == category.Id)).Count();
+		var finalMerchantCount = (await userMerchantRepository.ListAsync(x => x.UserId == userId &&
+		                                                                  x.UserCategoryId == category.Id)).Count();
 
 		category.MerchantCount = finalMerchantCount;
 		category.UpdatedAt = DateTime.UtcNow;
@@ -226,11 +227,11 @@ public class CategoryService(
 			return FunctionResponse.Failure(MessageCodes.CategoryHasChildren);
 		}
 
-		var merchants = await merchantRepository.ListAsync(x => x.UserId == userId && x.CategoryId == category.Id);
+		var merchants = await userMerchantRepository.ListAsync(x => x.UserId == userId && x.UserCategoryId == category.Id);
 		foreach (var merchant in merchants)
 		{
-			merchant.CategoryId = null;
-			await merchantRepository.UpdateAsync(merchant);
+			merchant.UserCategoryId = null;
+			await userMerchantRepository.UpdateAsync(merchant);
 		}
 
 		await categoryRepository.DeleteAsync(category.Id.ToString());
@@ -239,11 +240,7 @@ public class CategoryService(
 
 	public async Task<FunctionResponse<List<CategoryMerchantItemViewModel>>> GetMerchantsAsync(string id)
 	{
-		var categoryId = id.ToObjectIdOrNull();
-		if (categoryId == null)
-		{
-			return FunctionResponse.Failure<List<CategoryMerchantItemViewModel>>(MessageCodes.InvalidCategoryId);
-		}
+		var categoryId = id.ToObjectId();
 
 		var userId = requestContextViewModel.UserId.ToObjectId();
 		var category = await categoryRepository.GetAsync(x => x.Id == categoryId && x.UserId == userId);
@@ -252,23 +249,24 @@ public class CategoryService(
 			return FunctionResponse.Failure<List<CategoryMerchantItemViewModel>>(MessageCodes.CategoryNotFound);
 		}
 
-		var merchants = (await merchantRepository.ListAsync(x => x.UserId == userId && x.CategoryId == categoryId)).ToList();
-		if (merchants.Count == 0)
+		var userMerchants = (await userMerchantRepository.ListAsync(x => x.UserId == userId && x.UserCategoryId == categoryId)).ToList();
+		if (userMerchants.Count == 0)
 		{
 			return FunctionResponse.Success(new List<CategoryMerchantItemViewModel>());
 		}
 
-		var response = merchants.Select(x => new CategoryMerchantItemViewModel
+		var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+		var response = userMerchants.Select(x => new CategoryMerchantItemViewModel
 			{
 				Id = x.Id.ToString(),
-				Name = x.Name,
+				Name = allMerchants[x.MerchantId].Name,
 			})
 			.ToList();
 
 		return FunctionResponse.Success(response);
 	}
 
-	private static List<Category> ApplyCategorySort(List<Category> categories, string? sortBy, string? sortDirection)
+	private static List<UserCategory> ApplyCategorySort(List<UserCategory> categories, string? sortBy, string? sortDirection)
 	{
 		var sorted = categories.AsEnumerable();
 		if (sortBy == Constants.Finance.Sort.Name ||
@@ -280,15 +278,15 @@ public class CategoryService(
 	}
 
 
-	private static CategoryResponseViewModel ToResponse(Category category, int merchantCount)
+	private static CategoryResponseViewModel ToResponse(UserCategory userCategory, int merchantCount)
 	{
 		return new CategoryResponseViewModel
 		{
-			Id = category.Id.ToString(),
-			Name = category.Name,
-			ParentId = category.ParentId?.ToString(),
-			Color = category.Color,
-			Icon = category.Icon,
+			Id = userCategory.Id.ToString(),
+			Name = userCategory.Name,
+			ParentId = userCategory.ParentId?.ToString(),
+			Color = userCategory.Color,
+			Icon = userCategory.Icon,
 			MerchantCount = merchantCount,
 		};
 	}

@@ -8,7 +8,7 @@ public class NormalizedTransaction : BaseEntity
     public ObjectId RawTransactionId { get; set; }
     public ObjectId UserId { get; set; }
     public ObjectId AccountId { get; set; }
-    public ObjectId? CategoryId { get; set; }
+    public ObjectId? UserCategoryId { get; set; }
     
     /// <summary>
     /// Merchant id can be null when

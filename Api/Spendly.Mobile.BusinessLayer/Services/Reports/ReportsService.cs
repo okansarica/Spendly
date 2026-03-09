@@ -17,8 +17,8 @@ public class ReportsService(
     IRepository<DailyCategoryAccountExpense> dailySummaryRepository,
     IRepository<NormalizedTransaction> transactionRepository,
     IRepository<Account> accountRepository,
-    IRepository<Category> categoryRepository,
-    IRepository<Merchant> merchantRepository,
+    IRepository<UserCategory> categoryRepository,
+    IRepository<UserMerchant> merchantRepository,
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<ReportsOverviewResponseViewModel>> GetOverviewAsync(
@@ -132,13 +132,13 @@ public class ReportsService(
             pageSize);
 
         var accountLookup = await GetAccountLookupAsync(transactions.Select(x => x.AccountId).Distinct().ToList());
-        var merchantLookup = await GetMerchantLookupAsync(transactions.Where(p=>p.MerchantId.HasValue).Select(x => x.MerchantId!.Value).Distinct().ToList());
+        var userMerchantLookup = await GetMerchantLookupAsync(transactions.Where(p=>p.MerchantId.HasValue).Select(x => x.MerchantId!.Value).Distinct().ToList());
 
         var items = transactions.Select(x => new ReportTransactionItemViewModel
         {
             TransactionId = x.Id.ToString(),
             Date = x.DateTime,
-            MerchantName = merchantLookup.TryGetValue(x.MerchantId!.Value, out var merchant) ? merchant.Name : "", //TODO 
+            //MerchantName = userMerchantLookup.TryGetValue(x.MerchantId!.Value, out var merchant) ? merchant.Name : "", //TODO merchant adini al
             AccountName = accountLookup.TryGetValue(x.AccountId, out var account) ? account.Name : "",
             Amount = x.Amount
         }).ToList();
@@ -376,7 +376,7 @@ public class ReportsService(
     {
         var filter = Builders<NormalizedTransaction>.Filter.And(
             Builders<NormalizedTransaction>.Filter.Eq(x => x.UserId, userId),
-            Builders<NormalizedTransaction>.Filter.Eq(x => x.CategoryId, categoryId),
+            Builders<NormalizedTransaction>.Filter.Eq(x => x.UserCategoryId, categoryId),
             Builders<NormalizedTransaction>.Filter.Gte(x => x.DateTime, startUtc),
             Builders<NormalizedTransaction>.Filter.Lte(x => x.DateTime, endUtc)
         );
@@ -397,7 +397,7 @@ public class ReportsService(
         };
 
         var transactions = await transactionRepository.ListPagingAsync(
-            x => x.UserId == userId && x.CategoryId == categoryId && x.DateTime >= startUtc && x.DateTime <= endUtc && (!accountId.HasValue || x.AccountId == accountId.Value),
+            x => x.UserId == userId && x.UserCategoryId == categoryId && x.DateTime >= startUtc && x.DateTime <= endUtc && (!accountId.HasValue || x.AccountId == accountId.Value),
             paging,
             sort);
 
@@ -426,7 +426,7 @@ public class ReportsService(
         ObjectId categoryId,
         Dictionary<ObjectId, decimal> currentTotals,
         Dictionary<ObjectId, decimal> previousTotals,
-        Dictionary<ObjectId, Category> categoryLookup)
+        Dictionary<ObjectId, UserCategory> categoryLookup)
     {
         currentTotals.TryGetValue(categoryId, out var current);
         previousTotals.TryGetValue(categoryId, out var previous);
@@ -466,11 +466,11 @@ public class ReportsService(
         };
     }
 
-    private async Task<Dictionary<ObjectId, Category>> GetCategoryLookupAsync(List<ObjectId> ids)
+    private async Task<Dictionary<ObjectId, UserCategory>> GetCategoryLookupAsync(List<ObjectId> ids)
     {
         if (ids.Count == 0)
         {
-            return new Dictionary<ObjectId, Category>();
+            return new Dictionary<ObjectId, UserCategory>();
         }
         return await categoryRepository.ListDictionaryAsync(ids);
     }
@@ -484,11 +484,11 @@ public class ReportsService(
         return await accountRepository.ListDictionaryAsync(ids);
     }
 
-    private async Task<Dictionary<ObjectId, Merchant>> GetMerchantLookupAsync(List<ObjectId> ids)
+    private async Task<Dictionary<ObjectId, UserMerchant>> GetMerchantLookupAsync(List<ObjectId> ids)
     {
         if (ids.Count == 0)
         {
-            return new Dictionary<ObjectId, Merchant>();
+            return new Dictionary<ObjectId, UserMerchant>();
         }
         return await merchantRepository.ListDictionaryAsync(ids);
     }

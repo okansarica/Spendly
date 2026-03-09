@@ -19,9 +19,9 @@ public class MerchantsTests(TestFixture fixture) : IClassFixture<TestFixture>
 
         var merchantsClient = fixture.MerchantsClient;
 
-        var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<Merchant>>();
+        var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<UserMerchant>>();
 
-        var merchant = new Merchant { UserId = ObjectId.Parse(verifiedUser.UserId), Name = "MerchantForTests" };
+        var merchant = new UserMerchant { UserId = ObjectId.Parse(verifiedUser.UserId)}; //TODO fix
         await merchantRepository.InsertAsync(merchant);
 
         var list = await merchantsClient.ListAsync();
