@@ -24,5 +24,6 @@ public class NormalizedTransaction : BaseEntity
     public string PlaidTransactionId { get; set; } = string.Empty;
     public DateTime DateTime { get; set; }
     public decimal Amount { get; set; }
+    public string TransactionName { get; set; } = string.Empty;
 }
 

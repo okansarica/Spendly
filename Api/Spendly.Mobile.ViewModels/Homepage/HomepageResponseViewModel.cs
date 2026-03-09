@@ -56,8 +56,9 @@ public class LatestExpenseViewModel
     public DateTime Date { get; set; }
     public decimal Amount { get; set; }
     public string CategoryName { get; set; }
-    public string MerchantName { get; set; }
+    public string? MerchantName { get; set; }
     public string AccountName { get; set; }
+    public string TransactionName { get; set; } = string.Empty;
 }
 
 public class WeeklySnapshotViewModel

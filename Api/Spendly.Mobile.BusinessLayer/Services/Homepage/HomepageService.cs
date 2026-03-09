@@ -15,435 +15,441 @@ using Spendly.Shared.DataLayer;
 using Spendly.Shared.ViewModels;
 
 public class HomepageService(
-    IRepository<DailyCategoryAccountExpense> dailySummaryRepository,
-    IRepository<NormalizedTransaction> transactionRepository,
-    IRepository<Account> accountRepository,
-    IRepository<UserCategory> userCategoryRepository,
-    IRepository<UserMerchant> userMerchantRepository,
-    IRepository<Merchant> merchantRepository,
-    RequestContextViewModel requestContextViewModel)
+	IRepository<DailyCategoryAccountExpense> dailySummaryRepository,
+	IRepository<NormalizedTransaction> transactionRepository,
+	IRepository<Account> accountRepository,
+	IRepository<UserCategory> userCategoryRepository,
+	IRepository<UserMerchant> userMerchantRepository,
+	IRepository<Merchant> merchantRepository,
+	RequestContextViewModel requestContextViewModel)
 {
-    [Cacheable(DurationSeconds=120)]
-    public async virtual Task<FunctionResponse<HomepageResponseViewModel>> GetHomepageAsync()
-    {
-        var userId = requestContextViewModel.UserId.ToObjectId();
-        var now = DateTime.UtcNow.Date;
-        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
-        var previousMonthStart = currentMonthStart.AddMonths(-1);
-        var previousMonthEnd = previousMonthStart.AddMonths(1).AddDays(-1);
-        var previousMonthSameDayEnd = new DateTime(previousMonthStart.Year, previousMonthStart.Month, Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month)));
+	//[Cacheable(DurationSeconds = 120)]
+	public async virtual Task<FunctionResponse<HomepageResponseViewModel>> GetHomepageAsync()
+	{
+		var userId = requestContextViewModel.UserId.ToObjectId();
+		var now = DateTime.UtcNow.Date;
+		var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+		var previousMonthStart = currentMonthStart.AddMonths(-1);
+		var previousMonthEnd = previousMonthStart.AddMonths(1).AddDays(-1);
+		var previousMonthSameDayEnd = new DateTime(previousMonthStart.Year, previousMonthStart.Month, Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month)));
 
-        var currentMonthSummaries = await GetDailySummariesAsync(userId, currentMonthStart, now);
-        var previousMonthSummaries = await GetDailySummariesAsync(userId, previousMonthStart, previousMonthEnd);
+		var currentMonthSummaries = await GetDailySummariesAsync(userId, currentMonthStart, now);
+		var previousMonthSummaries = await GetDailySummariesAsync(userId, previousMonthStart, previousMonthEnd);
 
-        var currentMonthTotal = currentMonthSummaries.Sum(x => x.TotalAmount);
-        var previousMonthTotal = previousMonthSummaries.Sum(x => x.TotalAmount);
+		var currentMonthTotal = currentMonthSummaries.Sum(x => x.TotalAmount);
+		var previousMonthTotal = previousMonthSummaries.Sum(x => x.TotalAmount);
 
-        var previousMonthSameDayTotal = previousMonthSummaries
-            .Where(x => x.Date.Date >= previousMonthStart && x.Date.Date <= previousMonthSameDayEnd)
-            .Sum(x => x.TotalAmount);
+		var previousMonthSameDayTotal = previousMonthSummaries
+			.Where(x => x.Date.Date >= previousMonthStart && x.Date.Date <= previousMonthSameDayEnd)
+			.Sum(x => x.TotalAmount);
 
-        var midMonthComparison = BuildComparison(currentMonthTotal, previousMonthSameDayTotal);
+		var midMonthComparison = BuildComparison(currentMonthTotal, previousMonthSameDayTotal);
 
-        var accountIds = currentMonthSummaries.Select(x => x.AccountId)
-            .Concat(previousMonthSummaries.Select(x => x.AccountId))
-            .Distinct()
-            .ToList();
-        var categoryIds = currentMonthSummaries.Select(x => x.CategoryId)
-            .Concat(previousMonthSummaries.Select(x => x.CategoryId))
-            .Distinct()
-            .ToList();
+		var accountIds = currentMonthSummaries.Select(x => x.AccountId)
+			.Concat(previousMonthSummaries.Select(x => x.AccountId))
+			.Distinct()
+			.ToList();
+		var categoryIds = currentMonthSummaries.Select(x => x.CategoryId)
+			.Concat(previousMonthSummaries.Select(x => x.CategoryId))
+			.Distinct()
+			.ToList();
 
-        var accounts = await accountRepository.ListAsync(
-            Builders<Account>.Filter.In(x => x.Id, accountIds)
-        );
-        var categories = await userCategoryRepository.ListAsync(
-            Builders<UserCategory>.Filter.In(x => x.Id, categoryIds)
-        );
+		var accounts = await accountRepository.ListAsync(
+			Builders<Account>.Filter.In(x => x.Id, accountIds)
+		);
+		var categories = await userCategoryRepository.ListAsync(
+			Builders<UserCategory>.Filter.In(x => x.Id, categoryIds)
+		);
 
-        var accountLookup = accounts.ToDictionary(x => x.Id);
-        var categoryLookup = categories.ToDictionary(x => x.Id);
+		var accountLookup = accounts.ToDictionary(x => x.Id);
+		var categoryLookup = categories.ToDictionary(x => x.Id);
 
-        var spendingByAccountCurrent = BuildAccountDistribution(currentMonthSummaries, accountLookup, currentMonthTotal);
-        var spendingByAccountPrevious = BuildAccountDistribution(previousMonthSummaries, accountLookup, previousMonthTotal);
-        var spendingByCategoryCurrent = BuildCategoryDistribution(currentMonthSummaries, categoryLookup, currentMonthTotal);
-        var spendingByCategoryPrevious = BuildCategoryDistribution(previousMonthSummaries, categoryLookup, previousMonthTotal);
+		var spendingByAccountCurrent = BuildAccountDistribution(currentMonthSummaries, accountLookup, currentMonthTotal);
+		var spendingByAccountPrevious = BuildAccountDistribution(previousMonthSummaries, accountLookup, previousMonthTotal);
+		var spendingByCategoryCurrent = BuildCategoryDistribution(currentMonthSummaries, categoryLookup, currentMonthTotal);
+		var spendingByCategoryPrevious = BuildCategoryDistribution(previousMonthSummaries, categoryLookup, previousMonthTotal);
 
-        var sixMonthTrend = await GetSixMonthTrendAsync(userId, now);
-        var latestExpenses = await GetLatestExpensesAsync(userId);
-        var weeklySnapshot = await GetWeeklySnapshotAsync(userId, now);
-        var topSpendingCategory = BuildTopCategory(currentMonthSummaries, categoryLookup, currentMonthTotal);
-        var mostUsedAccount = BuildMostUsedAccount(currentMonthSummaries, accountLookup, currentMonthTotal);
-        var highestSingleExpense = await GetHighestSingleExpenseAsync(userId, currentMonthStart, now);
-        var dailyAverage = BuildDailyAverage(currentMonthTotal, previousMonthSameDayTotal, now, previousMonthStart);
+		var sixMonthTrend = await GetSixMonthTrendAsync(userId, now);
+		var latestExpenses = await GetLatestExpensesAsync(userId);
+		var weeklySnapshot = await GetWeeklySnapshotAsync(userId, now);
+		var topSpendingCategory = BuildTopCategory(currentMonthSummaries, categoryLookup, currentMonthTotal);
+		var mostUsedAccount = BuildMostUsedAccount(currentMonthSummaries, accountLookup, currentMonthTotal);
+		var highestSingleExpense = await GetHighestSingleExpenseAsync(userId, currentMonthStart, now);
+		var dailyAverage = BuildDailyAverage(currentMonthTotal,
+			previousMonthSameDayTotal,
+			now,
+			previousMonthStart);
 
-        var response = new HomepageResponseViewModel
-        {
-            //Ust summary box
-            CurrentMonthTotalSpending = currentMonthTotal,
-            PreviousMonthTotalSpending = previousMonthTotal,
-            MidMonthComparison = midMonthComparison,
-            
-            //Kucuk summary boxlar
-            WeeklySnapshot = weeklySnapshot,
-            DailyAverage = dailyAverage,
-            
-            //Insights
-            TopSpendingCategory = topSpendingCategory,
-            HighestSingleExpense = highestSingleExpense,
-            MostUsedAccount = mostUsedAccount,
-                
-            //Pie charts
-            SpendingByAccountCurrentMonth = spendingByAccountCurrent,
-            SpendingByAccountPreviousMonth = spendingByAccountPrevious,
-            SpendingByCategoryCurrentMonth = spendingByCategoryCurrent,
-            SpendingByCategoryPreviousMonth = spendingByCategoryPrevious,
-            
-            //Bar chart
-            SixMonthTrend = sixMonthTrend, //bar chart
-            LatestExpenses = latestExpenses,
-        };
+		var response = new HomepageResponseViewModel
+		{
+			//Ust summary box
+			CurrentMonthTotalSpending = currentMonthTotal,
+			PreviousMonthTotalSpending = previousMonthTotal,
+			MidMonthComparison = midMonthComparison,
 
-        return FunctionResponse.Success(response);
-    }
+			//Kucuk summary boxlar
+			WeeklySnapshot = weeklySnapshot,
+			DailyAverage = dailyAverage,
 
-    private async Task<List<DailyCategoryAccountExpense>> GetDailySummariesAsync(ObjectId userId, DateTime start, DateTime end)
-    {
-        var filter = Builders<DailyCategoryAccountExpense>.Filter.And(
-            Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.UserId, userId),
-            Builders<DailyCategoryAccountExpense>.Filter.Gte(x => x.Date, start),
-            Builders<DailyCategoryAccountExpense>.Filter.Lte(x => x.Date, end)
-        );
+			//Insights
+			TopSpendingCategory = topSpendingCategory,
+			HighestSingleExpense = highestSingleExpense,
+			MostUsedAccount = mostUsedAccount,
 
-        return await dailySummaryRepository.ListAsync(filter);
-    }
+			//Pie charts
+			SpendingByAccountCurrentMonth = spendingByAccountCurrent,
+			SpendingByAccountPreviousMonth = spendingByAccountPrevious,
+			SpendingByCategoryCurrentMonth = spendingByCategoryCurrent,
+			SpendingByCategoryPreviousMonth = spendingByCategoryPrevious,
 
-    private static MidMonthComparisonViewModel BuildComparison(decimal current, decimal previous)
-    {
-        var percentage = CalculatePercentageChange(current, previous);
-        return new MidMonthComparisonViewModel
-        {
-            IsIncreased = current > previous,
-            PercentageChange = percentage
-        };
-    }
+			//Bar chart
+			SixMonthTrend = sixMonthTrend, //bar chart
+			LatestExpenses = latestExpenses,
+		};
 
-    private static decimal CalculatePercentageChange(decimal current, decimal previous)
-    {
-        if (previous <= 0)
-        {
-            return 0;
-        }
+		return FunctionResponse.Success(response);
+	}
 
-        return Math.Round((current - previous) / previous * 100, 1);
-    }
+	private async Task<List<DailyCategoryAccountExpense>> GetDailySummariesAsync(ObjectId userId, DateTime start, DateTime end)
+	{
+		var filter = Builders<DailyCategoryAccountExpense>.Filter.And(
+			Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.UserId, userId),
+			Builders<DailyCategoryAccountExpense>.Filter.Gte(x => x.Date, start),
+			Builders<DailyCategoryAccountExpense>.Filter.Lte(x => x.Date, end)
+		);
 
-    private static List<SpendingByAccountViewModel> BuildAccountDistribution(
-        List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, Account> accounts,
-        decimal total)
-    {
-        var grouped = summaries
-            .GroupBy(x => x.AccountId)
-            .Select(g => new { AccountId = g.Key, Amount = g.Sum(x => x.TotalAmount) })
-            .OrderByDescending(x => x.Amount)
-            .ToList();
+		return await dailySummaryRepository.ListAsync(filter);
+	}
 
-        var top = grouped.Take(Constants.Homepage.AccountTopCount).ToList();
-        var remainder = grouped.Skip(Constants.Homepage.AccountTopCount).Sum(x => x.Amount);
+	private static MidMonthComparisonViewModel BuildComparison(decimal current, decimal previous)
+	{
+		var percentage = CalculatePercentageChange(current, previous);
+		return new MidMonthComparisonViewModel
+		{
+			IsIncreased = current > previous,
+			PercentageChange = percentage
+		};
+	}
 
-        var results = top.Select(g =>
-        {
-            accounts.TryGetValue(g.AccountId, out var account);
-            return new SpendingByAccountViewModel
-            {
-                AccountId = g.AccountId.ToString(),
-                AccountName = account?.Name ?? "Unknown",
-                Amount = g.Amount,
-                PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
-            };
-        }).ToList();
+	private static decimal CalculatePercentageChange(decimal current, decimal previous)
+	{
+		if (previous <= 0)
+		{
+			return 0;
+		}
 
-        if (remainder > 0)
-        {
-            results.Add(new SpendingByAccountViewModel
-            {
-                AccountId = string.Empty,
-                AccountName = "Other",
-                Amount = remainder,
-                PercentageOfTotal = total > 0 ? Math.Round(remainder / total * 100, 1) : 0
-            });
-        }
+		return Math.Round((current - previous) / previous * 100, 1);
+	}
 
-        return results;
-    }
+	private static List<SpendingByAccountViewModel> BuildAccountDistribution(List<DailyCategoryAccountExpense> summaries,
+		Dictionary<ObjectId, Account> accounts,
+		decimal total)
+	{
+		var grouped = summaries
+			.GroupBy(x => x.AccountId)
+			.Select(g => new {AccountId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
+			.OrderByDescending(x => x.Amount)
+			.ToList();
 
-    private static List<SpendingByCategoryViewModel> BuildCategoryDistribution(
-        List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, UserCategory> categories,
-        decimal total)
-    {
-        var grouped = summaries
-            .GroupBy(x => x.CategoryId)
-            .Select(g => new { CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount) })
-            .OrderByDescending(x => x.Amount)
-            .ToList();
+		var top = grouped.Take(Constants.Homepage.AccountTopCount).ToList();
+		var remainder = grouped.Skip(Constants.Homepage.AccountTopCount).Sum(x => x.Amount);
 
-        var top = grouped.Take(Constants.Homepage.CategoryTopCount).ToList();
-        var remainder = grouped.Skip(Constants.Homepage.CategoryTopCount).Sum(x => x.Amount);
+		var results = top.Select(g =>
+			{
+				accounts.TryGetValue(g.AccountId, out var account);
+				return new SpendingByAccountViewModel
+				{
+					AccountId = g.AccountId.ToString(),
+					AccountName = account!.NickName?? account.Name,
+					Amount = g.Amount,
+					PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
+				};
+			})
+			.ToList();
 
-        var results = top.Select(g =>
-        {
-            categories.TryGetValue(g.CategoryId, out var category);
-            return new SpendingByCategoryViewModel
-            {
-                CategoryId = g.CategoryId.ToString(),
-                CategoryName = category?.Name ?? "Uncategorized",
-                Amount = g.Amount,
-                PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
-            };
-        }).ToList();
+		if (remainder > 0)
+		{
+			results.Add(new SpendingByAccountViewModel
+			{
+				AccountId = string.Empty,
+				AccountName = "Other",
+				Amount = remainder,
+				PercentageOfTotal = total > 0 ? Math.Round(remainder / total * 100, 1) : 0
+			});
+		}
 
-        if (remainder > 0)
-        {
-            results.Add(new SpendingByCategoryViewModel
-            {
-                CategoryId = string.Empty,
-                CategoryName = "Other",
-                Amount = remainder,
-                PercentageOfTotal = total > 0 ? Math.Round(remainder / total * 100, 1) : 0
-            });
-        }
+		return results;
+	}
 
-        return results;
-    }
+	private static List<SpendingByCategoryViewModel> BuildCategoryDistribution(List<DailyCategoryAccountExpense> summaries,
+		Dictionary<ObjectId, UserCategory> categories,
+		decimal total)
+	{
+		var grouped = summaries
+			.GroupBy(x => x.CategoryId)
+			.Select(g => new {CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
+			.OrderByDescending(x => x.Amount)
+			.ToList();
 
-    private async Task<List<MonthlySpendingTrendViewModel>> GetSixMonthTrendAsync(ObjectId userId, DateTime now)
-    {
-        var start = new DateTime(now.Year, now.Month, 1).AddMonths(-(Constants.Homepage.TrendMonths - 1));
-        var summaries = await GetDailySummariesAsync(userId, start, now);
+		var top = grouped.Take(Constants.Homepage.CategoryTopCount).ToList();
+		var remainder = grouped.Skip(Constants.Homepage.CategoryTopCount).Sum(x => x.Amount);
 
-        var totals = summaries
-            .GroupBy(x => new { x.Date.Year, x.Date.Month })
-            .ToDictionary(g => new DateTime(g.Key.Year, g.Key.Month, 1), g => g.Sum(x => x.TotalAmount));
+		var results = top.Select(g =>
+			{
+				categories.TryGetValue(g.CategoryId, out var category);
+				return new SpendingByCategoryViewModel
+				{
+					CategoryId = g.CategoryId.ToString(),
+					CategoryName = category?.Name ?? "Uncategorized",
+					Amount = g.Amount,
+					PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
+				};
+			})
+			.ToList();
 
-        var results = new List<MonthlySpendingTrendViewModel>();
+		if (remainder > 0)
+		{
+			results.Add(new SpendingByCategoryViewModel
+			{
+				CategoryId = string.Empty,
+				CategoryName = "Other",
+				Amount = remainder,
+				PercentageOfTotal = total > 0 ? Math.Round(remainder / total * 100, 1) : 0
+			});
+		}
 
-        for (var i = 0; i < Constants.Homepage.TrendMonths; i++)
-        {
-            var month = start.AddMonths(i);
-            totals.TryGetValue(month, out var currentTotal);
-            var previousMonth = month.AddMonths(-1);
-            totals.TryGetValue(previousMonth, out var previousTotal);
+		return results;
+	}
 
-            results.Add(new MonthlySpendingTrendViewModel
-            {
-                Year = month.Year,
-                Month = month.Month,
-                Amount = currentTotal,
-                PreviousMonthAmount = previousTotal,
-                PercentageChange = CalculatePercentageChange(currentTotal, previousTotal)
-            });
-        }
+	private async Task<List<MonthlySpendingTrendViewModel>> GetSixMonthTrendAsync(ObjectId userId, DateTime now)
+	{
+		var start = new DateTime(now.Year, now.Month, 1).AddMonths(-(Constants.Homepage.TrendMonths - 1));
+		var summaries = await GetDailySummariesAsync(userId, start, now);
 
-        return results;
-    }
+		var totals = summaries
+			.GroupBy(x => new {x.Date.Year, x.Date.Month})
+			.ToDictionary(g => new DateTime(g.Key.Year, g.Key.Month, 1), g => g.Sum(x => x.TotalAmount));
 
-    private async Task<List<LatestExpenseViewModel>> GetLatestExpensesAsync(ObjectId userId)
-    {
-        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.DateTime);
-        var normalizedTransactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
+		var results = new List<MonthlySpendingTrendViewModel>();
 
-        var accountIds = normalizedTransactions.Select(t => t.AccountId).Distinct().ToList();
-        var userCategoryIds = normalizedTransactions.Where(t => t.UserCategoryId.HasValue).Select(t => t.UserCategoryId!.Value).Distinct().ToList();
-        var merchantIds = normalizedTransactions.Select(t => t.MerchantId).Distinct().ToList();
+		for (var i = 0; i < Constants.Homepage.TrendMonths; i++)
+		{
+			var month = start.AddMonths(i);
+			totals.TryGetValue(month, out var currentTotal);
+			var previousMonth = month.AddMonths(-1);
+			totals.TryGetValue(previousMonth, out var previousTotal);
 
-        var accounts = await accountRepository.ListAsync(
-            Builders<Account>.Filter.In(x => x.Id, accountIds)
-        );
+			results.Add(new MonthlySpendingTrendViewModel
+			{
+				Year = month.Year,
+				Month = month.Month,
+				Amount = currentTotal,
+				PreviousMonthAmount = previousTotal,
+				PercentageChange = CalculatePercentageChange(currentTotal, previousTotal)
+			});
+		}
 
-        var userCategories = await userCategoryRepository.ListAsync(
-            Builders<UserCategory>.Filter.In(x => x.Id, userCategoryIds)
-        );
+		return results;
+	}
 
-        var userMerchants = await userMerchantRepository.ListAsync(
-            Builders<UserMerchant>.Filter.In(x => x.Id, merchantIds) 
-        );
+	private async Task<List<LatestExpenseViewModel>> GetLatestExpensesAsync(ObjectId userId)
+	{
+		var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.DateTime);
+		var normalizedTransactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
 
-        var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+		var accountIds = normalizedTransactions.Select(t => t.AccountId).Distinct().ToList();
+		var userCategoryIds = normalizedTransactions.Where(t => t.UserCategoryId.HasValue).Select(t => t.UserCategoryId!.Value).Distinct().ToList();
+		var merchantIds = normalizedTransactions.Select(t => t.MerchantId).Distinct().ToList();
 
-        return normalizedTransactions.Select(transaction =>
-        {
-            var account = accounts.FirstOrDefault(a => a.Id == transaction.AccountId);
-            var userCategory = transaction.UserCategoryId.HasValue ? userCategories.FirstOrDefault(c => c.Id == transaction.UserCategoryId.Value) : null;
-            
-            string? merchantName = null;
-            if (transaction.MerchantId.HasValue)
-            {
-                var userMerchant = userMerchants.Single(m => m.Id == transaction.MerchantId);
-                if (string.IsNullOrEmpty(userMerchant.Nickname))
-                {
-                    merchantName = allMerchants[transaction.MerchantId.Value].Name;    
-                }
-                else
-                {
-                    merchantName = userMerchant.Nickname;
-                }
-            }
+		var accounts = await accountRepository.ListAsync(
+			Builders<Account>.Filter.In(x => x.Id, accountIds)
+		);
 
-            return new LatestExpenseViewModel
-            {
-                TransactionId = transaction.Id.ToString(),
-                Date = transaction.DateTime,
-                Amount = transaction.Amount,
-                CategoryName = userCategory?.Name ?? "",
-                MerchantName =  merchantName,
-                AccountName = account?.Name ?? "N/A"
-            };
-        }).ToList();
-    }
+		var userCategories = await userCategoryRepository.ListAsync(
+			Builders<UserCategory>.Filter.In(x => x.Id, userCategoryIds)
+		);
 
-    private async Task<WeeklySnapshotViewModel> GetWeeklySnapshotAsync(ObjectId userId, DateTime now)
-    {
-        var weekStart = GetWeekStart(now);
-        var dayCount = (now - weekStart).Days;
-        var weekEnd = now;
-        var previousWeekStart = weekStart.AddDays(-7);
-        var previousWeekEnd = previousWeekStart.AddDays(dayCount);
+		var allMerchantdIds = normalizedTransactions.Where(p => p.MerchantId.HasValue).Select(p => p.MerchantId!.Value).Distinct().ToList();
 
-        var thisWeekSummaries = await GetDailySummariesAsync(userId, weekStart, weekEnd);
-        var previousWeekSummaries = await GetDailySummariesAsync(userId, previousWeekStart, previousWeekEnd);
+		var allMerchants = await merchantRepository.ListDictionaryAsync(allMerchantdIds);
 
-        var thisWeekTotal = thisWeekSummaries.Sum(x => x.TotalAmount);
-        var previousWeekTotal = previousWeekSummaries.Sum(x => x.TotalAmount);
+		var userMerchantsDictionary = await userMerchantRepository.ListDictionaryAsync(allMerchantdIds, p => p.MerchantId);
 
-        return new WeeklySnapshotViewModel
-        {
-            ThisWeekTotal = thisWeekTotal,
-            PreviousWeekTotal = previousWeekTotal,
-            PercentageChange = CalculatePercentageChange(thisWeekTotal, previousWeekTotal),
-            IsIncreased = thisWeekTotal > previousWeekTotal
-        };
-    }
+		return normalizedTransactions.Select(transaction =>
+			{
+				var account = accounts.FirstOrDefault(a => a.Id == transaction.AccountId);
+				var userCategory = transaction.UserCategoryId.HasValue ? userCategories.FirstOrDefault(c => c.Id == transaction.UserCategoryId.Value) : null;
 
-    private static DateTime GetWeekStart(DateTime date)
-    {
-        var diff = (7 + (int)date.DayOfWeek - (int)DayOfWeek.Monday) % 7;
-        return date.AddDays(-diff).Date;
-    }
+				string? merchantName = null;
+				if (transaction.MerchantId.HasValue)
+				{
+					var userMerchant = userMerchantsDictionary[transaction.MerchantId.Value].Single();
+					if (string.IsNullOrEmpty(userMerchant.Nickname))
+					{
+						merchantName = allMerchants[transaction.MerchantId.Value].Name;
+					}
+					else
+					{
+						merchantName = userMerchant.Nickname;
+					}
+				}
 
-    private static TopSpendingCategoryViewModel BuildTopCategory(
-        List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, UserCategory> categories,
-        decimal total)
-    {
-        var top = summaries
-            .GroupBy(x => x.CategoryId)
-            .Select(g => new { CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount) })
-            .OrderByDescending(x => x.Amount)
-            .FirstOrDefault();
+				return new LatestExpenseViewModel
+				{
+					TransactionId = transaction.Id.ToString(),
+					Date = transaction.DateTime,
+					Amount = transaction.Amount,
+					CategoryName = userCategory?.Name ?? "",
+					MerchantName = merchantName,
+					AccountName = account!.NickName?? account.Name,
+					TransactionName = transaction.TransactionName
+				};
+			})
+			.ToList();
+	}
 
-        if (top == null)
-        {
-            return new TopSpendingCategoryViewModel
-            {
-                CategoryName = string.Empty,
-                Amount = 0,
-                PercentageOfTotal = 0
-            };
-        }
+	private async Task<WeeklySnapshotViewModel> GetWeeklySnapshotAsync(ObjectId userId, DateTime now)
+	{
+		var weekStart = GetWeekStart(now);
+		var dayCount = (now - weekStart).Days;
+		var weekEnd = now;
+		var previousWeekStart = weekStart.AddDays(-7);
+		var previousWeekEnd = previousWeekStart.AddDays(dayCount);
 
-        categories.TryGetValue(top.CategoryId, out var category);
+		var thisWeekSummaries = await GetDailySummariesAsync(userId, weekStart, weekEnd);
+		var previousWeekSummaries = await GetDailySummariesAsync(userId, previousWeekStart, previousWeekEnd);
 
-        return new TopSpendingCategoryViewModel
-        {
-            CategoryName = category?.Name ?? "Uncategorized",
-            Amount = top.Amount,
-            PercentageOfTotal = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
-        };
-    }
+		var thisWeekTotal = thisWeekSummaries.Sum(x => x.TotalAmount);
+		var previousWeekTotal = previousWeekSummaries.Sum(x => x.TotalAmount);
 
-    private static MostUsedAccountViewModel BuildMostUsedAccount(
-        List<DailyCategoryAccountExpense> summaries,
-        Dictionary<ObjectId, Account> accounts,
-        decimal total)
-    {
-        var top = summaries
-            .GroupBy(x => x.AccountId)
-            .Select(g => new { AccountId = g.Key, Amount = g.Sum(x => x.TotalAmount) })
-            .OrderByDescending(x => x.Amount)
-            .FirstOrDefault();
+		return new WeeklySnapshotViewModel
+		{
+			ThisWeekTotal = thisWeekTotal,
+			PreviousWeekTotal = previousWeekTotal,
+			PercentageChange = CalculatePercentageChange(thisWeekTotal, previousWeekTotal),
+			IsIncreased = thisWeekTotal > previousWeekTotal
+		};
+	}
 
-        if (top == null)
-        {
-            return new MostUsedAccountViewModel
-            {
-                AccountName = string.Empty,
-                PercentageShare = 0
-            };
-        }
+	private static DateTime GetWeekStart(DateTime date)
+	{
+		var diff = (7 + (int) date.DayOfWeek - (int) DayOfWeek.Monday) % 7;
+		return date.AddDays(-diff).Date;
+	}
 
-        accounts.TryGetValue(top.AccountId, out var account);
+	private static TopSpendingCategoryViewModel BuildTopCategory(List<DailyCategoryAccountExpense> summaries,
+		Dictionary<ObjectId, UserCategory> categories,
+		decimal total)
+	{
+		var top = summaries
+			.GroupBy(x => x.CategoryId)
+			.Select(g => new {CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
+			.OrderByDescending(x => x.Amount)
+			.FirstOrDefault();
 
-        return new MostUsedAccountViewModel
-        {
-            AccountName = account?.Name ?? "Unknown",
-            PercentageShare = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
-        };
-    }
+		if (top == null)
+		{
+			return new TopSpendingCategoryViewModel
+			{
+				CategoryName = string.Empty,
+				Amount = 0,
+				PercentageOfTotal = 0
+			};
+		}
 
-    private async Task<HighestSingleExpenseViewModel> GetHighestSingleExpenseAsync(ObjectId userId, DateTime start, DateTime end)
-    {
-        var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount).Descending(x => x.DateTime);
-        var transaction = (await transactionRepository.ListAsync(p=>p.UserId == userId&&p.DateTime>=start &&p.DateTime<=end, sort, 1)).FirstOrDefault();
+		categories.TryGetValue(top.CategoryId, out var category);
 
-        if (transaction == null)
-        {
-            return new HighestSingleExpenseViewModel
-            {
-                MerchantName = string.Empty,
-                Amount = 0,
-                Date = start
-            };
-        }
+		return new TopSpendingCategoryViewModel
+		{
+			CategoryName = category?.Name ?? "Uncategorized",
+			Amount = top.Amount,
+			PercentageOfTotal = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
+		};
+	}
 
-        string? merchantName = null;
-        if (transaction.MerchantId.HasValue)
-        {
-            var userMerchant = await userMerchantRepository.GetRequiredAsync(p=>p.MerchantId ==transaction.MerchantId.Value);
-            if (string.IsNullOrEmpty(userMerchant.Nickname))
-            {
-                var merchant = await merchantRepository.GetRequiredAsync(transaction.MerchantId.Value);
-             merchantName   =merchant.Name;
-            }
-            else
-            {
-                merchantName = userMerchant.Nickname;
-            }
-            
-        }
-        return new HighestSingleExpenseViewModel
-        {
-            MerchantName = merchantName,
-            Amount = transaction.Amount,
-            Date = transaction.DateTime
-        };
-    }
+	private static MostUsedAccountViewModel BuildMostUsedAccount(List<DailyCategoryAccountExpense> summaries,
+		Dictionary<ObjectId, Account> accounts,
+		decimal total)
+	{
+		var top = summaries
+			.GroupBy(x => x.AccountId)
+			.Select(g => new {AccountId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
+			.OrderByDescending(x => x.Amount)
+			.FirstOrDefault();
 
-    private static DailyAverageViewModel BuildDailyAverage(decimal currentTotal, decimal previousTotal, DateTime now, DateTime previousMonthStart)
-    {
-        var currentDays = now.Day;
-        var previousDays = Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month));
+		if (top == null)
+		{
+			return new MostUsedAccountViewModel
+			{
+				AccountName = string.Empty,
+				PercentageShare = 0
+			};
+		}
 
-        var currentAverage = currentDays > 0 ? currentTotal / currentDays : 0;
-        var previousAverage = previousDays > 0 ? previousTotal / previousDays : 0;
+		accounts.TryGetValue(top.AccountId, out var account);
 
-        return new DailyAverageViewModel
-        {
-            CurrentMonthAverage = currentAverage,
-            PreviousMonthAverage = previousAverage,
-            PercentageChange = CalculatePercentageChange(currentAverage, previousAverage),
-            IsIncreased = currentAverage > previousAverage
-        };
-    }
+		return new MostUsedAccountViewModel
+		{
+			AccountName = account!.NickName?? account.Name,
+			PercentageShare = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
+		};
+	}
+
+	private async Task<HighestSingleExpenseViewModel> GetHighestSingleExpenseAsync(ObjectId userId, DateTime start, DateTime end)
+	{
+		var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount).Descending(x => x.DateTime);
+		var transaction = (await transactionRepository.ListAsync(p => p.UserId == userId && p.DateTime >= start && p.DateTime <= end, sort, 1)).FirstOrDefault();
+
+		if (transaction == null)
+		{
+			return new HighestSingleExpenseViewModel
+			{
+				MerchantName = string.Empty,
+				Amount = 0,
+				Date = start
+			};
+		}
+
+		string? merchantName = null;
+		if (transaction.MerchantId.HasValue)
+		{
+			var userMerchant = await userMerchantRepository.GetRequiredAsync(p => p.MerchantId == transaction.MerchantId.Value);
+			if (string.IsNullOrEmpty(userMerchant.Nickname))
+			{
+				var merchant = await merchantRepository.GetRequiredAsync(transaction.MerchantId.Value);
+				merchantName = merchant.Name;
+			}
+			else
+			{
+				merchantName = userMerchant.Nickname;
+			}
+
+		}
+		return new HighestSingleExpenseViewModel
+		{
+			MerchantName = merchantName,
+			Amount = transaction.Amount,
+			Date = transaction.DateTime
+		};
+	}
+
+	private static DailyAverageViewModel BuildDailyAverage(decimal currentTotal,
+		decimal previousTotal,
+		DateTime now,
+		DateTime previousMonthStart)
+	{
+		var currentDays = now.Day;
+		var previousDays = Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month));
+
+		var currentAverage = currentDays > 0 ? currentTotal / currentDays : 0;
+		var previousAverage = previousDays > 0 ? previousTotal / previousDays : 0;
+
+		return new DailyAverageViewModel
+		{
+			CurrentMonthAverage = currentAverage,
+			PreviousMonthAverage = previousAverage,
+			PercentageChange = CalculatePercentageChange(currentAverage, previousAverage),
+			IsIncreased = currentAverage > previousAverage
+		};
+	}
 }

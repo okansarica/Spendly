@@ -21,7 +21,7 @@ public class PlaidAccountViewModel
 
 	public string? Mask { get; set; }
 
-	public string? Name { get; set; }
+	public string Name { get; set; }
 
 	public string Subtype { get; set; } = null!;
 

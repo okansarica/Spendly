@@ -186,7 +186,9 @@ class Program
 			new {Name = "Shopping", Color = "#45B7D1", Icon = "🛍️"},
 			new {Name = "Entertainment", Color = "#FFA07A", Icon = "🎬"},
 			new {Name = "Bills & Utilities", Color = "#98D8C8", Icon = "💡"},
-			new {Name = "Supermarket", Color = "#98D8C8", Icon = "💡"},
+			new {Name = "Groceries", Color = "#98D8C8", Icon = "💡"},
+			new {Name = "Health", Color = "#98D8C8", Icon = "💡"},
+			new {Name = "Housing", Color = "#98D8C8", Icon = "💡"},
 			new {Name = "Other", Color = "#98D8C8", Icon = "💡"},
 		};
 

@@ -122,7 +122,7 @@ public class PlaidService(
 				BankId = bankId,
 				CurrencyCode = "GBP", //TODO hard coded for now, requires more changes in the ui for future
 				IsConnected = true,
-				Name = plaidAccount.Name??"N/A", //TODO check
+				Name = plaidAccount.Name,
 				PlaidAccountId = plaidAccount.Id,
 				Mask = plaidAccount.Mask,
 				ConnectionDateTime = DateTime.UtcNow,

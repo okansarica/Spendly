@@ -15,6 +15,7 @@ public class BankAccountListItemViewModel
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string? NickName { get; set; }
     public string? Description { get; set; }
     public bool IsConnected { get; set; }
     public string? CardLast4Digits { get; set; }

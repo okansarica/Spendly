@@ -16,5 +16,6 @@ public class BankUpsertRequestViewModel
 public class BankAccountUpsertRequestViewModel
 {
     public string? Name { get; set; }
+    public string? NickName { get; set; }
 }
 

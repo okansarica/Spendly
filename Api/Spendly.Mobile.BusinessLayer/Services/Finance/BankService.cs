@@ -41,6 +41,7 @@ public class BankService(
                     {
                         Id = x.Id.ToString(),
                         Name = x.Name,
+                        NickName = x.NickName,
                         Description = x.Description,
                         IsConnected = x.IsConnected,
                         CardLast4Digits = x.Mask,
@@ -173,6 +174,7 @@ public class BankService(
         {
             BankId = bank.Id,
             Name = request.Name!.Trim(),
+            NickName =  request.NickName?.Trim(),
             IsConnected = false,
         };
 
@@ -209,6 +211,7 @@ public class BankService(
         }
 
         account.Name = request.Name!.Trim();
+        account.NickName = request.NickName?.Trim();
         account.UpdatedAt = DateTime.UtcNow;
 
         await accountRepository.UpdateAsync(account);
@@ -266,6 +269,7 @@ public class BankService(
         {
             Id = account.Id.ToString(),
             Name = account.Name,
+            NickName = account.NickName,
             Description = account.Description,
             IsConnected = account.IsConnected,
             CardLast4Digits = account.Mask,

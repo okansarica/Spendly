@@ -362,6 +362,29 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         return list.ToDictionary(e => e.Id);
     }
 
+    public async Task<Dictionary<ObjectId, T>> ListSingleDictionaryAsync(
+        IEnumerable<ObjectId> ids,
+        Expression<Func<T, ObjectId?>> propertySelector)
+    {
+        var distinctIds = ids.Distinct().ToList();
+        var nullableIds = distinctIds.Cast<ObjectId?>().ToList();
+
+        var filter = Builders<T>.Filter.And(
+            Builders<T>.Filter.In(propertySelector, nullableIds),
+            Builders<T>.Filter.Ne(propertySelector, default(ObjectId?))
+        );
+
+        filter = ApplySoftDeleteFilter(filter);
+
+        var list = await _entities.Find(filter).ToListAsync().ConfigureAwait(false);
+
+        var selector = propertySelector.Compile();
+
+        return list
+            .Where(x => selector(x).HasValue)
+            .ToDictionary(x => selector(x)!.Value);
+    }
+
     public async Task<Dictionary<ObjectId, List<T>>> ListDictionaryAsync(
         IEnumerable<ObjectId> ids,
         Expression<Func<T, ObjectId?>> propertySelector)
@@ -389,27 +412,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
             );
     }
 
-    public async Task<Dictionary<ObjectId, List<T>>> ListAsync(
-        IEnumerable<ObjectId> ids,
-        Expression<Func<T, ObjectId?>> propertySelector,
-        Func<T, ObjectId> keySelector)
-    {
-        var distinctIds = ids.Distinct().ToList();
-        var nullableIds = distinctIds.Cast<ObjectId?>().ToList();
 
-        var filter = Builders<T>.Filter.And(
-            Builders<T>.Filter.In(propertySelector, nullableIds),
-            Builders<T>.Filter.Ne(propertySelector, null)
-        );
-
-        filter = ApplySoftDeleteFilter(filter);
-
-        var list = await _entities.Find(filter).ToListAsync();
-
-        return list
-            .GroupBy(keySelector)
-            .ToDictionary(g => g.Key, g => g.ToList());
-    }
 
     public async Task<List<T>> ListPagingAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition, PagingParameter paging)
     {

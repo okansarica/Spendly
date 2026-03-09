@@ -18,7 +18,8 @@ public class ReportsService(
     IRepository<NormalizedTransaction> transactionRepository,
     IRepository<Account> accountRepository,
     IRepository<UserCategory> categoryRepository,
-    IRepository<UserMerchant> merchantRepository,
+    IRepository<UserMerchant> userMerchantRepository,
+    IRepository<Merchant> merchantRepository,
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<ReportsOverviewResponseViewModel>> GetOverviewAsync(
@@ -132,16 +133,41 @@ public class ReportsService(
             pageSize);
 
         var accountLookup = await GetAccountLookupAsync(transactions.Select(x => x.AccountId).Distinct().ToList());
-        var userMerchantLookup = await GetMerchantLookupAsync(transactions.Where(p=>p.MerchantId.HasValue).Select(x => x.MerchantId!.Value).Distinct().ToList());
 
-        var items = transactions.Select(x => new ReportTransactionItemViewModel
+        var merchantIds = transactions.Where(p => p.MerchantId.HasValue).Select(x => x.MerchantId!.Value).Distinct().ToList();
+        var userMerchantLookup = await GetMerchantLookupAsync(merchantIds);
+
+        var allMerchants =await merchantRepository.ListAsync(merchantIds);
+
+        var items = new List<ReportTransactionItemViewModel>();
+
+        foreach (var transaction in transactions)
         {
-            TransactionId = x.Id.ToString(),
-            Date = x.DateTime,
-            //MerchantName = userMerchantLookup.TryGetValue(x.MerchantId!.Value, out var merchant) ? merchant.Name : "", //TODO merchant adini al
-            AccountName = accountLookup.TryGetValue(x.AccountId, out var account) ? account.Name : "",
-            Amount = x.Amount
-        }).ToList();
+            string? merchantName = null;
+            if (transaction.MerchantId.HasValue)
+            {
+                var userMerchant = userMerchantLookup[transaction.MerchantId.Value];
+                if (!string.IsNullOrEmpty(userMerchant.Nickname))
+                {
+                    merchantName = userMerchant.Nickname;
+                }
+                else
+                {
+                    var merchant =allMerchants.Single(x => x.Id == transaction.MerchantId.Value);
+                    merchantName = merchant.Name;
+                }
+            }
+            
+            items.Add(new ReportTransactionItemViewModel
+            {
+                TransactionId = transaction.Id.ToString(),
+                Date = transaction.DateTime,
+                MerchantName= merchantName,
+                AccountName = accountLookup[transaction.AccountId].NickName??accountLookup[transaction.AccountId].Name,
+                Amount = transaction.Amount
+            });
+        }
+        
 
         var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)total / pageSize) : 1;
 
@@ -215,7 +241,7 @@ public class ReportsService(
             .Select(kvp => new AccountDistributionViewModel
             {
                 AccountId = kvp.Key.ToString(),
-                AccountName = accountLookup.TryGetValue(kvp.Key, out var account) ? account.Name : "Unknown",
+                AccountName = accountLookup[kvp.Key].NickName ?? accountLookup[kvp.Key].Name,
                 CurrentMonthToDateTotal = kvp.Value,
                 PercentageOfTotal = currentTotal > 0 ? Math.Round(kvp.Value / currentTotal * 100, 1) : 0
             })
@@ -236,27 +262,23 @@ public class ReportsService(
         string accountId,
         AccountDetailRequestViewModel request)
     {
-        var accountObjectId = accountId.ToObjectIdOrNull();
-        if (accountObjectId == null)
-        {
-            return FunctionResponse.Failure<AccountDetailResponseViewModel>(MessageCodes.InvalidAccountId);
-        }
+        var accountObjectId = accountId.ToObjectId();
 
         if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
         {
             return FunctionResponse.Failure<AccountDetailResponseViewModel>(MessageCodes.InvalidTimezone);
         }
+        
+        var account = await accountRepository.GetRequiredAsync(accountObjectId);
 
         var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
         var (startLocal, endLocal) = ResolveRange(request.StartDate, request.EndDate, nowLocal);
         var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
         var userId = requestContextViewModel.UserId.ToObjectId();
-        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, accountObjectId.Value);
+        var summaries = await GetDailySummariesAsync(userId, startUtc, endUtc, null, accountObjectId);
         var totalAmount = summaries.Sum(x => x.TotalAmount);
-
-        var accountName = await GetAccountNameAsync(accountObjectId.Value);
-
+        
         var categories = summaries
             .GroupBy(x => x.CategoryId)
             .Select(g => new { CategoryId = g.Key, Total = g.Sum(x => x.TotalAmount) })
@@ -277,16 +299,18 @@ public class ReportsService(
             endLocal,
             nowLocal,
             userId,
-            accountObjectId.Value,
+            accountObjectId,
             tz,
             totalAmount);
+        
+        
 
         var response = new AccountDetailResponseViewModel
         {
             AccountSummary = new AccountSummaryViewModel
             {
-                AccountId = accountObjectId.Value.ToString(),
-                AccountName = accountName,
+                AccountId = accountObjectId.ToString(),
+                AccountName = account.NickName??account.Name,
                 StartDate = startLocal,
                 EndDate = endLocal,
                 TotalAmount = totalAmount,
@@ -458,7 +482,7 @@ public class ReportsService(
         return new AccountListItemViewModel
         {
             AccountId = accountId.ToString(),
-            AccountName = accountLookup.TryGetValue(accountId, out var account) ? account.Name : "Unknown",
+            AccountName = accountLookup[accountId].NickName??accountLookup[accountId].Name,
             CurrentMonthToDateTotal = current,
             PreviousMonthSamePeriodTotal = previous,
             DifferenceAmount = difference,
@@ -490,7 +514,7 @@ public class ReportsService(
         {
             return new Dictionary<ObjectId, UserMerchant>();
         }
-        return await merchantRepository.ListDictionaryAsync(ids);
+        return await userMerchantRepository.ListSingleDictionaryAsync(ids, p=>p.MerchantId);
     }
 
     private async Task<string> GetCategoryNameAsync(ObjectId categoryId)
@@ -499,11 +523,6 @@ public class ReportsService(
         return category?.Name ?? "Uncategorized";
     }
 
-    private async Task<string> GetAccountNameAsync(ObjectId accountId)
-    {
-        var account = await accountRepository.GetAsync(accountId);
-        return account?.Name ?? "Unknown";
-    }
 
     private static (DateTime StartLocal, DateTime EndLocal) ResolveRange(DateTime? start, DateTime? end, DateTime nowLocal)
     {

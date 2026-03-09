@@ -9,6 +9,7 @@ public class Account : BaseEntity,ISoftDeletable
     public string CurrencyCode { get; set; } = String.Empty;
     
     public string Name { get; set; } = string.Empty;
+    public string? NickName { get; set; }
     public string? Mask { get; set; }
     public string? Description { get; set; }
    

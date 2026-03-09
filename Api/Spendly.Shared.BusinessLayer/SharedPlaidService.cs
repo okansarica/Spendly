@@ -44,7 +44,7 @@ public class SharedPlaidService(
 	};
 	
 	//TODO burasi sadece ilk hesap banka ve hesap(lart) ekleme flowunda gecerli, var olan bankaya hesap ekleme durumu degerlendirilecek
-	public async Task QueryAndSaveUserTransactionAsync(DateOnly startDate,
+	public async Task TransferTransactionsFromPlaidAsync(DateOnly startDate,
 		DateOnly endDate,
 		PlaidDataProcessingBackgroundServiceRequestViewModel request)
 	{
@@ -348,7 +348,8 @@ public class SharedPlaidService(
 					PlaidTransactionId = plaidTransaction.TransactionId,
 					RawTransactionId = rawTransaction.Id,
 					UserId = userId,
-					UserCategoryId = userCategoryId
+					UserCategoryId = userCategoryId,
+					TransactionName = plaidTransaction.Name
 				};
 				normalizedTransactions.Add(normalizedTransaction);
 			}

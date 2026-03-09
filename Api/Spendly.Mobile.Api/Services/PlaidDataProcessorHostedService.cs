@@ -25,7 +25,7 @@ public class PlaidDataProcessorHostedService(
                 using var scope = serviceScopeFactory.CreateScope();
 
                 var sharedPlaidSservice = scope.ServiceProvider.GetRequiredService<SharedPlaidService>();
-                await sharedPlaidSservice.QueryAndSaveUserTransactionAsync(
+                await sharedPlaidSservice.TransferTransactionsFromPlaidAsync(
                     DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), // son gun dahil degil, bitis tarihi dahil, bugunun kayitlari gece cekilecek onlari cekme
                     DateOnly.FromDateTime(DateTime.Today.AddDays(-1)),
                     request
