@@ -44,13 +44,14 @@ class Program
 
 	static async Task GenerateTestData()
 	{
-		
-		
+
+
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
 		await CreateCategories(users);
+		await CreateUserCategories(users);
 	}
-	
+
 
 	static async Task<List<User>> CreateUsers()
 	{
@@ -69,11 +70,14 @@ class Program
 				Email = "ahmet@example.com",
 				PasswordHash = passwordHash,
 				IsActive = true,
-				EmailVerification = new EmailVerification { IsVerified = true },
-				LoginProviders = [new UserLoginProvider
-				{
-					Provider = LoginProviderType.Local,
-				}]
+				EmailVerification = new EmailVerification {IsVerified = true},
+				LoginProviders =
+				[
+					new UserLoginProvider
+					{
+						Provider = LoginProviderType.Local,
+					}
+				]
 			},
 			new User
 			{
@@ -83,7 +87,7 @@ class Program
 				Email = "fatih@example.com",
 				PasswordHash = passwordHash,
 				IsActive = true,
-				EmailVerification = new EmailVerification { IsVerified = true }
+				EmailVerification = new EmailVerification {IsVerified = true}
 			},
 			new User
 			{
@@ -93,11 +97,14 @@ class Program
 				Email = "zeynep@example.com",
 				PasswordHash = passwordHash,
 				IsActive = true,
-				EmailVerification = new EmailVerification { IsVerified = true },
-				LoginProviders = [new UserLoginProvider
-				{
-					Provider = LoginProviderType.Local,
-				}]
+				EmailVerification = new EmailVerification {IsVerified = true},
+				LoginProviders =
+				[
+					new UserLoginProvider
+					{
+						Provider = LoginProviderType.Local,
+					}
+				]
 			},
 			new User
 			{
@@ -107,11 +114,14 @@ class Program
 				Email = "okansarica@gmail.com",
 				PasswordHash = passwordHash,
 				IsActive = true,
-				EmailVerification = new EmailVerification { IsVerified = true },
-				LoginProviders = [new UserLoginProvider
-				{
-					Provider = LoginProviderType.Local,
-				}]
+				EmailVerification = new EmailVerification {IsVerified = true},
+				LoginProviders =
+				[
+					new UserLoginProvider
+					{
+						Provider = LoginProviderType.Local,
+					}
+				]
 			}
 		};
 
@@ -171,28 +181,28 @@ class Program
 		var categories = new List<Category>();
 		var categoryData = new[]
 		{
-			new { Name = "Food & Dining", Color = "#FF6B6B", Icon = "🍔" },
-			new { Name = "Transportation", Color = "#4ECDC4", Icon = "🚗" },
-			new { Name = "Shopping", Color = "#45B7D1", Icon = "🛍️" },
-			new { Name = "Entertainment", Color = "#FFA07A", Icon = "🎬" },
-			new { Name = "Bills & Utilities", Color = "#98D8C8", Icon = "💡" }
+			new {Name = "Food & Dining", Color = "#FF6B6B", Icon = "🍔"},
+			new {Name = "Transportation", Color = "#4ECDC4", Icon = "🚗"},
+			new {Name = "Shopping", Color = "#45B7D1", Icon = "🛍️"},
+			new {Name = "Entertainment", Color = "#FFA07A", Icon = "🎬"},
+			new {Name = "Bills & Utilities", Color = "#98D8C8", Icon = "💡"},
+			new {Name = "Supermarket", Color = "#98D8C8", Icon = "💡"},
+			new {Name = "Other", Color = "#98D8C8", Icon = "💡"},
 		};
 
-		foreach (var user in users)
+
+		foreach (var data in categoryData)
 		{
-			foreach (var data in categoryData)
+			categories.Add(new Category
 			{
-				categories.Add(new Category
-				{
-					Id = ObjectId.GenerateNewId(),
-					UserId = user.Id,
-					Name = data.Name,
-					Color = data.Color,
-					Icon = data.Icon,
-					CreatedAt = DateTime.UtcNow
-				});
-			}
+				Id = ObjectId.GenerateNewId(),
+				Name = data.Name,
+				Color = data.Color,
+				Icon = null,
+				CreatedAt = DateTime.UtcNow
+			});
 		}
+
 
 		if (categories.Any())
 		{
@@ -201,5 +211,39 @@ class Program
 
 		Console.WriteLine($"✓ Created {categories.Count} categories");
 	}
-	
+
+	static async Task CreateUserCategories(List<User> users)
+	{
+		var categoryCollection = _database.GetCollection<Category>("Category");
+		var userCategoryCollection = _database.GetCollection<UserCategory>("UserCategory");
+		await userCategoryCollection.DeleteManyAsync(FilterDefinition<UserCategory>.Empty);
+
+		var predefinedCategories = await categoryCollection.Find(FilterDefinition<Category>.Empty).ToListAsync();
+
+		var userCategories = new List<UserCategory>();
+		foreach (var user in users)
+		{
+			foreach (var category in predefinedCategories)
+			{
+				userCategories.Add(new UserCategory
+				{
+					UserId = user.Id,
+					ParentId = null,
+					CategoryId = category.Id,
+					Name = category.Name,
+					Color = category.Color,
+					Icon = category.Icon,
+					MerchantCount = 0,
+				});
+			}
+		}
+
+		if (userCategories.Any())
+		{
+			await userCategoryCollection.InsertManyAsync(userCategories);
+		}
+
+		Console.WriteLine($"✓ Created {userCategories.Count} user categories");
+	}
+
 }

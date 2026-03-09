@@ -45,7 +45,8 @@ public class PlaidService(
 			language = requestContextViewModel.Language,
 			user = new {client_user_id = requestContextViewModel.UserId},
 			products = new[] {"transactions"},
-			redirect_uri = plaidSettings.RedirectUrl
+			redirect_uri = plaidSettings.RedirectUrl,
+			webhook= "https://yourdomain.com/plaid/webhook" //TODO url
 		};
 
 		var requestJson = JsonSerializer.Serialize(request);
@@ -109,7 +110,6 @@ public class PlaidService(
 		{
 			AccessToken = exchangePublicTokenResponse.AccessToken,
 			BankId = bank.Id.ToString(),
-			//NewAccountPlaidIds = newAccountIds.Select(p=>p.ToString()).ToList()
 		});
 	}
 	private async Task<List<ObjectId>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)

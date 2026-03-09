@@ -2,6 +2,7 @@
 namespace Spendly.Mobile.BusinessLayer.Services.Finance;
 
 using MongoDB.Bson;
+using Shared.Entities.Banking;
 using Spendly.Mobile.ViewModels.Finance;
 using Spendly.Shared.Core;
 using Spendly.Shared.DataLayer;
@@ -13,6 +14,7 @@ public class BankService(
     IRepository<Bank> bankRepository,
     IRepository<Account> accountRepository,
     IRepository<BankDefinition> bankDefinitionRepository,
+    IRepository<UserPlaidToken> userPlaidTokenRepository, 
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<List<BankListItemViewModel>>> ListAsync(BankListRequestViewModel request)
@@ -269,12 +271,13 @@ public class BankService(
             CardLast4Digits = account.Mask,
         };
     }
-}
 
-public class PlaidAccountInfo
-{
-    public string AccountId { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-}
+    public async Task<(Bank bank, UserPlaidToken userPlaidToken)> GetBankAndUserPlaidTokenWithItemId(string itemId)
+    {
+        var userPlaidToken = await userPlaidTokenRepository.GetRequiredAsync(p => p.ItemId == itemId);
 
+        var bank =await  bankRepository.GetRequiredAsync(p => p.UserPlaidTokenId == userPlaidToken.Id);
+
+        return (bank, userPlaidToken);
+    }
+}

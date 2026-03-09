@@ -22,8 +22,19 @@ public class SharedPlaidService(
 	IRepository<UserMerchant> userMerchantRepository,
 	IRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
 	IRepository<NormalizedTransaction> normalizedTransactionRepository,
+	IRepository<UserCategory> userCategoryRepository,
 	IRepository<RawTransaction> rawTransactionRepository)
 {
+	private readonly string[] _categoriesToIgnoreMerchantGeneration = 
+	{
+		"INCOME",
+		"LOAN_DISBURSEMENTS",
+		"LOAN_PAYMENTS",
+		"TRANSFER_IN",
+		"TRANSFER_OUT",
+		"BANK_FEES"
+	};
+	
 	//TODO burasi sadece ilk hesap banka ve hesap(lart) ekleme flowunda gecerli, var olan bankaya hesap ekleme durumu degerlendirilecek
 	public async Task QueryAndSaveUserTransactionAsync(DateOnly startDate,
 		DateOnly endDate,
@@ -35,6 +46,12 @@ public class SharedPlaidService(
 			startDate,
 			endDate,
 			request.UserId.ToObjectId());
+
+		if (!allTransactionResponses.Any())
+		{
+			//Productlar hazir olmayabiliyor, o durumda webhook bekleniyor, islem tekrar baslatiliyor
+			return;
+		}
 
 		//TODO kayit sirasinda da idempotency check gerkir
 		var rawTransactions = await SaveAllTransactionResponses(allTransactionResponses,
@@ -61,6 +78,14 @@ public class SharedPlaidService(
 			{
 				if (plaidTransaction.Pending)
 				{
+					//Pending transactionlar complete olunca complete olduklari gunun listesinde cikiyor
+					continue;
+				}
+				
+				if (plaidTransaction.Amount<0 &&
+				    (!plaidTransaction.Name.Contains("refund") || plaidTransaction.TransactionType?.Contains("refund") != true))
+				{
+					// - amount para girisi, ignore edilir
 					continue;
 				}
 				if (rawTransaction.PlaidTransactionsGetResponse.Accounts is null)
@@ -78,17 +103,24 @@ public class SharedPlaidService(
 				var account = allAccounts.Single(p=>p.PlaidAccountId == plaidAccount.AccountId);
 
 				Merchant? merchant = null;
-				if (!string.IsNullOrEmpty(plaidTransaction.MerchantEntityId))
+				ObjectId? userCategoryId = null;
+				if (plaidTransaction.PersonalFinanceCategory is null || _categoriesToIgnoreMerchantGeneration.Contains(plaidTransaction.PersonalFinanceCategory.Primary))
 				{
-					merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);
+					//skip merchant generation
+				}
+				else if (!string.IsNullOrEmpty(plaidTransaction.MerchantName))
+				{
+					if (!string.IsNullOrEmpty(plaidTransaction.MerchantEntityId))
+					{
+						merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);	
+					}
 					if (merchant == null)
 					{
-						//TODO category id set edilecek
 						merchant = new Merchant
 						{
-							CategoryId = null, //TODO
+							CategoryId = null, //yeni gelen merchant icin kategoriyi bilemeyiz
 							Name = plaidTransaction.MerchantName!,
-							PlaidId = plaidTransaction.MerchantEntityId!,
+							PlaidId = plaidTransaction.MerchantEntityId,
 						};
 						await merchantRepository.InsertAsync(merchant);
 						allMerchants.Add(merchant);
@@ -96,7 +128,7 @@ public class SharedPlaidService(
 						var userMerchant = new UserMerchant
 						{
 							UserId = userId,
-							UserCategoryId = null, //TODO
+							UserCategoryId = null, //yeni gelen merchant icin kategoriyi bilemeyiz
 							MerchantId = merchant.Id,
 							TotalTransactionAmount = 0,
 							TotalTransactionCount = 0,
@@ -105,13 +137,38 @@ public class SharedPlaidService(
 					}
 					else
 					{
-						//TODO merchant total transaction amount ve count guncellenecek, bunu topluca yapabiliriz
+						if (merchant.CategoryId.HasValue)
+						{
+							var userCategory = await userCategoryRepository.GetAsync(p => p.CategoryId == merchant.CategoryId.Value);
+							userCategoryId = userCategory?.Id;
+						}
+						
+						var userMerchant = await userMerchantRepository.GetAsync(p=>p.UserId == userId && p.MerchantId == merchant.Id);
+						if (userMerchant is null)
+						{
+							userMerchant = new UserMerchant
+							{
+								UserId = userId,
+								UserCategoryId = userCategoryId,
+								MerchantId = merchant.Id,
+								TotalTransactionAmount = plaidTransaction.Amount,
+								TotalTransactionCount = 1,
+							};
+							await userMerchantRepository.InsertAsync(userMerchant);
+						}
+						else
+						{
+							userMerchant.TotalTransactionAmount+=plaidTransaction.Amount;
+							userMerchant.TotalTransactionCount++;
+							if (!userMerchant.UserCategoryId.HasValue)
+							{
+								userMerchant.UserCategoryId = userCategoryId;
+							}
+							await  userMerchantRepository.UpdateAsync(userMerchant);
+						}
 					}
 				}
 				
-				
-				
-				//TODO category Id set et
 				var normalizedTransaction = new NormalizedTransaction
 				{
 					AccountId = account.Id,
@@ -120,7 +177,8 @@ public class SharedPlaidService(
 					MerchantId = merchant?.Id,
 					PlaidTransactionId = plaidTransaction.TransactionId,
 					RawTransactionId = rawTransaction.Id,
-					UserId = userId
+					UserId = userId,
+					UserCategoryId = userCategoryId
 				};
 				normalizedTransactions.Add(normalizedTransaction);
 			}
@@ -231,7 +289,7 @@ public class SharedPlaidService(
 
 			await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
 			{
-				Content = responseContent, // Büyük veri için opsiyonel
+				Content = responseContent.Length>500?responseContent.Substring(0,100):responseContent, // Büyük veri için opsiyonel
 				Type = PlaidCommunicationLogType.GetTransactionsResponse
 			});
 
@@ -242,6 +300,12 @@ public class SharedPlaidService(
 					userId,
 					response.StatusCode,
 					responseContent);
+				
+				var plaidErrorModel = JsonSerializer.Deserialize<PlaidErrorViewModel>(responseContent);
+				if (plaidErrorModel?.ErrorCode == "PRODUCT_NOT_READY")
+				{
+					break;
+				}
 				
 				//webhook
 				//{ "display_message" : null, "documentation_url" : "https://plaid.com/docs/?ref=error#item-errors", "error_code" : "PRODUCT_NOT_READY", "error_message" : "the requested product is not yet ready. please provide a webhook or try the request again later", "error_type" : "ITEM_ERROR", "request_id" : "Lxs5I67kSsOWFZR", "suggested_action" : null }
@@ -263,8 +327,6 @@ public class SharedPlaidService(
 
 	private PlaidTransactionItem MapPlaidTransactionItemFromViewModel(PlaidTransactionItemViewModel viewModel)
 	{
-
-
 		PlaidTransactionError? error = null;
 		if (viewModel.Error != null)
 		{

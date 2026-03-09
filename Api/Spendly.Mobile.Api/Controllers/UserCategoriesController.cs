@@ -11,9 +11,9 @@ using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels;
 
 [ApiController]
-[Route("api/v1/categories")]
+[Route("api/v1/user-categories")]
 [Authorize]
-public class CategoriesController(UserCategoryService userCategoryService) : ControllerBase
+public class UserCategoriesController(UserCategoryService userCategoryService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] CategoryListRequestViewModel request)

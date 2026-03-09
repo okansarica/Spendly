@@ -21,6 +21,11 @@ public class UserCategory : BaseEntity
 {
     public ObjectId UserId { get; set; }
     public ObjectId? ParentId { get; set; }
+    
+    /// <summary>
+    /// Kullanicilar ilk uye olduklarinda predefined categoriler kullaniciya kopyalanir, sonrasinda kullanici istedigi gibi degistirebilir. Eger kullanici degistirmemisse CategoryId si dolu kalir, bu da bize user merchantlar olustururken hangi kategoriye bagli olduklarini bulmakta kolaylik yaratir
+    /// </summary>
+    public ObjectId? CategoryId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Color { get; set; }
     public string? Icon { get; set; }

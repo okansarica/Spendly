@@ -14,6 +14,9 @@ public class Merchant : BaseEntity
     public ObjectId? CategoryId { get; set; }
     public string Name { get; set; } = string.Empty;
     
+    /// <summary>
+    /// Sadece isim dolu id bos gelebiliyor plaidden
+    /// </summary>
     public string? PlaidId { get; set; }
     public string? LogoUrl { get; set; }
 }

@@ -2,6 +2,7 @@ namespace Spendly.Mobile.Api.Controllers;
 
 using BusinessLayer.Services.Plaid;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Core;
 using Shared.ViewModels.Plaid;
@@ -15,9 +16,13 @@ using ViewModels.Plaid;
 [Authorize]
 public class PlaidController(
     PlaidService plaidService,
+    BankService bankService,
+    IDataProtectionProvider dataProtectionProvider,
     PlaidDataProcessingChannel plaidDataProcessingChannel) : ControllerBase
 {
-
+    private readonly IDataProtector _protector =
+        dataProtectionProvider.CreateProtector("UserPlaidTokenProtector");
+    
     [HttpPost("create-link-token")]
     public async Task<IActionResult> CreateLinkToken()
     {
@@ -40,6 +45,35 @@ public class PlaidController(
             UserId = User.Identity!.Name!,
             AccessToken = completeResponse.Data!.AccessToken,
             BankId = completeResponse.Data!.BankId,
+            //NewAccountIds = completeResponse.Data!.NewAccountPlaidIds
+        });
+        
+        return Ok();
+    }
+
+    [HttpPost("webhook/historical-update")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HistoricalUpdate([FromBody] HistoricalUpdateWebhookViewModel request)
+    {
+        //TODO idempotency
+        //TODO verify webhook
+        //TODO check type etc
+        if (request.WebhookType!="HISTORICAL_UPDATE")
+        {
+            return Ok();
+        }
+        
+        //TODO kaydet
+        
+        var response = await bankService.GetBankAndUserPlaidTokenWithItemId(request.ItemId);
+        
+        var accessToken = _protector.Unprotect(response.userPlaidToken.EncryptedAccessToken);
+        
+        await plaidDataProcessingChannel.EnqueueAsync(new PlaidDataProcessingBackgroundServiceRequestViewModel
+        {
+            UserId = response.bank.UserId.ToString(),
+            AccessToken = accessToken,
+            BankId = response.bank.Id.ToString(),
             //NewAccountIds = completeResponse.Data!.NewAccountPlaidIds
         });
         
