@@ -29,6 +29,7 @@ public class SharedPlaidService(
 	IRepository<DailyAccountExpense> dailyAccountExpenseRepository,
 	IRepository<DailyCategoryExpense> dailyCategoryExpenseRepository,
 	IRepository<DailyCategoryAccountExpense> dailyCategoryAccountExpenseRepository,
+	IRepository<Category> categoryRepository,
 	IRepository<MonthlyUserExpense> monthlyUserExpenseRepository,
 	IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
 	IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository)
@@ -89,6 +90,7 @@ public class SharedPlaidService(
 		await CreateDailyAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap);
 		await CreateDailyCategoryExpenses(normalizedTransactions, userId);
 		await CreateDailyCategoryAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap);
+		
 		await CreateMonthlyUserExpenses(normalizedTransactions, userId);
 		await CreateMonthlyCategoryExpenses(normalizedTransactions);
 		await CreateMonthlyMerchantExpenses(normalizedTransactions);
@@ -135,12 +137,11 @@ public class SharedPlaidService(
 	private async Task CreateDailyCategoryExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
 	{
 		var groupedData = normalizedTransactions
-			.Where(p => p.UserCategoryId.HasValue)
 			.GroupBy(p => new { p.UserCategoryId, Date = p.DateTime.Date })
 			.Select(g => new DailyCategoryExpense
 			{
 				UserId = userId,
-				CategoryId = g.Key.UserCategoryId!.Value,
+				CategoryId = g.Key.UserCategoryId,
 				DateTime = g.Key.Date,
 				TotalAmount = g.Sum(t => t.Amount)
 			})
@@ -155,14 +156,13 @@ public class SharedPlaidService(
 	private async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId, Dictionary<ObjectId, ObjectId> accountIdToBankIdMap)
 	{
 		var groupedData = normalizedTransactions
-			.Where(p => p.UserCategoryId.HasValue)
 			.GroupBy(p => new { p.UserCategoryId, p.AccountId, Date = p.DateTime.Date })
 			.Select(g => new DailyCategoryAccountExpense
 			{
 				UserId = userId,
 				Date = g.Key.Date,
 				BankId = accountIdToBankIdMap[g.Key.AccountId],
-				CategoryId = g.Key.UserCategoryId!.Value,
+				CategoryId = g.Key.UserCategoryId,
 				AccountId = g.Key.AccountId,
 				TotalAmount = g.Sum(t => t.Amount)
 			})
@@ -196,11 +196,10 @@ public class SharedPlaidService(
 	private async Task CreateMonthlyCategoryExpenses(List<NormalizedTransaction> normalizedTransactions)
 	{
 		var groupedData = normalizedTransactions
-			.Where(p => p.UserCategoryId.HasValue)
 			.GroupBy(p => new { p.UserCategoryId, p.DateTime.Year, p.DateTime.Month })
 			.Select(g => new CategoryMonthlyExpense
 			{
-				CategoryId = g.Key.UserCategoryId!.Value,
+				CategoryId = g.Key.UserCategoryId,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
 				TransactionCount = g.Count(),
@@ -217,11 +216,10 @@ public class SharedPlaidService(
 	private async Task CreateMonthlyMerchantExpenses(List<NormalizedTransaction> normalizedTransactions)
 	{
 		var groupedData = normalizedTransactions
-			.Where(p => p.MerchantId.HasValue)
 			.GroupBy(p => new { p.MerchantId, p.DateTime.Year, p.DateTime.Month })
 			.Select(g => new MerchantMonthlyExpense
 			{
-				MerchantId = g.Key.MerchantId!.Value,
+				MerchantId = g.Key.MerchantId,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
 				TransactionCount = g.Count(),
@@ -253,15 +251,17 @@ public class SharedPlaidService(
 				}
 				
 				if (plaidTransaction.Amount<0 &&
-				    (!plaidTransaction.Name.Contains("refund") || plaidTransaction.TransactionType?.Contains("refund") != true))
+				    (!plaidTransaction.Name.Contains("refund", StringComparison.OrdinalIgnoreCase) || plaidTransaction.TransactionType?.Contains("refund", StringComparison.OrdinalIgnoreCase) != true))
 				{
 					// - amount para girisi, ignore edilir
 					continue;
 				}
+				
 				if (rawTransaction.PlaidTransactionsGetResponse.Accounts is null)
 				{
 					throw new Exception($"Account list is null. RawTransactionId: {rawTransaction.Id}");
 				}
+				
 				if (string.IsNullOrEmpty(plaidTransaction.AccountId))
 				{
 					//TODO alarm email
@@ -272,23 +272,29 @@ public class SharedPlaidService(
 				
 				var account = allAccounts.Single(p=>p.PlaidAccountId == plaidAccount.AccountId);
 
-				Merchant? merchant = null;
-				ObjectId? userCategoryId = null;
+				var otherUserMerchant = await userMerchantRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther);
+				var otherUserCategory = await userCategoryRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther);
+				var otherCategory = await categoryRepository.GetRequiredAsync(p => p.IsOther);
+
+				var merchantId = allMerchants.Single(p => p.IsOther).Id;
+				var userCategoryId = otherUserCategory.Id;
+				var userMerchantId = otherUserMerchant.Id;
 				if (plaidTransaction.PersonalFinanceCategory is null || _categoriesToIgnoreMerchantGeneration.Contains(plaidTransaction.PersonalFinanceCategory.Primary))
 				{
-					//skip merchant generation
+					//skip merchant generation, connect transaction to other merchant
 				}
 				else if (!string.IsNullOrEmpty(plaidTransaction.MerchantName))
 				{
+					Merchant? merchant = null;
 					if (!string.IsNullOrEmpty(plaidTransaction.MerchantEntityId))
 					{
-						merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);	
+						merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);
 					}
 					if (merchant == null)
 					{
 						merchant = new Merchant
 						{
-							CategoryId = null, //yeni gelen merchant icin kategoriyi bilemeyiz
+							CategoryId = otherUserCategory.Id,
 							Name = plaidTransaction.MerchantName!,
 							PlaidId = plaidTransaction.MerchantEntityId,
 						};
@@ -298,19 +304,23 @@ public class SharedPlaidService(
 						var userMerchant = new UserMerchant
 						{
 							UserId = userId,
-							UserCategoryId = null, //yeni gelen merchant icin kategoriyi bilemeyiz
+							UserCategoryId = otherUserCategory.Id,
 							MerchantId = merchant.Id,
 							TotalTransactionAmount = 0,
 							TotalTransactionCount = 0,
 						};
 						await userMerchantRepository.InsertAsync(userMerchant);
+						userMerchantId = userMerchant.Id;
 					}
 					else
 					{
 						if (merchant.CategoryId.HasValue)
 						{
 							var userCategory = await userCategoryRepository.GetAsync(p => p.CategoryId == merchant.CategoryId.Value);
-							userCategoryId = userCategory?.Id;
+							if (userCategory != null)
+							{
+								userCategoryId = userCategory.Id;
+							}
 						}
 						
 						var userMerchant = await userMerchantRepository.GetAsync(p=>p.UserId == userId && p.MerchantId == merchant.Id);
@@ -325,6 +335,7 @@ public class SharedPlaidService(
 								TotalTransactionCount = 1,
 							};
 							await userMerchantRepository.InsertAsync(userMerchant);
+							userMerchantId = userMerchant.Id;
 						}
 						else
 						{
@@ -335,6 +346,7 @@ public class SharedPlaidService(
 								userMerchant.UserCategoryId = userCategoryId;
 							}
 							await  userMerchantRepository.UpdateAsync(userMerchant);
+							userMerchantId = userMerchant.Id;
 						}
 					}
 				}
@@ -344,7 +356,8 @@ public class SharedPlaidService(
 					AccountId = account.Id,
 					Amount = plaidTransaction.Amount,
 					DateTime = plaidTransaction.DateTime ?? plaidTransaction.Date.ToDateTime(TimeOnly.MinValue),
-					MerchantId = merchant?.Id,
+					MerchantId = merchantId,
+					UserMerchantId = userMerchantId,
 					PlaidTransactionId = plaidTransaction.TransactionId,
 					RawTransactionId = rawTransaction.Id,
 					UserId = userId,

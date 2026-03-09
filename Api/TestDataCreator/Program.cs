@@ -48,8 +48,9 @@ class Program
 
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
-		await CreateCategories(users);
-		await CreateUserCategories(users);
+		var allCategories = await CreateCategories(users);
+	var userCategories = 	await CreateUserCategories(users);
+		await CreateMerchants(allCategories.Single(p => p.IsOther).Id,users, userCategories);
 	}
 
 
@@ -173,7 +174,7 @@ class Program
 		Console.WriteLine($"✓ Created {subscriptions.Count} trial subscriptions");
 	}
 
-	static async Task CreateCategories(List<User> users)
+	static async Task<List<Category>> CreateCategories(List<User> users)
 	{
 		var collection = _database.GetCollection<Category>("Category");
 		await collection.DeleteManyAsync(FilterDefinition<Category>.Empty);
@@ -192,7 +193,6 @@ class Program
 			new {Name = "Other", Color = "#98D8C8", Icon = "💡"},
 		};
 
-
 		foreach (var data in categoryData)
 		{
 			categories.Add(new Category
@@ -201,7 +201,8 @@ class Program
 				Name = data.Name,
 				Color = data.Color,
 				Icon = null,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
+				IsOther = data.Name == "Other"
 			});
 		}
 
@@ -212,9 +213,11 @@ class Program
 		}
 
 		Console.WriteLine($"✓ Created {categories.Count} categories");
+
+		return categories;
 	}
 
-	static async Task CreateUserCategories(List<User> users)
+	static async Task<List<UserCategory>> CreateUserCategories(List<User> users)
 	{
 		var categoryCollection = _database.GetCollection<Category>("Category");
 		var userCategoryCollection = _database.GetCollection<UserCategory>("UserCategory");
@@ -236,6 +239,7 @@ class Program
 					Color = category.Color,
 					Icon = category.Icon,
 					MerchantCount = 0,
+					IsOther = category.IsOther
 				});
 			}
 		}
@@ -246,6 +250,45 @@ class Program
 		}
 
 		Console.WriteLine($"✓ Created {userCategories.Count} user categories");
+
+		return userCategories;
+	}
+
+	static async Task CreateMerchants(ObjectId otherCategoryId, List<User> users, List<UserCategory> userCategories)
+	{
+		var collection = _database.GetCollection<Merchant>("Merchant");
+		await collection.DeleteManyAsync(FilterDefinition<Merchant>.Empty);
+
+		var merchants = new List<Merchant>
+		{
+			new Merchant
+			{
+				Id = ObjectId.GenerateNewId(),
+				Name = "Other",
+				IsOther = true,
+				CreatedAt = DateTime.UtcNow,
+				CategoryId = otherCategoryId
+			}
+		};
+		await collection.InsertManyAsync(merchants);
+		
+		var userMerchantsCollection = _database.GetCollection<UserMerchant>("UserMerchant");
+		await userMerchantsCollection.DeleteManyAsync(FilterDefinition<UserMerchant>.Empty);
+
+		foreach (var user in users)
+		{
+			await userMerchantsCollection.InsertManyAsync([new UserMerchant
+			{
+				IsOther = true,
+				MerchantId = merchants[0].Id,
+				TotalTransactionAmount = 0,
+				TotalTransactionCount = 0,
+				UserCategoryId = userCategories.Single(p=>p.UserId == user.Id && p.IsOther).Id,
+				UserId = user.Id
+			}]);	
+		}
+		
+		Console.WriteLine($"✓ Created {merchants.Count} merchants");
 	}
 
 }

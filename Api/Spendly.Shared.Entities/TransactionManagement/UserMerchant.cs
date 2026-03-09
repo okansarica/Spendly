@@ -19,6 +19,11 @@ public class Merchant : BaseEntity
     /// </summary>
     public string? PlaidId { get; set; }
     public string? LogoUrl { get; set; }
+    
+    /// <summary>
+    /// Merchanti olmayan transactionlar buraya baglanir
+    /// </summary>
+    public bool IsOther { get; set; }
 }
 
 /// <summary>
@@ -32,4 +37,5 @@ public class UserMerchant : BaseEntity
     public string? Nickname { get; set; }
     public int TotalTransactionCount { get; set; }
     public decimal TotalTransactionAmount { get; set; }
+    public bool IsOther { get; set; }
 }

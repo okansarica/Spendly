@@ -160,7 +160,7 @@ public class HomepageService(
 				return new SpendingByAccountViewModel
 				{
 					AccountId = g.AccountId.ToString(),
-					AccountName = account!.NickName?? account.Name,
+					AccountName = account!.NickName ?? account.Name,
 					Amount = g.Amount,
 					PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
 				};
@@ -258,7 +258,7 @@ public class HomepageService(
 		var normalizedTransactions = await transactionRepository.ListAsync(p => p.UserId == userId, sort, 10);
 
 		var accountIds = normalizedTransactions.Select(t => t.AccountId).Distinct().ToList();
-		var userCategoryIds = normalizedTransactions.Where(t => t.UserCategoryId.HasValue).Select(t => t.UserCategoryId!.Value).Distinct().ToList();
+		var userCategoryIds = normalizedTransactions.Select(t => t.UserCategoryId).Distinct().ToList();
 		var merchantIds = normalizedTransactions.Select(t => t.MerchantId).Distinct().ToList();
 
 		var accounts = await accountRepository.ListAsync(
@@ -269,43 +269,44 @@ public class HomepageService(
 			Builders<UserCategory>.Filter.In(x => x.Id, userCategoryIds)
 		);
 
-		var allMerchantdIds = normalizedTransactions.Where(p => p.MerchantId.HasValue).Select(p => p.MerchantId!.Value).Distinct().ToList();
+		var allMerchantdIds = normalizedTransactions.Select(p => p.MerchantId).Distinct().ToList();
 
 		var allMerchants = await merchantRepository.ListDictionaryAsync(allMerchantdIds);
 
-		var userMerchantsDictionary = await userMerchantRepository.ListDictionaryAsync(allMerchantdIds, p => p.MerchantId);
+		var allUserMerchants = await userMerchantRepository.ListAsync(p=>p.UserId == userId && allMerchantdIds.Contains(p.MerchantId));
 
-		return normalizedTransactions.Select(transaction =>
+		var result = new List<LatestExpenseViewModel>();
+
+		foreach (var transaction in normalizedTransactions)
+		{
+			var account = accounts.FirstOrDefault(a => a.Id == transaction.AccountId);
+			var userCategory = userCategories.FirstOrDefault(c => c.Id == transaction.UserCategoryId);
+
+			string? merchantName;
+
+			var userMerchant = allUserMerchants.Single(p=>p.MerchantId == transaction.MerchantId);
+			if (string.IsNullOrEmpty(userMerchant.Nickname))
 			{
-				var account = accounts.FirstOrDefault(a => a.Id == transaction.AccountId);
-				var userCategory = transaction.UserCategoryId.HasValue ? userCategories.FirstOrDefault(c => c.Id == transaction.UserCategoryId.Value) : null;
+				merchantName = allMerchants[transaction.MerchantId].Name;
+			}
+			else
+			{
+				merchantName = userMerchant.Nickname;
+			}
 
-				string? merchantName = null;
-				if (transaction.MerchantId.HasValue)
-				{
-					var userMerchant = userMerchantsDictionary[transaction.MerchantId.Value].Single();
-					if (string.IsNullOrEmpty(userMerchant.Nickname))
-					{
-						merchantName = allMerchants[transaction.MerchantId.Value].Name;
-					}
-					else
-					{
-						merchantName = userMerchant.Nickname;
-					}
-				}
+			result.Add(new LatestExpenseViewModel
+			{
+				TransactionId = transaction.Id.ToString(),
+				Date = transaction.DateTime,
+				Amount = transaction.Amount,
+				CategoryName = userCategory?.Name ?? "",
+				MerchantName = merchantName,
+				AccountName = account!.NickName ?? account.Name,
+				TransactionName = transaction.TransactionName
+			});
+		}
 
-				return new LatestExpenseViewModel
-				{
-					TransactionId = transaction.Id.ToString(),
-					Date = transaction.DateTime,
-					Amount = transaction.Amount,
-					CategoryName = userCategory?.Name ?? "",
-					MerchantName = merchantName,
-					AccountName = account!.NickName?? account.Name,
-					TransactionName = transaction.TransactionName
-				};
-			})
-			.ToList();
+		return result;
 	}
 
 	private async Task<WeeklySnapshotViewModel> GetWeeklySnapshotAsync(ObjectId userId, DateTime now)
@@ -390,7 +391,7 @@ public class HomepageService(
 
 		return new MostUsedAccountViewModel
 		{
-			AccountName = account!.NickName?? account.Name,
+			AccountName = account!.NickName ?? account.Name,
 			PercentageShare = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
 		};
 	}
@@ -410,21 +411,20 @@ public class HomepageService(
 			};
 		}
 
-		string? merchantName = null;
-		if (transaction.MerchantId.HasValue)
-		{
-			var userMerchant = await userMerchantRepository.GetRequiredAsync(p => p.MerchantId == transaction.MerchantId.Value);
-			if (string.IsNullOrEmpty(userMerchant.Nickname))
-			{
-				var merchant = await merchantRepository.GetRequiredAsync(transaction.MerchantId.Value);
-				merchantName = merchant.Name;
-			}
-			else
-			{
-				merchantName = userMerchant.Nickname;
-			}
+		string? merchantName;
 
+		var userMerchant = await userMerchantRepository.GetRequiredAsync(p => p.MerchantId == transaction.MerchantId);
+		if (string.IsNullOrEmpty(userMerchant.Nickname))
+		{
+			var merchant = await merchantRepository.GetRequiredAsync(transaction.MerchantId);
+			merchantName = merchant.Name;
 		}
+		else
+		{
+			merchantName = userMerchant.Nickname;
+		}
+
+
 		return new HighestSingleExpenseViewModel
 		{
 			MerchantName = merchantName,

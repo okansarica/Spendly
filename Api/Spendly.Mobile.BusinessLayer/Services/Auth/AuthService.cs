@@ -295,6 +295,8 @@ public class AuthService(
 			LanguageCode = user.LanguageCode,
 			SubscriptionEndDateTime = subscriptionEndDate
 		});
+		
+		//TODO cateegory, merchant kaydi eklenecek, isOther
 	}
 
 	public async Task<FunctionResponse<AuthResponseViewModel>> RefreshAccessTokenAsync(RefreshTokenRequestViewModel request)

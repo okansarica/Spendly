@@ -8,19 +8,22 @@ public class NormalizedTransaction : BaseEntity
     public ObjectId RawTransactionId { get; set; }
     public ObjectId UserId { get; set; }
     public ObjectId AccountId { get; set; }
-    public ObjectId? UserCategoryId { get; set; } //TODO neden ihtiyac var zaten merchantta category var
     
     /// <summary>
-    /// Merchant id can be null when
-    /// Transfer, deposit, withdrawal
-    ///  Manual transactions / corrections
-    /// Investment veya loan account transaction
-    /// Unrecognized / unknown merchant
+    /// Belirlenemezse other category kullnilir
     /// </summary>
-    public ObjectId? MerchantId { get; set; }
+    public ObjectId UserCategoryId { get; set; } 
     
-    //TODO user mercahtn id ye ihtiyac var mi?
-
+    /// <summary>
+    /// Belirlenemezse other merchant kullanilir
+    /// </summary>
+    public ObjectId MerchantId { get; set; }
+    
+    /// <summary>
+    /// Belirlenemezse User other merchant kulanilir
+    /// </summary>
+    public ObjectId UserMerchantId { get; set; }
+    
     public string PlaidTransactionId { get; set; } = string.Empty;
     public DateTime DateTime { get; set; }
     public decimal Amount { get; set; }
