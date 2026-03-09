@@ -39,3 +39,13 @@ public class UserMerchant : BaseEntity
     public decimal TotalTransactionAmount { get; set; }
     public bool IsOther { get; set; }
 }
+
+/// <summary>
+/// Bu 1 kere insert edilir, transactionlar cekerken merchantlarin kategorilerini atamak amacli kullanilir
+/// </summary>
+public class PredefinedMerchant:BaseEntity
+{
+    public ObjectId CategoryId { get; set; }
+    public string Name { get; set; }
+    public string? PlaidId { get; set; }
+}

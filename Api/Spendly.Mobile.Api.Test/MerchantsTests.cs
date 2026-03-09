@@ -19,23 +19,40 @@ public class MerchantsTests(TestFixture fixture) : IClassFixture<TestFixture>
 
         var merchantsClient = fixture.MerchantsClient;
 
-        var merchantRepository = fixture.Factory.Services.GetRequiredService<IRepository<UserMerchant>>();
+        var merchantRepo = fixture.Factory.Services.GetRequiredService<IRepository<Merchant>>();
+        var userMerchantRepo = fixture.Factory.Services.GetRequiredService<IRepository<UserMerchant>>();
 
-        var merchant = new UserMerchant { UserId = ObjectId.Parse(verifiedUser.UserId)}; //TODO fix
-        await merchantRepository.InsertAsync(merchant);
+        var predefined = new Merchant { Name = "Predef Merchant", IsOther = false };
+        await merchantRepo.InsertAsync(predefined);
+
+        var userMerchant = new UserMerchant { UserId = ObjectId.Parse(verifiedUser.UserId), MerchantId = predefined.Id, Nickname = null, IsOther = false };
+        await userMerchantRepo.InsertAsync(userMerchant);
 
         var list = await merchantsClient.ListAsync();
-        list.Should().ContainSingle(x => x.Id == merchant.Id.ToString());
+        list.Should().ContainSingle(x => x.Id == userMerchant.Id.ToString());
 
         var updateRequest = new MerchantUpdateRequestViewModel { Nickname = "Nick", CategoryId = null };
-        var updated = await merchantsClient.UpdateAsync(merchant.Id.ToString(), updateRequest);
+        var updated = await merchantsClient.UpdateAsync(userMerchant.Id.ToString(), updateRequest);
         updated.Should().NotBeNull();
         updated.Nickname.Should().Be("Nick");
 
-        var deleted = await merchantsClient.DeleteAsync(merchant.Id.ToString());
+        // Ensure underlying predefined merchant name did not change
+        var reloadedPredefined = await merchantRepo.GetAsync(predefined.Id.ToString());
+        reloadedPredefined.Name.Should().Be("Predef Merchant");
+
+        // Cannot update when IsOther == true
+        var otherPredefined = new Merchant { Name = "Other", IsOther = true };
+        await merchantRepo.InsertAsync(otherPredefined);
+        var otherUserMerchant = new UserMerchant { UserId = ObjectId.Parse(verifiedUser.UserId), MerchantId = otherPredefined.Id, IsOther = true };
+        await userMerchantRepo.InsertAsync(otherUserMerchant);
+
+        var failUpdate = async () => await merchantsClient.UpdateAsync(otherUserMerchant.Id.ToString(), updateRequest);
+        await failUpdate.Should().ThrowAsync<Exception>();
+
+        var deleted = await merchantsClient.DeleteAsync(userMerchant.Id.ToString());
         deleted.Should().BeTrue();
 
         var listAfterDelete = await merchantsClient.ListAsync();
-        listAfterDelete.Should().NotContain(x => x.Id == merchant.Id.ToString());
+        listAfterDelete.Should().NotContain(x => x.Id == userMerchant.Id.ToString());
     }
 }

@@ -44,14 +44,50 @@ class Program
 
 	static async Task GenerateTestData()
 	{
-
-
 		var users = await CreateUsers();
 		await CreateUserSubscriptions(users);
 		var allCategories = await CreateCategories(users);
-	var userCategories = 	await CreateUserCategories(users);
-		await CreateMerchants(allCategories.Single(p => p.IsOther).Id,users, userCategories);
+		await CreatePreDefinedMerchants(allCategories); 
+		var userCategories = await CreateUserCategories(users);
+		await CreateMerchants(allCategories.Single(p => p.IsOther).Id, users, userCategories);
 	}
+	private async static Task CreatePreDefinedMerchants(List<Category> allCategories)
+	{
+		var collection = _database.GetCollection<PredefinedMerchant>("PredefinedMerchant");
+
+		var merchantNames = new[]
+		{
+			"Adidas","Aldi","Alfies Fish & Chips","Am 2 Pm Convenience Store","Amazon Prime Video","And Customs",
+			"Blue Planet Aquarium","Brighouse Swimming Pool & Fitness Centre","Budget Insurance","Bupa","Burberry",
+			"Ceramic Tile Company","Diamond Insurance","Elemis Spa","First Direct Arena","Five Rivers Coffee Company",
+			"Flixbus","H&M","Harrods","HelloFresh","Home Bargains","Homeserve","King Street Brew House",
+			"Kingshill Cars","Manchester Arena","Microsoft","Nail Co","Nando's","Netflix","Nottinghill Pharmacy",
+			"Park Veterinary Centre","Pets And Claws Pet Insurance","Planet Spice","Pokerstars","Pret A Manger",
+			"Primark","Rookery Mini Market","Royal Mail","Sainsbury's","Shop","Sky","Sports","Spotify",
+			"Star Food And Wine","Starbucks","Takeway","Tesco","The Zoological Society of London","Trainline"
+		};
+
+		var rand = new Random();
+		var merchants = new List<PredefinedMerchant>();
+		foreach (var name in merchantNames)
+		{
+			var category = allCategories[rand.Next(allCategories.Count)];
+			merchants.Add(new PredefinedMerchant
+			{
+				Name = name,
+				CategoryId = category.Id,
+				PlaidId = null
+			});
+		}
+
+		if (merchants.Any())
+		{
+			await collection.InsertManyAsync(merchants);
+		}
+
+		Console.WriteLine($"✓ Created {merchants.Count} predefined merchants");
+	}
+
 
 
 	static async Task<List<User>> CreateUsers()
@@ -257,37 +293,43 @@ class Program
 	static async Task CreateMerchants(ObjectId otherCategoryId, List<User> users, List<UserCategory> userCategories)
 	{
 		var collection = _database.GetCollection<Merchant>("Merchant");
-		await collection.DeleteManyAsync(FilterDefinition<Merchant>.Empty);
 
-		var merchants = new List<Merchant>
+		// Ensure the special 'Other' merchant exists instead of wiping the collection
+		var otherMerchant = await collection.Find(m => m.IsOther).FirstOrDefaultAsync();
+		if (otherMerchant == null)
 		{
-			new Merchant
+			otherMerchant = new Merchant
 			{
 				Id = ObjectId.GenerateNewId(),
 				Name = "Other",
 				IsOther = true,
 				CreatedAt = DateTime.UtcNow,
 				CategoryId = otherCategoryId
-			}
-		};
-		await collection.InsertManyAsync(merchants);
-		
+			};
+			await collection.InsertOneAsync(otherMerchant);
+		}
+
+		var merchants = new List<Merchant> { otherMerchant };
+
 		var userMerchantsCollection = _database.GetCollection<UserMerchant>("UserMerchant");
 		await userMerchantsCollection.DeleteManyAsync(FilterDefinition<UserMerchant>.Empty);
 
 		foreach (var user in users)
 		{
-			await userMerchantsCollection.InsertManyAsync([new UserMerchant
+			await userMerchantsCollection.InsertManyAsync(new[]
 			{
-				IsOther = true,
-				MerchantId = merchants[0].Id,
-				TotalTransactionAmount = 0,
-				TotalTransactionCount = 0,
-				UserCategoryId = userCategories.Single(p=>p.UserId == user.Id && p.IsOther).Id,
-				UserId = user.Id
-			}]);	
+				new UserMerchant
+				{
+					IsOther = true,
+					MerchantId = otherMerchant.Id,
+					TotalTransactionAmount = 0,
+					TotalTransactionCount = 0,
+					UserCategoryId = userCategories.Single(p => p.UserId == user.Id && p.IsOther).Id,
+					UserId = user.Id
+				}
+			});
 		}
-		
+
 		Console.WriteLine($"✓ Created {merchants.Count} merchants");
 	}
 

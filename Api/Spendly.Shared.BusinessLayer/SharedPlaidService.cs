@@ -32,6 +32,7 @@ public class SharedPlaidService(
 	IRepository<Category> categoryRepository,
 	IRepository<MonthlyUserExpense> monthlyUserExpenseRepository,
 	IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
+	IRepository<PredefinedMerchant> predefinedMerchantRepository,
 	IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository)
 {
 	private readonly string[] _categoriesToIgnoreMerchantGeneration = 
@@ -271,6 +272,7 @@ public class SharedPlaidService(
 				var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Accounts.Single(p => p.AccountId == plaidTransaction.AccountId);
 				
 				var account = allAccounts.Single(p=>p.PlaidAccountId == plaidAccount.AccountId);
+				var allPredefinedMerchants = await predefinedMerchantRepository.ListAsync(filter:null);
 
 				var otherUserMerchant = await userMerchantRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther);
 				var otherUserCategory = await userCategoryRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther);
@@ -285,16 +287,32 @@ public class SharedPlaidService(
 				}
 				else if (!string.IsNullOrEmpty(plaidTransaction.MerchantName))
 				{
+					PredefinedMerchant? predefinedMerchant = null;
+					
 					Merchant? merchant = null;
 					if (!string.IsNullOrEmpty(plaidTransaction.MerchantEntityId))
 					{
 						merchant = allMerchants.SingleOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);
+						
+						predefinedMerchant = allPredefinedMerchants.FirstOrDefault(p=>p.PlaidId == plaidTransaction.MerchantEntityId);
+						if (predefinedMerchant == null)
+						{
+							predefinedMerchant = allPredefinedMerchants
+								.FirstOrDefault(p =>
+									string.Equals(p.Name.Trim(), plaidTransaction.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+						}
+					}
+					else
+					{
+						predefinedMerchant = allPredefinedMerchants
+							.FirstOrDefault(p =>
+								string.Equals(p.Name.Trim(), plaidTransaction.Name.Trim(), StringComparison.OrdinalIgnoreCase));
 					}
 					if (merchant == null)
 					{
 						merchant = new Merchant
 						{
-							CategoryId = otherUserCategory.Id,
+							CategoryId = predefinedMerchant?.CategoryId ?? otherCategory.Id,
 							Name = plaidTransaction.MerchantName!,
 							PlaidId = plaidTransaction.MerchantEntityId,
 						};
@@ -304,7 +322,7 @@ public class SharedPlaidService(
 						var userMerchant = new UserMerchant
 						{
 							UserId = userId,
-							UserCategoryId = otherUserCategory.Id,
+							UserCategoryId = predefinedMerchant?.CategoryId?? otherUserCategory.Id,
 							MerchantId = merchant.Id,
 							TotalTransactionAmount = 0,
 							TotalTransactionCount = 0,
@@ -316,7 +334,7 @@ public class SharedPlaidService(
 					{
 						if (merchant.CategoryId.HasValue)
 						{
-							var userCategory = await userCategoryRepository.GetAsync(p => p.CategoryId == merchant.CategoryId.Value);
+							var userCategory = await userCategoryRepository.GetAsync(p => p.CategoryId == merchant.CategoryId.Value && p.UserId == userId);
 							if (userCategory != null)
 							{
 								userCategoryId = userCategory.Id;
