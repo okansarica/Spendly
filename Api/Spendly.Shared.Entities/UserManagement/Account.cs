@@ -24,6 +24,7 @@ public class Account : BaseEntity,ISoftDeletable
     public DateTime? DeletedAt { get; set; }
     
     public DateTime? ConnectionDateTime { get; set; }
+    public string Subtype { get; set; } =  string.Empty;
 }
 
 

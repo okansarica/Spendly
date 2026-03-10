@@ -38,9 +38,7 @@ public class PlaidService(
 	public async Task<string> CreateLinkTokenAsync(CreateLinkTokenRequestViewModel? createLinkTokenRequestViewModel)
 	{
 		var mode = createLinkTokenRequestViewModel?.Mode ?? PlaidFlowMode.Create;
-		var accessToken = mode == PlaidFlowMode.Update
-			? await GetUpdateModeAccessToken(createLinkTokenRequestViewModel)
-			: null;
+		var accessToken = mode == PlaidFlowMode.Update ? await GetUpdateModeAccessToken(createLinkTokenRequestViewModel) : null;
 
 		//TODO make it strongly typed
 		var request = new
@@ -54,10 +52,8 @@ public class PlaidService(
 			products = new[] {"transactions"},
 			redirect_uri = plaidSettings.RedirectUrl,
 			access_token = accessToken,
-			update = mode == PlaidFlowMode.Update
-				? new { account_selection_enabled = true }
-				: null,
-			webhook= "https://yourdomain.com/plaid/webhook" //TODO url
+			update = mode == PlaidFlowMode.Update ? new {account_selection_enabled = true} : null,
+			webhook = "https://yourdomain.com/plaid/webhook" //TODO url
 		};
 
 		var requestJson = JsonSerializer.Serialize(request);
@@ -109,20 +105,24 @@ public class PlaidService(
 			return await CompleteIntegrationForUpdateMode(completeIntegrationRequestViewModel);
 		}
 
-		var existingBank =  await bankRepository.GetAsync(p => p.UserId == requestContextViewModel.UserId.ToObjectId() &&p.PlaidInstitutionId == completeIntegrationRequestViewModel.Institution.Id);
+		var existingBank = await bankRepository.GetIncludingSoftDeletedAsync(p =>
+			p.UserId == requestContextViewModel.UserId.ToObjectId() && p.PlaidInstitutionId == completeIntegrationRequestViewModel.Institution.Id);
 
 		if (existingBank != null)
 		{
-			//Eger varolan banka tekrar eklenmeye calisirsa plaid tarafinda duplicate item olusturmamak icin exchange token yapilmaz. Kullanici update mode a yonlendirilir
-			return FunctionResponse.Failure<CompleteIntegrationResponseViewModel>(MessageCodes.BankCanNotBeAddedMultipleTimes);
+			if (!existingBank.IsDeleted)
+			{
+				//Eger varolan banka tekrar eklenmeye calisirsa plaid tarafinda duplicate item olusturmamak icin exchange token yapilmaz. Kullanici update mode a yonlendirilir
+				return FunctionResponse.Failure<CompleteIntegrationResponseViewModel>(MessageCodes.BankCanNotBeAddedMultipleTimes);
+			}
 		}
-		
+
 		var exchangePublicTokenResponse = await ExchangePublicTokenAsync(completeIntegrationRequestViewModel.PublicToken);
 		var userPlaidToken = await SaveAccessToken(exchangePublicTokenResponse);
-		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution);
+		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution, existingBank);
 		var newAccountPlaidIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
 
-		Debug.WriteLine(DateTime.Now+" Complete integrastion data saved");
+		Debug.WriteLine(DateTime.Now + " Complete integrastion data saved");
 		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
 		{
 			AccessToken = exchangePublicTokenResponse.AccessToken,
@@ -160,7 +160,8 @@ public class PlaidService(
 
 	private async Task<string?> GetUpdateModeAccessToken(CreateLinkTokenRequestViewModel? createLinkTokenRequestViewModel)
 	{
-		if (createLinkTokenRequestViewModel is null || string.IsNullOrEmpty(createLinkTokenRequestViewModel.BankId))
+		if (createLinkTokenRequestViewModel is null ||
+		    string.IsNullOrEmpty(createLinkTokenRequestViewModel.BankId))
 		{
 			throw new Exception("BankId is required for update mode link token creation.");
 		}
@@ -178,61 +179,73 @@ public class PlaidService(
 
 	private async Task<List<string>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
 	{
-		var existingAccounts = await accountRepository.ListAsync(p => p.BankId == bankId);
-		var existingPlaidAccountIds = existingAccounts
-			.Where(p => !string.IsNullOrEmpty(p.PlaidAccountId))
-			.Select(p => p.PlaidAccountId!)
-			.ToHashSet();
-
 		var allAccountsIncludingDeleted = await accountRepository.ListIncludingSoftDeletedAsync(p => p.BankId == bankId);
-		var softDeletedAccountsMap = allAccountsIncludingDeleted
-			.Where(p => p.IsDeleted && !string.IsNullOrEmpty(p.PlaidAccountId))
-			.ToDictionary(p => p.PlaidAccountId!);
 
 		var newAccountPlaidIds = new List<string>();
 		foreach (var plaidAccount in plaidAccounts)
 		{
-			if (existingPlaidAccountIds.Contains(plaidAccount.Id))
+			var existingAccount = allAccountsIncludingDeleted.SingleOrDefault(p => p.PlaidAccountId == plaidAccount.Id);
+			if (existingAccount != null &&
+			    !existingAccount.IsDeleted)
 			{
-				logger.LogInformation($"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(existingAccounts)}, PlaidAccountId:{plaidAccount.Id}");
+				//boyle bir account zaten var ve silinmemis 
+				logger.LogInformation(
+					$"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(allAccountsIncludingDeleted.Select(p => new {p.Id, p.PlaidAccountId, p.IsDeleted}))}, PlaidAccountId:{plaidAccount.Id}");
 				continue;
 			}
 
-			if (softDeletedAccountsMap.TryGetValue(plaidAccount.Id, out var deletedAccount))
+			if (existingAccount == null)
 			{
-				deletedAccount.IsDeleted = false;
-				deletedAccount.DeletedAt = null;
-				deletedAccount.Name = plaidAccount.Name;
-				deletedAccount.Mask = plaidAccount.Mask;
-				deletedAccount.ConnectionDateTime = DateTime.UtcNow;
+				//eger hesap yoksa mask + subtype eslesmesi dene
+				existingAccount = allAccountsIncludingDeleted.SingleOrDefault(p => p.IsDeleted && p.Mask == plaidAccount.Mask && p.Subtype == plaidAccount.Subtype);
+			}
+
+			if (existingAccount != null &&
+			    existingAccount.IsDeleted)
+			{
+				//boyle bir account var ama silinmis
+				existingAccount.IsDeleted = false;
+				existingAccount.DeletedAt = null;
+				existingAccount.Name = plaidAccount.Name;
+				existingAccount.Mask = plaidAccount.Mask;
+				existingAccount.ConnectionDateTime = DateTime.UtcNow;
+
+				await accountRepository.UpdateAsync(existingAccount).ConfigureAwait(false);
+				newAccountPlaidIds.Add(plaidAccount.Id);
 				
-				await accountRepository.UpdateAsync(deletedAccount).ConfigureAwait(false);
-				newAccountPlaidIds.Add(plaidAccount.Id);
+				continue;
 			}
-			else
+
+			var account = new Account
 			{
-				var account = new Account
-				{
-					BankId = bankId,
-					CurrencyCode = "GBP",
-					IsConnected = true,
-					Name = plaidAccount.Name,
-					PlaidAccountId = plaidAccount.Id,
-					Mask = plaidAccount.Mask,
-					ConnectionDateTime = DateTime.UtcNow,
-				};
-				await accountRepository.InsertAsync(account).ConfigureAwait(false);
-				newAccountPlaidIds.Add(plaidAccount.Id);
-			}
+				BankId = bankId,
+				CurrencyCode = "GBP",
+				IsConnected = true,
+				Name = plaidAccount.Name,
+				PlaidAccountId = plaidAccount.Id,
+				Mask = plaidAccount.Mask,
+				ConnectionDateTime = DateTime.UtcNow,
+				Subtype = plaidAccount.Subtype,
+			};
+			await accountRepository.InsertAsync(account).ConfigureAwait(false);
+			newAccountPlaidIds.Add(plaidAccount.Id);
+
 		}
 		return newAccountPlaidIds;
 	}
-	private async Task<Bank> SaveBank(ObjectId userPlaidTokenId, PlaidInstitutionViewModel institude)
+
+	private async Task<Bank> SaveBank(ObjectId userPlaidTokenId, PlaidInstitutionViewModel institude, Bank? softDeletedBank = null)
 	{
-		var exisingBank = await bankRepository.GetAsync(p => p.PlaidInstitutionId == institude.Id && p.UserId == requestContextViewModel.UserId.ToObjectId());
-		if (exisingBank != null)
+		if (softDeletedBank != null)
 		{
-			return exisingBank;
+			softDeletedBank.IsDeleted = false;
+			softDeletedBank.DeletedAt = null;
+			softDeletedBank.IsConnected = true;
+			softDeletedBank.Name = institude.Name;
+			softDeletedBank.UserPlaidTokenId = userPlaidTokenId;
+			softDeletedBank.ConnectionDateTime = DateTime.UtcNow;
+			await bankRepository.UpdateAsync(softDeletedBank);
+			return softDeletedBank;
 		}
 
 		var bank = new Bank
@@ -342,241 +355,6 @@ public class PlaidService(
 		return (accessToken, itemId, expirationDateTime);
 	}
 
-	private async Task<PlaidInstitutionViewModel> GetInstitutionAsync(string accessToken)
-	{
-		var itemRequest = new
-		{
-			client_id = plaidSettings.ClientId,
-			secret = plaidSettings.Secret,
-			access_token = accessToken
-		};
-
-		var itemRequestJson = JsonSerializer.Serialize(itemRequest);
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = itemRequestJson,
-			Type = PlaidCommunicationLogType.GetItemRequest
-		});
-
-		var itemResponse = await httpClient.PostAsJsonAsync(
-			plaidSettings.BaseUrl + "/item/get",
-			itemRequest);
-
-		var itemResponseContent = await itemResponse.Content.ReadAsStringAsync();
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = itemResponseContent,
-			Type = PlaidCommunicationLogType.GetItemResponse
-		});
-
-		if (!itemResponse.IsSuccessStatusCode)
-		{
-			logger.LogError(
-				"Plaid item/get failed for user {UserId} status {Status}. Response: {Response}",
-				requestContextViewModel.UserId,
-				itemResponse.StatusCode,
-				itemResponseContent);
-
-			throw new Exception($"Plaid item/get failed. Response: {itemResponseContent}");
-		}
-
-		var itemBody = JsonSerializer.Deserialize<JsonDocument>(itemResponseContent);
-		var institutionId = itemBody!
-			.RootElement
-			.GetProperty("item")
-			.GetProperty("institution_id")
-			.GetString()!;
-
-		var institutionRequest = new
-		{
-			client_id = plaidSettings.ClientId,
-			secret = plaidSettings.Secret,
-			institution_id = institutionId,
-			country_codes = new[] {"GB"}
-		};
-
-		var institutionRequestJson = JsonSerializer.Serialize(institutionRequest);
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = institutionRequestJson,
-			Type = PlaidCommunicationLogType.GetInstitutionRequest
-		});
-
-		var institutionResponse = await httpClient.PostAsJsonAsync(
-			plaidSettings.BaseUrl + "/institutions/get_by_id",
-			institutionRequest);
-
-		var institutionResponseContent = await institutionResponse.Content.ReadAsStringAsync();
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = institutionResponseContent,
-			Type = PlaidCommunicationLogType.GetInstitutionResponse
-		});
-
-		if (!institutionResponse.IsSuccessStatusCode)
-		{
-			logger.LogError(
-				"Plaid institutions/get_by_id failed for user {UserId} status {Status}. Response: {Response}",
-				requestContextViewModel.UserId,
-				institutionResponse.StatusCode,
-				institutionResponseContent);
-
-			throw new Exception($"Plaid institutions/get_by_id failed. Response: {institutionResponseContent}");
-		}
-
-		var institutionBody = JsonSerializer.Deserialize<JsonDocument>(institutionResponseContent);
-		var institution = institutionBody!.RootElement.GetProperty("institution");
-
-		return new PlaidInstitutionViewModel()
-		{
-			Id = institutionId,
-			Name = institution.GetProperty("name").GetString()!
-		};
-	}
-
-	private async Task<List<PlaidAccountViewModel>> GetAccountsAsync(string accessToken)
-	{
-		var request = new
-		{
-			client_id = plaidSettings.ClientId,
-			secret = plaidSettings.Secret,
-			access_token = accessToken
-		};
-
-		var requestJson = JsonSerializer.Serialize(request);
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = requestJson,
-			Type = PlaidCommunicationLogType.GetAccountsRequest
-		});
-
-		var response = await httpClient.PostAsJsonAsync(
-			plaidSettings.BaseUrl + "/accounts/get",
-			request);
-
-		var responseContent = await response.Content.ReadAsStringAsync();
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = responseContent,
-			Type = PlaidCommunicationLogType.GetAccountsResponse
-		});
-
-		if (!response.IsSuccessStatusCode)
-		{
-			logger.LogError(
-				"Plaid accounts/get failed for user {UserId} status {Status}. Response: {Response}",
-				requestContextViewModel.UserId,
-				response.StatusCode,
-				responseContent);
-
-			throw new Exception($"Plaid accounts/get failed. Response: {responseContent}");
-		}
-
-		var body = JsonSerializer.Deserialize<JsonDocument>(responseContent);
-		var accounts = body!.RootElement.GetProperty("accounts");
-
-		var result = new List<PlaidAccountViewModel>();
-
-		foreach (var account in accounts.EnumerateArray())
-		{
-			var accountId = account.GetProperty("account_id").GetString()!;
-			var name = account.GetProperty("name").GetString()!;
-			var officialName = account.TryGetProperty("official_name", out var officialNameProp) ? officialNameProp.GetString() : null;
-			var type = account.GetProperty("type").GetString()!;
-			var subtype = account.TryGetProperty("subtype", out var subtypeProp) ? subtypeProp.GetString() : null;
-
-			var mask = account.TryGetProperty("mask", out var maskProp) ? maskProp.GetString() : null;
-
-			result.Add(new PlaidAccountViewModel
-			{
-				Id = accountId,
-				Name = officialName ?? name,
-				Type = type,
-				Subtype = subtype,
-				Mask = mask
-			});
-		}
-
-		return result;
-	}
-
-	public async Task<List<PlaidTransactionViewModel>> GetTransactionsAsync(string accessToken,
-		DateTime startDate,
-		DateTime endDate,
-		string userId)
-	{
-		var request = new
-		{
-			client_id = plaidSettings.ClientId,
-			secret = plaidSettings.Secret,
-			access_token = accessToken,
-			start_date = startDate.ToString("yyyy-MM-dd"),
-			end_date = endDate.ToString("yyyy-MM-dd"),
-			options = new
-			{
-				count = 500, //TODO paging yonetilecek ilk istek icin
-				offset = 0
-			}
-		};
-
-		var requestJson = JsonSerializer.Serialize(request);
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = requestJson,
-			Type = PlaidCommunicationLogType.GetTransactionsRequest
-		});
-
-		var response = await httpClient.PostAsJsonAsync(
-			plaidSettings.BaseUrl + "/transactions/get",
-			request);
-
-		var responseContent = await response.Content.ReadAsStringAsync();
-
-
-		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
-		{
-			Content = responseContent, //TODO bunu kaydetme cok buyuk olur gerek yok
-			Type = PlaidCommunicationLogType.GetTransactionsResponse
-		});
-
-		if (!response.IsSuccessStatusCode)
-		{
-			logger.LogError(
-				"Plaid transactions/get failed for user {UserId} status {Status}. Response: {Response}",
-				userId,
-				response.StatusCode,
-				responseContent);
-
-			throw new Exception($"Plaid transactions/get failed. Response: {responseContent}");
-		}
-
-		var body = JsonSerializer.Deserialize<PlaidTransactionsGetResponseViewModel>(responseContent);
-		var transactions = body?.Transactions ?? [];
-		var totalTransactions = body?.TotalTransactions ?? transactions.Count;
-
-		logger.LogInformation("Retrieved {Count} transactions out of {Total} for user {UserId}",
-			transactions.Count,
-			totalTransactions,
-			userId);
-
-		var result = new List<PlaidTransactionViewModel>();
-
-		foreach (var transaction in transactions)
-		{
-			transaction.Name ??= string.Empty;
-			transaction.MerchantName = string.IsNullOrWhiteSpace(transaction.MerchantName) ? transaction.Name : transaction.MerchantName;
-			result.Add(transaction);
-		}
-
-		return result;
-	}
 
 	public async Task RemoveItemAsync(string accessToken)
 	{
