@@ -37,6 +37,12 @@ export default function MerchantsListScreen() {
     return () => clearTimeout(id);
   }, [search]);
 
+  useEffect(() => {
+    if (!isLoading && !error) {
+      dispatch(loadMerchants());
+    }
+  }, []);
+
   const filteredItems = useMemo(() => {
     const needle = debouncedSearch.toLowerCase();
     const list = items.filter(item => (needle ? item.name.toLowerCase().includes(needle) : true));
