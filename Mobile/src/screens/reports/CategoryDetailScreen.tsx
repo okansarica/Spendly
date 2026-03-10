@@ -218,7 +218,8 @@ export default function CategoryDetailScreen({route}: Props) {
               sortedTransactions.map((item, index) => (
                 <View key={item.transactionId} style={[s.expenseItem, index === sortedTransactions.length - 1 && s.expenseItemLast]}>
                   <View style={s.expenseLeft}>
-                    <Text style={s.expenseMerchant}>{item.merchantName}</Text>
+                    <Text style={s.expenseMerchant}>{(item as any).transactionName}</Text>
+                    <Text style={s.expenseDetails}>{item.merchantName}</Text>
                     <Text style={s.expenseDetails}>{item.accountName}</Text>
                     <Text style={s.expenseDate}>{new Date(item.date).toLocaleDateString()}</Text>
                   </View>

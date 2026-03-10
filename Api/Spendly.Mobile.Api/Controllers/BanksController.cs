@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
 using Spendly.Mobile.ViewModels.Finance;
+using System.Diagnostics;
+using System.Text.Json;
 
 /* AI-ALLOW: 6.3 - User approved implementing banks endpoints before API contract update */
 [ApiController]
@@ -21,7 +23,7 @@ public class BanksController(BankService bankService) : ControllerBase
         {
             return this.BadRequestFrom(response);
         }
-
+        Debug.WriteLine(DateTime.Now+" "+JsonSerializer.Serialize(response.Data));
         return Ok(response.Data);
     }
 

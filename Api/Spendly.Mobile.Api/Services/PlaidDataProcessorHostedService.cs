@@ -18,6 +18,7 @@ public class PlaidDataProcessorHostedService(
     {
         await foreach (var request in channel.Reader.ReadAllAsync(stoppingToken))
         {
+            await Task.Delay(30000, stoppingToken);
             try
             {
                 logger.LogInformation("Starting Plaid data processing for user {UserId}", request.UserId);

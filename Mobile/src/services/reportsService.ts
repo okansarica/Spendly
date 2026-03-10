@@ -43,10 +43,12 @@ export type ReportCategoryDetailResponse = {
   transactions: {
     items: {
       transactionId: string;
+      transactionName: string;
       date: string;
       merchantName: string;
       accountName: string;
       amount: number;
+      
     }[];
     total: number;
     pageNumber: number;
@@ -127,4 +129,3 @@ export const reportsService = {
   getAccountDetail: (accountId: string, params?: AccountDetailParams) =>
     apiClient.get<AccountDetailResponse>(ApiEndpoints.Reports.AccountDetail(accountId), {params}),
 };
-

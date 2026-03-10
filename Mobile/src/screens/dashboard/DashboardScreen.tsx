@@ -231,6 +231,11 @@ export default function DashboardScreen() {
       color: colors.textPrimary,
       marginBottom: spacing.xs / 2,
     },
+    expenseMerchantSecondary: {
+      fontSize: fontSizes.sm,
+      color: colors.textPrimary,
+      marginBottom: spacing.xs / 2,
+    },
     expenseDetails: {
       fontSize: fontSizes.sm,
       color: colors.textSecondary,
@@ -589,7 +594,8 @@ export default function DashboardScreen() {
                 data.latestExpenses.map((item, index) => (
                   <View key={item.transactionId} style={[s.expenseItem, index === data.latestExpenses.length - 1 && s.expenseItemLast]}>
                     <View style={s.expenseLeft}>
-                      <Text style={s.expenseMerchant}>{item.merchantName}</Text>
+                      <Text style={s.expenseMerchant}>{item.transactionName}</Text>
+                      <Text style={s.expenseMerchantSecondary}>{item.merchantName}</Text>
                       <Text style={s.expenseDetails}>
                         {item.categoryName} • {item.accountName}
                       </Text>

@@ -27,8 +27,9 @@ public class ReportTransactionItemViewModel
 {
     public string TransactionId { get; set; } = string.Empty;
     public DateTime Date { get; set; }
-    public string? MerchantName { get; set; } = string.Empty;
+    public string MerchantName { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public string TransactionName { get; set; }  = string.Empty;
 }
 

@@ -168,7 +168,8 @@ public class ReportsService(
 				Date = transaction.DateTime,
 				MerchantName = merchantName,
 				AccountName = accountLookup[transaction.AccountId].NickName ?? accountLookup[transaction.AccountId].Name,
-				Amount = transaction.Amount
+				Amount = transaction.Amount,
+				TransactionName = transaction.TransactionName
 			});
 		}
 

@@ -18,7 +18,7 @@ namespace Spendly.Mobile.Api.Infrastructure
                 objectResult.StatusCode == 200 &&
                 !httpContext.Response.Headers.ContainsKey("Cache-Control"))
             {
-                httpContext.Response.Headers["Cache-Control"] = "public, max-age=60";
+                //httpContext.Response.Headers["Cache-Control"] = "public, max-age=60";
             }
         }
     }

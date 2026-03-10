@@ -13,6 +13,7 @@ using Spendly.Shared.Entities.UserManagement;
 using Spendly.Shared.ViewModels;
 using Spendly.Shared.ViewModels.Plaid;
 using Spendly.Shared.ViewModels.Settings;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -106,6 +107,7 @@ public class PlaidService(
 		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution);
 		var newAccountIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
 
+		Debug.WriteLine(DateTime.Now+" Complete integrastion data saved");
 		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
 		{
 			AccessToken = exchangePublicTokenResponse.AccessToken,

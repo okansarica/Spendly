@@ -9,6 +9,7 @@ using Shared.ViewModels.Plaid;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.Api.Services;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
+using System.Diagnostics;
 using ViewModels.Plaid;
 
 [ApiController]
@@ -47,7 +48,7 @@ public class PlaidController(
             BankId = completeResponse.Data!.BankId,
             //NewAccountIds = completeResponse.Data!.NewAccountPlaidIds
         });
-        
+        Debug.WriteLine(DateTime.Now+" Complete integrastion finished");
         return Ok();
     }
 

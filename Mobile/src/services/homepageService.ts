@@ -31,6 +31,7 @@ export type LatestExpense = {
   categoryName: string;
   merchantName: string;
   accountName: string;
+  transactionName: string;
 };
 
 export type HomepageResponse = {

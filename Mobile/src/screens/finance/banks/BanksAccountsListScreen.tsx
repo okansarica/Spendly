@@ -7,7 +7,7 @@ import Header from '../../../components/Header';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteBank, deleteBankAccount, loadBanks } from '../../../store/banksStore';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FinanceStackParamList } from '../../../navigation/FinanceNavigator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -67,6 +67,7 @@ export default function BanksAccountsListScreen() {
     }, [dispatch]);
 
     const data = useMemo(() => {
+        console.log("use memo - ITEMS", items.length);
         const rows: Array<BankRow | AccountRow> = [];
         const needle = search.trim().toLowerCase();
 
@@ -408,13 +409,13 @@ export default function BanksAccountsListScreen() {
         };
         
         const openProps: LinkOpenProps = {
-            onSuccess: (linkSuccess: LinkSuccess) => {
+            onSuccess: async (linkSuccess: LinkSuccess) => {
                 if(!linkSuccess.metadata?.accounts?.length || !linkSuccess.metadata?.institution) {
-                    showPlaidError(new Error('No accounts were linked. Please link at least one account to continue.')); //TODO translate 
+                    showPlaidError(new Error('No accounts were linked. Please link at least one account to continue.'));
                     dismissLink();
                     return;
-                }                
-                
+                }
+
                 const request: CompleteIntegrationRequest = {
                     publicToken: linkSuccess.publicToken,
                     accounts: linkSuccess.metadata.accounts.map(a => ({
@@ -430,21 +431,19 @@ export default function BanksAccountsListScreen() {
                         id: linkSuccess.metadata.institution.id,
                     },
                     linkSessionId: linkSuccess.metadata.linkSessionId,
-                };               
-                
+                };
 
-                plaidService.completeIntegration(request)
-                    .then(() => {
-                        dispatch(loadBanks());
-                        setIsAddBankOptionsOpen(false);
-                        setAddBankMode(undefined);
-                    })
-                    .catch((err: any) => {
-                        showPlaidError(err);
-                    })
-                    .finally(() => {
-                        setIsPlaidLoading(false);
-                    });
+                try {
+                    await plaidService.completeIntegration(request);
+                    await dispatch(loadBanks()).unwrap();
+                    setIsAddBankOptionsOpen(false);
+                    setAddBankMode(undefined);
+                } catch (err: any) {
+                    console.log('Error when completing transaction', err);
+                    showPlaidError(err);
+                } finally {
+                    setIsPlaidLoading(false);
+                }
             },
             onExit: (exit: LinkExit) => {
                 if (exit?.error) {
@@ -575,7 +574,7 @@ export default function BanksAccountsListScreen() {
                     <FlatList
                         data={data}
                         renderItem={renderItem}
-                        keyExtractor={item => (item.type === 'bank' ? `bank-${item.bank.id}` : `account-${item.account.id}`)}
+                        keyExtractor={item => (item.type === 'bank' ? `bank-${item.bank.id}` : `account-${item.bank.id}-${item.account.id}`)}
                         contentContainerStyle={s.listContent}
                         scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
                         ListEmptyComponent={!isLoading ?
