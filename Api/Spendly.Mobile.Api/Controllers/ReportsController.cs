@@ -14,7 +14,7 @@ using Spendly.Shared.ViewModels;
 [Authorize]
 public class ReportsController(ReportsService reportsService) : ControllerBase
 {
-    [HttpGet("overview")]
+    [HttpGet("overview")]//category report
     public async Task<IActionResult> GetOverview([FromQuery] ReportsOverviewRequestViewModel request)
     {
         var response = await reportsService.GetOverviewAsync(request);

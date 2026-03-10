@@ -57,14 +57,81 @@ class Program
 
 		var merchantNames = new[]
 		{
-			"Adidas","Aldi","Alfies Fish & Chips","Am 2 Pm Convenience Store","Amazon Prime Video","And Customs",
-			"Blue Planet Aquarium","Brighouse Swimming Pool & Fitness Centre","Budget Insurance","Bupa","Burberry",
-			"Ceramic Tile Company","Diamond Insurance","Elemis Spa","First Direct Arena","Five Rivers Coffee Company",
-			"Flixbus","H&M","Harrods","HelloFresh","Home Bargains","Homeserve","King Street Brew House",
-			"Kingshill Cars","Manchester Arena","Microsoft","Nail Co","Nando's","Netflix","Nottinghill Pharmacy",
-			"Park Veterinary Centre","Pets And Claws Pet Insurance","Planet Spice","Pokerstars","Pret A Manger",
-			"Primark","Rookery Mini Market","Royal Mail","Sainsbury's","Shop","Sky","Sports","Spotify",
-			"Star Food And Wine","Starbucks","Takeway","Tesco","The Zoological Society of London","Trainline"
+			
+				"Adidas",
+				"Aldi",
+				"Alfies Fish & Chips",
+				"Am 2 Pm Convenience Store",
+				"Amazon Prime Video",
+				"And Customs",
+				"Apple Store",
+				"Blue Planet Aquarium",
+				"Brighouse Swimming Pool & Fitness Centre",
+				"Budget Insurance",
+				"Bulb Energy",
+				"Bupa",
+				"Burberry",
+				"Cambridge City Council",
+				"Capital One",
+				"Cartridge Discount",
+				"Ceramic Tile Company",
+				"CHIP",
+				"Diamond Insurance",
+				"Elemis Spa",
+				"First Direct Arena",
+				"Five Rivers Coffee Company",
+				"Flixbus",
+				"H&M",
+				"Harrods",
+				"HelloFresh",
+				"Home Bargains",
+				"Homeserve",
+				"IKEA",
+				"King Street Brew House",
+				"Kingshill Cars",
+				"Lloyds Pharmacy",
+				"Loans 2 Go",
+				"Manchester Arena",
+				"Marks & Spencer",
+				"Microsoft",
+				"MotorSport Vision",
+				"Nail Co",
+				"Nando's",
+				"Netflix",
+				"Non-Sterling Transaction Fee NON-STERLING TRANSACTION",
+				"Northenden Golf Club",
+				"Nottinghill Pharmacy",
+				"Park Veterinary Centre",
+				"Pets And Claws Pet Insurance",
+				"Planet Spice",
+				"Pokerstars",
+				"Pret A Manger",
+				"Primark",
+				"Rookery Mini Market",
+				"Royal Mail",
+				"Ryanair",
+				"Sainsbury's",
+				"Shop",
+				"Sky",
+				"Sports",
+				"Sports Direct",
+				"Spotify",
+				"Star Food And Wine",
+				"Starbucks",
+				"Stobswell Dental Practice",
+				"Takeway",
+				"Tesco",
+				"The Zoological Society of London",
+				"Tradingview",
+				"Trainline",
+				"Uber",
+				"UniBet",
+				"VITALITY HEALTH",
+				"Wage Day Advance",
+				"Walmart",
+				"Wilko",
+				"YouLend"
+			
 		};
 
 		var rand = new Random();
@@ -99,50 +166,50 @@ class Program
 
 		var users = new List<User>
 		{
-			new User
-			{
-				Id = ObjectId.GenerateNewId(),
-				Name = "Ahmet",
-				Surname = "Yilmaz",
-				Email = "ahmet@example.com",
-				PasswordHash = passwordHash,
-				IsActive = true,
-				EmailVerification = new EmailVerification {IsVerified = true},
-				LoginProviders =
-				[
-					new UserLoginProvider
-					{
-						Provider = LoginProviderType.Local,
-					}
-				]
-			},
-			new User
-			{
-				Id = ObjectId.GenerateNewId(),
-				Name = "Fatih",
-				Surname = "Kaya",
-				Email = "fatih@example.com",
-				PasswordHash = passwordHash,
-				IsActive = true,
-				EmailVerification = new EmailVerification {IsVerified = true}
-			},
-			new User
-			{
-				Id = ObjectId.GenerateNewId(),
-				Name = "Zeynep",
-				Surname = "Demir",
-				Email = "zeynep@example.com",
-				PasswordHash = passwordHash,
-				IsActive = true,
-				EmailVerification = new EmailVerification {IsVerified = true},
-				LoginProviders =
-				[
-					new UserLoginProvider
-					{
-						Provider = LoginProviderType.Local,
-					}
-				]
-			},
+			// new User
+			// {
+			// 	Id = ObjectId.GenerateNewId(),
+			// 	Name = "Ahmet",
+			// 	Surname = "Yilmaz",
+			// 	Email = "ahmet@example.com",
+			// 	PasswordHash = passwordHash,
+			// 	IsActive = true,
+			// 	EmailVerification = new EmailVerification {IsVerified = true},
+			// 	LoginProviders =
+			// 	[
+			// 		new UserLoginProvider
+			// 		{
+			// 			Provider = LoginProviderType.Local,
+			// 		}
+			// 	]
+			// },
+			// new User
+			// {
+			// 	Id = ObjectId.GenerateNewId(),
+			// 	Name = "Fatih",
+			// 	Surname = "Kaya",
+			// 	Email = "fatih@example.com",
+			// 	PasswordHash = passwordHash,
+			// 	IsActive = true,
+			// 	EmailVerification = new EmailVerification {IsVerified = true}
+			// },
+			// new User
+			// {
+			// 	Id = ObjectId.GenerateNewId(),
+			// 	Name = "Zeynep",
+			// 	Surname = "Demir",
+			// 	Email = "zeynep@example.com",
+			// 	PasswordHash = passwordHash,
+			// 	IsActive = true,
+			// 	EmailVerification = new EmailVerification {IsVerified = true},
+			// 	LoginProviders =
+			// 	[
+			// 		new UserLoginProvider
+			// 		{
+			// 			Provider = LoginProviderType.Local,
+			// 		}
+			// 	]
+			// },
 			new User
 			{
 				Id = ObjectId.GenerateNewId(),

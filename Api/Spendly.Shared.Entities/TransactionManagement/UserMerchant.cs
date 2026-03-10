@@ -6,12 +6,10 @@ namespace Spendly.Shared.Entities.TransactionManagement;
 using Core;
 using MongoDB.Bson;
 
-/// <summary>
-/// Predefined merchants must be copied to user
-/// </summary>
+
 public class Merchant : BaseEntity
 {
-    public ObjectId? CategoryId { get; set; }
+    public ObjectId CategoryId { get; set; }
     public string Name { get; set; } = string.Empty;
     
     /// <summary>
