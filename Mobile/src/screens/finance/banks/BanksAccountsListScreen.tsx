@@ -168,6 +168,20 @@ export default function BanksAccountsListScreen() {
             justifyContent: 'center',
             marginRight: spacing.md,
             backgroundColor: colors.buttonSecondary,
+            position: 'relative',
+        },
+        connectedIndicator: {
+            position: 'absolute',
+            top: -2,
+            right: -2,
+            width: fontSizes.sm + 2,
+            height: fontSizes.sm + 2,
+            borderRadius: (fontSizes.sm + 2) / 2,
+            backgroundColor: colors.success,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 2,
+            borderColor: colors.cardBackground,
         },
         title: {
             fontSize: fontSizes.md,
@@ -397,9 +411,6 @@ export default function BanksAccountsListScreen() {
 
     const onAccountDelete = (bank: BankListItem, account: BankAccountItem) => {
         closeMenu();
-        if (account.isConnected) {
-            return;
-        }
         Alert.alert(translate('DeleteBankAccountTitle'), translate('DeleteBankAccountMessage'), [
             {text: translate('Cancel'), style: 'cancel'},
             {
@@ -538,6 +549,11 @@ export default function BanksAccountsListScreen() {
                         <View style={s.left}>
                             <View style={s.iconWrap}>
                                 <Icon name="account-balance" size={fontSizes.lg} color={colors.textSecondary}/>
+                                {item.bank.isConnected && (
+                                    <View style={s.connectedIndicator}>
+                                        <Icon name="link" size={fontSizes.xs} color={colors.success}/>
+                                    </View>
+                                )}
                             </View>
                             <View style={{flex: 1}}>
                                 <Text style={s.title}>{item.bank.name}</Text>

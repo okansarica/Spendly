@@ -412,6 +412,20 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
             );
     }
 
+    public async Task<T?> GetIncludingSoftDeletedAsync(Expression<Func<T, bool>> filter)
+    {
+        var mongoFilter = Builders<T>.Filter.Where(filter);
+        var entities = await _entities.FindAsync<T>(mongoFilter, _options).ConfigureAwait(false);
+        return await entities.SingleOrDefaultAsync().ConfigureAwait(false);
+    }
+
+    public async Task<List<T>> ListIncludingSoftDeletedAsync(Expression<Func<T, bool>> filter)
+    {
+        var mongoFilter = Builders<T>.Filter.Where(filter);
+        var entities = await _entities.FindAsync(mongoFilter, _options).ConfigureAwait(false);
+        return await entities.ToListAsync().ConfigureAwait(false);
+    }
+
 
 
     public async Task<List<T>> ListPagingAsync(FilterDefinition<T> filterDefinition, ProjectionDefinition<T> projectionDefinition, PagingParameter paging)

@@ -48,17 +48,20 @@ public class BankService(
 				Accounts = new List<BankAccountListItemViewModel>()
 			};
 
-			foreach (var account in accounts[bank.Id].OrderBy(p => p.Name))
+			if (accounts.ContainsKey(bank.Id))
 			{
-				item.Accounts.Add(new BankAccountListItemViewModel
+				foreach (var account in accounts[bank.Id].OrderBy(p => p.Name))
 				{
-					Id = account.Id.ToString(),
-					Name = account.Name,
-					NickName = account.NickName,
-					Description = account.Description,
-					IsConnected = account.IsConnected,
-					Mask = account.Mask
-				});
+					item.Accounts.Add(new BankAccountListItemViewModel
+					{
+						Id = account.Id.ToString(),
+						Name = account.Name,
+						NickName = account.NickName,
+						Description = account.Description,
+						IsConnected = account.IsConnected,
+						Mask = account.Mask
+					});
+				}	
 			}
 
 			response.Add(item);

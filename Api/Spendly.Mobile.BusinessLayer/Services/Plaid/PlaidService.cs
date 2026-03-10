@@ -54,6 +54,9 @@ public class PlaidService(
 			products = new[] {"transactions"},
 			redirect_uri = plaidSettings.RedirectUrl,
 			access_token = accessToken,
+			update = mode == PlaidFlowMode.Update
+				? new { account_selection_enabled = true }
+				: null,
 			webhook= "https://yourdomain.com/plaid/webhook" //TODO url
 		};
 
@@ -181,26 +184,46 @@ public class PlaidService(
 			.Select(p => p.PlaidAccountId!)
 			.ToHashSet();
 
+		var allAccountsIncludingDeleted = await accountRepository.ListIncludingSoftDeletedAsync(p => p.BankId == bankId);
+		var softDeletedAccountsMap = allAccountsIncludingDeleted
+			.Where(p => p.IsDeleted && !string.IsNullOrEmpty(p.PlaidAccountId))
+			.ToDictionary(p => p.PlaidAccountId!);
+
 		var newAccountPlaidIds = new List<string>();
 		foreach (var plaidAccount in plaidAccounts)
 		{
 			if (existingPlaidAccountIds.Contains(plaidAccount.Id))
 			{
+				logger.LogInformation($"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(existingAccounts)}, PlaidAccountId:{plaidAccount.Id}");
 				continue;
 			}
 
-			var account = new Account
+			if (softDeletedAccountsMap.TryGetValue(plaidAccount.Id, out var deletedAccount))
 			{
-				BankId = bankId,
-				CurrencyCode = "GBP", //TODO hard coded for now, requires more changes in the ui for future
-				IsConnected = true,
-				Name = plaidAccount.Name,
-				PlaidAccountId = plaidAccount.Id,
-				Mask = plaidAccount.Mask,
-				ConnectionDateTime = DateTime.UtcNow,
-			};
-			await accountRepository.InsertAsync(account).ConfigureAwait(false);
-			newAccountPlaidIds.Add(plaidAccount.Id);
+				deletedAccount.IsDeleted = false;
+				deletedAccount.DeletedAt = null;
+				deletedAccount.Name = plaidAccount.Name;
+				deletedAccount.Mask = plaidAccount.Mask;
+				deletedAccount.ConnectionDateTime = DateTime.UtcNow;
+				
+				await accountRepository.UpdateAsync(deletedAccount).ConfigureAwait(false);
+				newAccountPlaidIds.Add(plaidAccount.Id);
+			}
+			else
+			{
+				var account = new Account
+				{
+					BankId = bankId,
+					CurrencyCode = "GBP",
+					IsConnected = true,
+					Name = plaidAccount.Name,
+					PlaidAccountId = plaidAccount.Id,
+					Mask = plaidAccount.Mask,
+					ConnectionDateTime = DateTime.UtcNow,
+				};
+				await accountRepository.InsertAsync(account).ConfigureAwait(false);
+				newAccountPlaidIds.Add(plaidAccount.Id);
+			}
 		}
 		return newAccountPlaidIds;
 	}

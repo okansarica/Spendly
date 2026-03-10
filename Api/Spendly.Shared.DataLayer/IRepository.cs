@@ -39,5 +39,7 @@ public interface IRepository<T> where T : BaseEntity
 	Task<long> CountAsync(FilterDefinition<T> filterDefinition);
 	Task<Dictionary<ObjectId, List<T>>> ListDictionaryAsync(IEnumerable<ObjectId> ids,
 		Expression<Func<T, ObjectId?>> propertySelector);
+	Task<T?> GetIncludingSoftDeletedAsync(Expression<Func<T, bool>> filter);
+	Task<List<T>> ListIncludingSoftDeletedAsync(Expression<Func<T, bool>> filter);
 
 }
