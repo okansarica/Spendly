@@ -3,12 +3,9 @@ namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
 using Spendly.Mobile.ViewModels.Finance;
-using Spendly.Shared.Localization;
-using Spendly.Shared.ViewModels;
 
 [ApiController]
 [Route("api/v1/user-categories")]

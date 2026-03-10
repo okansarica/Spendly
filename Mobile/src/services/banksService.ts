@@ -26,7 +26,7 @@ export type BankDefinitionItem = {
 };
 
 export type BankUpsertRequest = {
-  name?: string;
+  name: string;
   bankDefinitionId?: string;
   description?: string;
 };

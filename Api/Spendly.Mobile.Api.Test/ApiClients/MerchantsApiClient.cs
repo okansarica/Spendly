@@ -28,7 +28,7 @@ public class MerchantsApiClient
         return JsonSerializer.Deserialize<List<MerchantListItemViewModel>>(body, _jsonOptions)!;
     }
 
-    public async Task<MerchantDetailViewModel> UpdateAsync(string id, MerchantUpdateRequestViewModel req)
+    public async Task<MerchantDetailViewModel> UpdateAsync(string id, UserMerchantUpdateRequestViewModel req)
     {
         var resp = await _client.PutAsync($"/api/v1/merchants/{id}", ToContent(req));
         resp.EnsureSuccessStatusCode();

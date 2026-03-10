@@ -15,23 +15,13 @@ public class UserCategoryService(
 	IRepository<UserCategory> categoryRepository,
 	IRepository<UserMerchant> userMerchantRepository,
 	IRepository<Merchant> merchantRepository,
-	IRepository<NormalizedTransaction> transactionRepository,
 	RequestContextViewModel requestContextViewModel)
 {
 	public async Task<FunctionResponse<List<CategoryListItemViewModel>>> GetListAsync(CategoryListRequestViewModel request)
 	{
 		var userId = requestContextViewModel.UserId.ToObjectId();
 		var categories = (await categoryRepository.ListAsync(x => x.UserId == userId)).ToList();
-		var search = request.Search?.Trim();
-		if (!string.IsNullOrWhiteSpace(search))
-		{
-			categories = categories
-				.Where(x => x.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
-				.ToList();
-		}
-
-		var sorted = ApplyCategorySort(categories, request.SortBy, request.SortDirection);
-
+		var sorted =  categories.OrderBy(x => x.IsOther).ThenBy(p=>p.Name).ToList();
 		var response = sorted.Select(x => new CategoryListItemViewModel
 			{
 				Id = x.Id.ToString(),
@@ -40,6 +30,7 @@ public class UserCategoryService(
 				Color = x.Color,
 				Icon = x.Icon,
 				MerchantCount = x.MerchantCount,
+				IsOther = x.IsOther,
 			})
 			.ToList();
 
@@ -116,6 +107,11 @@ public class UserCategoryService(
 		if (category == null)
 		{
 			return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.CategoryNotFound);
+		}
+
+		if (category.IsOther)
+		{
+			return FunctionResponse.Failure<CategoryResponseViewModel>(MessageCodes.CannotModifyOtherCategory);
 		}
 
 		var name = request.Name?.Trim() ?? string.Empty;
@@ -221,6 +217,11 @@ public class UserCategoryService(
 			return FunctionResponse.Failure(MessageCodes.CategoryNotFound);
 		}
 
+		if (category.IsOther)
+		{
+			return FunctionResponse.Failure(MessageCodes.CannotModifyOtherCategory);
+		}
+
 		var childCategories = await categoryRepository.ListAsync(x => x.UserId == userId && x.ParentId == categoryId);
 		if (childCategories.Any())
 		{
@@ -288,6 +289,7 @@ public class UserCategoryService(
 			Color = userCategory.Color,
 			Icon = userCategory.Icon,
 			MerchantCount = merchantCount,
+			IsOther = userCategory.IsOther,
 		};
 	}
 }

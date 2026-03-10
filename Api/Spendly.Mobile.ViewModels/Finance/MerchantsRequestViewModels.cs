@@ -4,16 +4,15 @@ namespace Spendly.Mobile.ViewModels.Finance;
 
 public class MerchantListRequestViewModel
 {
-    public bool? IsUncategorized { get; set; }
 }
 
-public class MerchantCategoryUpdateRequestViewModel
+public class UserMerchantCategoryUpdateRequestViewModel
 {
     public string? CategoryId { get; set; }
 }
 
 
-public class MerchantUpdateRequestViewModel
+public class UserMerchantUpdateRequestViewModel
 {
     public string? CategoryId { get; set; }
     public string? Nickname { get; set; }

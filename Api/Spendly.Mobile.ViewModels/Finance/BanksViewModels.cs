@@ -18,7 +18,7 @@ public class BankAccountListItemViewModel
     public string? NickName { get; set; }
     public string? Description { get; set; }
     public bool IsConnected { get; set; }
-    public string? CardLast4Digits { get; set; }
+    public string? Mask { get; set; }
 }
 
 public class BankDefinitionListItemViewModel

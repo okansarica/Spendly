@@ -31,7 +31,7 @@ public class MerchantsTests(TestFixture fixture) : IClassFixture<TestFixture>
         var list = await merchantsClient.ListAsync();
         list.Should().ContainSingle(x => x.Id == userMerchant.Id.ToString());
 
-        var updateRequest = new MerchantUpdateRequestViewModel { Nickname = "Nick", CategoryId = null };
+        var updateRequest = new UserMerchantUpdateRequestViewModel { Nickname = "Nick", CategoryId = null };
         var updated = await merchantsClient.UpdateAsync(userMerchant.Id.ToString(), updateRequest);
         updated.Should().NotBeNull();
         updated.Nickname.Should().Be("Nick");

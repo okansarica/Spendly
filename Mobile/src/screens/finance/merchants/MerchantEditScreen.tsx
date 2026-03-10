@@ -31,22 +31,22 @@ export default function MerchantEditScreen() {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
-    useEffect(() => {
-        dispatch(loadCategories({search: '', sortBy: 'name', sortDirection: 'asc'}));
-    }, [dispatch, params.merchantId, merchants]);
+    const merchant = useMemo(() => {
+        return merchants.find(m => m.id === params.merchantId) ?? (detail?.id === params.merchantId ? detail : undefined);
+    }, [merchants, detail, params.merchantId]);
+
+    const canEdit = !merchant?.isOther;
 
     useEffect(() => {
-        const fromList = merchants.find(m => m.id === params.merchantId);
-        if (fromList) {
-            setNickname(fromList.nickname ?? '');
-            setSelectedCategoryId(fromList.categoryId);
-            return;
+        dispatch(loadCategories({search: '', sortBy: 'name', sortDirection: 'asc'}));
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (merchant) {
+            setNickname(merchant.nickname ?? '');
+            setSelectedCategoryId(merchant.categoryId);
         }
-        if (detail?.id === params.merchantId) {
-            setNickname(detail.nickname ?? '');
-            setSelectedCategoryId(detail.categoryId);
-        }
-    }, [merchants, detail, params.merchantId]);
+    }, [merchant]);
 
     const title = useMemo(() => translate('EditMerchant'), []);
 
@@ -160,8 +160,6 @@ export default function MerchantEditScreen() {
         },
     });
 
-    const merchant = merchants.find(m => m.id === params.merchantId) ?? (detail?.id === params.merchantId ? detail : undefined);
-
     return (
         <View style={s.container}>
             <Header title={title}/>
@@ -169,9 +167,9 @@ export default function MerchantEditScreen() {
                 <Text style={s.label}>{translate('MerchantName')}</Text>
                 <Text style={s.value}>{merchant?.name || ''}</Text>
                 <Text style={s.label}>{translate('MerchantNickname')}</Text>
-                <TextInput value={nickname} onChangeText={setNickname} style={s.input}/>
+                <TextInput value={nickname} onChangeText={setNickname} style={s.input} editable={canEdit}/>
                 <Text style={s.label}>{translate('MerchantCategory')}</Text>
-                <TouchableOpacity style={s.pickerButton} onPress={() => setIsCategoryOpen(true)}>
+                <TouchableOpacity style={s.pickerButton} onPress={() => setIsCategoryOpen(true)} disabled={!canEdit}>
                     <Text style={s.pickerValue}>{selectedCategoryName}</Text>
                 </TouchableOpacity>
                 <Button
@@ -180,7 +178,7 @@ export default function MerchantEditScreen() {
                     style={s.saveButton}
                     textStyle={s.saveButtonText}
                     isLoading={isSaving}
-                    disabled={isSaving}
+                    disabled={isSaving || !canEdit}
                 />
             </View>
             <Modal visible={isCategoryOpen} transparent animationType="fade"

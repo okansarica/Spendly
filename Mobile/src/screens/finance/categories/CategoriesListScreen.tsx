@@ -243,10 +243,12 @@ export default function CategoriesListScreen() {
   const renderItem = ({item}: {item: CategoryRow}) => {
     const backgroundColor = item.item.color || colors.buttonSecondary;
     const iconName = item.item.icon || 'label';
+    const canEdit = !item.item.isOther;
     return (
       <TouchableOpacity
         style={[s.card, item.isChild ? s.cardChild : undefined]}
-        onPress={() => navigation.navigate('CategoryEdit', {mode: 'edit', category: item.item})}>
+        onPress={() => canEdit && navigation.navigate('CategoryEdit', {mode: 'edit', category: item.item})}
+        disabled={!canEdit}>
         <View style={s.cardRow}>
           <View style={s.left}>
             <View style={[s.iconWrap, {backgroundColor}]}>
@@ -259,9 +261,11 @@ export default function CategoriesListScreen() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={s.menuButton} onPress={event => openMenu(item.item, {x: event.nativeEvent.pageX, y: event.nativeEvent.pageY})}>
-            <Icon name="more-vert" size={fontSizes.lg} style={s.menuIcon} />
-          </TouchableOpacity>
+          {canEdit && (
+            <TouchableOpacity style={s.menuButton} onPress={event => openMenu(item.item, {x: event.nativeEvent.pageX, y: event.nativeEvent.pageY})}>
+              <Icon name="more-vert" size={fontSizes.lg} style={s.menuIcon} />
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );

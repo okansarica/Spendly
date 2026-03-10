@@ -3,12 +3,11 @@ namespace Spendly.Mobile.ViewModels.Finance;
 
 public class BankListRequestViewModel
 {
-    public string? Search { get; set; }
 }
 
 public class BankUpsertRequestViewModel
 {
-    public string? Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public string? BankDefinitionId { get; set; }
     public string? Description { get; set; }
 }

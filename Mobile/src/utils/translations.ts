@@ -116,7 +116,7 @@ const translations: Record<string, Record<string, string>> = {
     Cancel: 'Cancel',
     AddBank: 'Add Bank',
     CreateBank: 'Create Bank',
-    UpdateBank: 'Update Bank',
+    Update: 'Update',
     BankName: 'Bank name',
     SelectBankName: 'Select bank name',
     BankSelectionRequired: 'Please select a bank',

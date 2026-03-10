@@ -6,22 +6,19 @@ namespace Spendly.Mobile.Api.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 using Spendly.Mobile.Api.Infrastructure;
 using Spendly.Mobile.BusinessLayer.Services.Finance;
 using Spendly.Mobile.ViewModels.Finance;
-using Spendly.Shared.Localization;
-using Spendly.Shared.ViewModels;
 
 [ApiController]
-[Route("api/v1/merchants")]
+[Route("api/v1/user-merchants")]
 [Authorize]
-public class MerchantsController(MerchantService merchantService) : ControllerBase
+public class UserMerchantsController(UserMerchantService userMerchantService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] MerchantListRequestViewModel request)
     {
-        var response = await merchantService.ListAsync( request);
+        var response = await userMerchantService.ListAsync( request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -31,9 +28,9 @@ public class MerchantsController(MerchantService merchantService) : ControllerBa
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] MerchantUpdateRequestViewModel request)
+    public async Task<IActionResult> Update(string id, [FromBody] UserMerchantUpdateRequestViewModel request)
     {
-        var response = await merchantService.UpdateAsync(id, request);
+        var response = await userMerchantService.UpdateAsync(id, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -45,7 +42,7 @@ public class MerchantsController(MerchantService merchantService) : ControllerBa
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var response = await merchantService.DeleteAsync(id);
+        var response = await userMerchantService.DeleteAsync(id);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

@@ -40,6 +40,7 @@ export default function CategoryEditScreen() {
     const isMerchantsLoading = useAppSelector(state => state.merchants.isLoading);
     const initializedDraftCategoryIdRef = useRef<string | undefined>(undefined);
     const isCategoryMerchantsLoading = mode === 'edit' && !!category?.id && !!category.merchantCount && !merchantsByCategory[category.id];
+    const canEdit = mode === 'create' || !category?.isOther;
 
     const usedColors = useMemo(() => {
         const list = categories.map(item => item.color).filter(color => color !== undefined) as string[];
@@ -70,11 +71,11 @@ export default function CategoryEditScreen() {
     }, [mode, colorTouched, availableColors, color]);
 
     useEffect(() => {
-        if (mode === 'edit' && category?.id && category.merchantCount) {
+        if (mode === 'edit' && category?.id && category.merchantCount && canEdit) {
             dispatch(loadCategoryMerchants(category.id));
             initializedDraftCategoryIdRef.current = undefined;
         }
-    }, [dispatch, mode, category?.id]);
+    }, [dispatch, mode, category?.id, canEdit]);
 
     useEffect(() => {
         if (mode !== 'edit' || !category?.id) {
@@ -406,9 +407,9 @@ export default function CategoryEditScreen() {
                     style={s.saveButton}
                     textStyle={s.saveButtonText}
                     isLoading={isSaving}
-                    disabled={isSaving}
+                    disabled={isSaving || !canEdit}
                 />
-                {mode === 'edit' ? (
+                {mode === 'edit' && canEdit ? (
                     <TouchableOpacity style={s.deleteButton} onPress={onDelete}>
                         <Text style={s.deleteButtonText}>{translate('Delete')}</Text>
                     </TouchableOpacity>

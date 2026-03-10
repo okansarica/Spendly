@@ -6,7 +6,7 @@ using MongoDB.Bson;
 using Spendly.Mobile.ViewModels.Finance;
 using Spendly.Shared.Localization;
 
-public class MerchantCategoryUpdateRequestValidator : AbstractValidator<MerchantCategoryUpdateRequestViewModel>
+public class MerchantCategoryUpdateRequestValidator : AbstractValidator<UserMerchantCategoryUpdateRequestViewModel>
 {
     public MerchantCategoryUpdateRequestValidator()
     {

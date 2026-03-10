@@ -9,6 +9,7 @@ public class MerchantListItemViewModel
     public string? Nickname { get; set; }
     public string? CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
+    public bool IsOther { get; set; }
 }
 
 public class MerchantDetailViewModel
@@ -17,4 +18,5 @@ public class MerchantDetailViewModel
     public string Name { get; set; } = string.Empty;
     public string? Nickname { get; set; }
     public string? CategoryId { get; set; }
+    public bool IsOther { get; set; }
 }

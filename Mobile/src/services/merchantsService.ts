@@ -11,6 +11,7 @@ export type MerchantListItem = {
   nickname?: string;
   categoryId?: string;
   categoryName: string;
+  isOther: boolean;
 };
 
 export type MerchantDetail = {
@@ -19,6 +20,7 @@ export type MerchantDetail = {
   nickname?: string;
   categoryId?: string;
   categoryName?: string;
+  isOther: boolean;
 };
 
 export type MerchantListRequest = {
@@ -36,7 +38,7 @@ export type MerchantUpdateRequest = {
 };
 
 export const merchantsService = {
-  getList: (params?: MerchantListRequest) => apiClient.get<MerchantListItem[]>(ApiEndpoints.Merchants.Base, {params}),  
-  update: (id: string, payload: MerchantUpdateRequest) => apiClient.put<MerchantDetail>(ApiEndpoints.Merchants.ById(id), payload),
-  remove: (id: string) => apiClient.delete(ApiEndpoints.Merchants.ById(id)),
+  getList: (params?: MerchantListRequest) => apiClient.get<MerchantListItem[]>(ApiEndpoints.UserMerchants.Base, {params}),  
+  update: (id: string, payload: MerchantUpdateRequest) => apiClient.put<MerchantDetail>(ApiEndpoints.UserMerchants.ById(id), payload),
+  remove: (id: string) => apiClient.delete(ApiEndpoints.UserMerchants.ById(id)),
 };

@@ -8,8 +8,10 @@ export type CategoryListItem = {
   parentId?: string;
   color?: string;
   icon?: string;
-  merchantCount: number;
+  merchantCount?: number;
+  isOther: boolean;
 };
+
 
 export type CategoryMerchantItem = {
   id: string;

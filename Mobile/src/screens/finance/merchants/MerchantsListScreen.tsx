@@ -36,16 +36,10 @@ export default function MerchantsListScreen() {
     return () => clearTimeout(id);
   }, [search]);
 
-  useEffect(() => {
-    if (!isLoading && !error) {
-      dispatch(loadMerchants({sortBy: 'name', sortDirection: 'asc'}));
-    }
-  }, []);
-
   const filteredItems = useMemo(() => {
     const needle = debouncedSearch.toLowerCase();
     const list = items.filter(item => (needle ? item.name.toLowerCase().includes(needle) : true));
-    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    return [...list];
   }, [items, debouncedSearch]);
 
   const hasMerchants = items.length > 0;
@@ -259,22 +253,30 @@ export default function MerchantsListScreen() {
               data={filteredItems}
               keyExtractor={item => item.id}
               contentContainerStyle={s.listContent}
-              renderItem={({item}) => (
-                <TouchableOpacity style={s.card} onPress={() => navigation.navigate('MerchantEdit', {merchantId: item.id})}>
-                  <View style={s.cardRow}>
-                    <View style={s.left}>
-                      <Icon name="store" size={fontSizes.lg} color={colors.textSecondary} style={{marginRight: spacing.md}} />
-                      <View style={s.titleRow}>
-                        <Text style={s.title}>{item.nickname ? `${item.nickname} (${item.name})` : item.name}</Text>
-                        <Text style={s.categoryText}>• {item.categoryName || translate('Uncategorized')}</Text>
+              renderItem={({item}) => {
+                const canEdit = !item.isOther;
+                return (
+                  <TouchableOpacity 
+                    style={s.card} 
+                    onPress={() => canEdit && navigation.navigate('MerchantEdit', {merchantId: item.id})}
+                    disabled={!canEdit}>
+                    <View style={s.cardRow}>
+                      <View style={s.left}>
+                        <Icon name="store" size={fontSizes.lg} color={colors.textSecondary} style={{marginRight: spacing.md}} />
+                        <View style={s.titleRow}>
+                          <Text style={s.title}>{item.nickname ? `${item.nickname} (${item.name})` : item.name}</Text>
+                          <Text style={s.categoryText}>• {item.categoryName || translate('Uncategorized')}</Text>
+                        </View>
                       </View>
+                      {canEdit && (
+                        <TouchableOpacity style={s.menuButton} onPress={event => openMenu(item.id, {x: event.nativeEvent.pageX, y: event.nativeEvent.pageY})}>
+                          <Icon name="more-vert" size={fontSizes.lg} style={s.menuIcon} />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <TouchableOpacity style={s.menuButton} onPress={event => openMenu(item.id, {x: event.nativeEvent.pageX, y: event.nativeEvent.pageY})}>
-                      <Icon name="more-vert" size={fontSizes.lg} style={s.menuIcon} />
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              )}
+                  </TouchableOpacity>
+                );
+              }}
             />
           </>
         )}

@@ -191,32 +191,18 @@ public class HomepageService(
 			.OrderByDescending(x => x.Amount)
 			.ToList();
 
-		var top = grouped.Take(Constants.Homepage.CategoryTopCount).ToList();
-		var remainder = grouped.Skip(Constants.Homepage.CategoryTopCount).Sum(x => x.Amount);
-
-		var results = top.Select(g =>
+		var results = grouped.Select(g =>
 			{
 				categories.TryGetValue(g.CategoryId, out var category);
 				return new SpendingByCategoryViewModel
 				{
 					CategoryId = g.CategoryId.ToString(),
-					CategoryName = category?.Name ?? "Uncategorized",
+					CategoryName = category!.Name,
 					Amount = g.Amount,
 					PercentageOfTotal = total > 0 ? Math.Round(g.Amount / total * 100, 1) : 0
 				};
 			})
 			.ToList();
-
-		if (remainder > 0)
-		{
-			results.Add(new SpendingByCategoryViewModel
-			{
-				CategoryId = string.Empty,
-				CategoryName = "Other",
-				Amount = remainder,
-				PercentageOfTotal = total > 0 ? Math.Round(remainder / total * 100, 1) : 0
-			});
-		}
 
 		return results;
 	}
@@ -358,11 +344,9 @@ public class HomepageService(
 			};
 		}
 
-		categories.TryGetValue(top.CategoryId, out var category);
-
 		return new TopSpendingCategoryViewModel
 		{
-			CategoryName = category?.Name ?? "Uncategorized",
+			CategoryName = categories[top.CategoryId].Name,
 			Amount = top.Amount,
 			PercentageOfTotal = total > 0 ? Math.Round(top.Amount / total * 100, 1) : 0
 		};

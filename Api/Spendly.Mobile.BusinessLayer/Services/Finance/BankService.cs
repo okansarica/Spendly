@@ -1,7 +1,6 @@
 // CHANGED_BY_AI: 2026-03-06 - Add banks and accounts service
 namespace Spendly.Mobile.BusinessLayer.Services.Finance;
 
-using MongoDB.Bson;
 using Shared.Entities.Banking;
 using Spendly.Mobile.ViewModels.Finance;
 using Spendly.Shared.Core;
@@ -44,10 +43,11 @@ public class BankService(
                         NickName = x.NickName,
                         Description = x.Description,
                         IsConnected = x.IsConnected,
-                        CardLast4Digits = x.Mask,
+                        Mask = x.Mask,
                     })
                     .ToList(),
             })
+            .OrderBy(p=>p.Name)
             .ToList();
 
         return FunctionResponse.Success(response);
@@ -61,7 +61,9 @@ public class BankService(
             Id = x.Id.ToString(),
             Name = x.Name,
             LogoName = x.LogoName,
-        }).ToList();
+        })
+        .OrderBy(p=>p.Name)
+            .ToList();
 
         return FunctionResponse.Success(response);
     }
@@ -105,7 +107,7 @@ public class BankService(
             bankName = bankDefinition.Name;
         }
 
-        return FunctionResponse.Success(ToBankResponse(bank, bankName!));
+        return FunctionResponse.Success(ToBankResponse(bank, bankName!, []));
     }
 
     public async Task<FunctionResponse<BankListItemViewModel>> UpdateAsync(string id, BankUpsertRequestViewModel request)
@@ -116,7 +118,7 @@ public class BankService(
         
         bank.Description = request.Description?.Trim();
         bank.UpdatedAt = DateTime.UtcNow;
-        bank.Name = string.IsNullOrEmpty(request.BankDefinitionId)?null:request.Name;
+        bank.Name = request.Name;
 
         await bankRepository.UpdateAsync(bank);
 
@@ -127,7 +129,9 @@ public class BankService(
             bankName = bankDefinition.Name;
         }
         
-        return FunctionResponse.Success(ToBankResponse(bank, bankName!));
+        var accounts =  await accountRepository.ListAsync(x => x.BankId  == bankId);
+        
+        return FunctionResponse.Success(ToBankResponse(bank, bankName, accounts.Select(ToAccountResponse).ToList()));
     }
 
     public async Task<FunctionResponse> DeleteAsync(string id)
@@ -250,7 +254,7 @@ public class BankService(
         return FunctionResponse.Success();
     }
 
-    private static BankListItemViewModel ToBankResponse(Bank bank, string bankName)
+    private static BankListItemViewModel ToBankResponse(Bank bank, string bankName, List<BankAccountListItemViewModel>  accounts)
     {
         return new BankListItemViewModel
         {
@@ -259,7 +263,7 @@ public class BankService(
             Description = bank.Description,
             BankDefinitionId = bank.BankDefinitionId?.ToString(),
             IsConnected = bank.IsConnected,
-            Accounts = bank is null ? new List<BankAccountListItemViewModel>() : new List<BankAccountListItemViewModel>(),
+            Accounts = accounts
         };
     }
 
@@ -272,7 +276,7 @@ public class BankService(
             NickName = account.NickName,
             Description = account.Description,
             IsConnected = account.IsConnected,
-            CardLast4Digits = account.Mask,
+            Mask = account.Mask,
         };
     }
 

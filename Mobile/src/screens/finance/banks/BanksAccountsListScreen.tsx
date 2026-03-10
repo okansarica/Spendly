@@ -7,7 +7,7 @@ import Header from '../../../components/Header';
 import ErrorDisplay from '../../../components/ErrorDisplay';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteBank, deleteBankAccount, loadBanks } from '../../../store/banksStore';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FinanceStackParamList } from '../../../navigation/FinanceNavigator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -15,7 +15,15 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Toast from 'react-native-toast-message';
 import { BankAccountItem, BankListItem } from '../../../services/banksService';
 
-import { create, open, dismissLink, LinkSuccess, LinkExit, LinkOpenProps, LinkTokenConfiguration } from 'react-native-plaid-link-sdk';
+import {
+    create,
+    open,
+    dismissLink,
+    LinkSuccess,
+    LinkExit,
+    LinkOpenProps,
+    LinkTokenConfiguration
+} from 'react-native-plaid-link-sdk';
 import Button from '../../../components/Button';
 import { CompleteIntegrationRequest, plaidService } from "../../../services/plaidService.ts";
 
@@ -333,6 +341,18 @@ export default function BanksAccountsListScreen() {
         actionButtonPrimaryText: {
             color: colors.buttonPrimaryText,
         },
+        footerWrap: {
+            marginTop: spacing.md,
+            paddingHorizontal: spacing.lg,
+            paddingBottom: spacing.lg,
+            alignItems: 'center',
+        },
+        bottomAddButton: {
+            width: '100%',
+            paddingVertical: spacing.md,
+            borderRadius: radius.lg,
+            alignItems: 'center',
+        },
     });
 
     const closeMenu = () => {
@@ -407,10 +427,10 @@ export default function BanksAccountsListScreen() {
         const tokenConfiguration: LinkTokenConfiguration = {
             token: linkToken,
         };
-        
+
         const openProps: LinkOpenProps = {
             onSuccess: async (linkSuccess: LinkSuccess) => {
-                if(!linkSuccess.metadata?.accounts?.length || !linkSuccess.metadata?.institution) {
+                if (!linkSuccess.metadata?.accounts?.length || !linkSuccess.metadata?.institution) {
                     showPlaidError(new Error('No accounts were linked. Please link at least one account to continue.'));
                     dismissLink();
                     return;
@@ -453,7 +473,7 @@ export default function BanksAccountsListScreen() {
                 setIsPlaidLoading(false);
             },
         };
-        
+
         create(tokenConfiguration);
         open(openProps);
     };
@@ -465,9 +485,9 @@ export default function BanksAccountsListScreen() {
             try {
                 setIsPlaidLoading(true);
                 const linkTokenResponse = await plaidService.createPlaidLinkToken();
-                
+
                 //TODO linkTokenResponse success donmeyebilir kontrol et
-                
+
                 await openPlaidFlow(linkTokenResponse.data.linkToken);
             } catch (err: any) {
                 console.log(err);
@@ -515,9 +535,7 @@ export default function BanksAccountsListScreen() {
             <TouchableOpacity
                 style={[s.card, s.accountCard]}
                 onPress={() => {
-                    if (!item.bank.isConnected) {
-                        navigation.navigate('AccountEdit', {mode: 'edit', bankId: item.bank.id, account: item.account});
-                    }
+                    navigation.navigate('AccountEdit', {mode: 'edit', bankId: item.bank.id, account: item.account});
                 }}>
                 <View style={s.cardRow}>
                     <View style={s.left}>
@@ -527,7 +545,7 @@ export default function BanksAccountsListScreen() {
                         <View style={{flex: 1}}>
                             <Text style={s.title}>{item.account.name}</Text>
                             <Text style={s.subtitle}>
-                                {item.account.mask ? `**** ${item.account.mask}` : (item.account.isConnected ? translate('Connected') : translate('ManualSetup'))}
+                                {item.account.mask ? `**** ${item.account.mask}` : ''}
                             </Text>
                         </View>
                     </View>
@@ -550,6 +568,7 @@ export default function BanksAccountsListScreen() {
             {error && items.length === 0 ? (
                 <ErrorDisplay message={error}/>
             ) : (
+                <>
                 <View style={s.content}>
                     <View style={s.searchRow}>
                         <TextInput
@@ -558,17 +577,6 @@ export default function BanksAccountsListScreen() {
                             placeholder={translate('SearchBanksAccounts')}
                             placeholderTextColor={colors.textSecondary}
                             style={s.searchInput}
-                        />
-                        <Button
-                            text={translate('AddBank')}
-                            onPress={() => {
-                                setAddBankMode('openBanking');
-                                setIsAddBankOptionsOpen(true);
-                            }}
-                            variant="primary"
-                            size="small"
-                            style={s.addBankButton}
-                            textStyle={s.addBankText}
                         />
                     </View>
                     <FlatList
@@ -579,14 +587,46 @@ export default function BanksAccountsListScreen() {
                         scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
                         ListEmptyComponent={!isLoading ?
                             <Text style={s.empty}>{translate('NoBanks')}</Text> : undefined}
+                        ListFooterComponent={() => (
+                            <View style={s.footerWrap}>
+                                <Button
+                                    text={translate('AddBank')}
+                                    onPress={() => {
+                                        setAddBankMode('openBanking');
+                                        setIsAddBankOptionsOpen(true);
+                                    }}
+                                    variant="primary"
+                                    size="small"
+                                    style={s.bottomAddButton}
+                                    textStyle={s.addBankText}
+                                />
+                            </View>
+                        )}
                     />
                 </View>
+
+                </>
             )}
             <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={closeMenu}>
                 <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={closeMenu}>
                     <View style={s.menuCard}>
                         {menuState?.type === 'bank' ? (
-                            <>
+                            <>                               
+                                <TouchableOpacity
+                                    style={s.menuItem}
+                                    onPress={() => {
+                                        const bank = menuState.bank;
+                                        closeMenu();
+                                        if (bank.isConnected) {
+                                            //TODO update mode plaid ac
+                                        }
+                                        else {
+                                            navigation.navigate('AccountEdit', {mode: 'create', bankId: bank.id});
+                                        }
+                                    }}>
+                                    <Text style={s.menuItemText}>{translate('AddAccount')}</Text>
+                                </TouchableOpacity>
+
                                 <TouchableOpacity
                                     style={s.menuItem}
                                     onPress={() => {
@@ -594,26 +634,13 @@ export default function BanksAccountsListScreen() {
                                         closeMenu();
                                         navigation.navigate('BankEdit', {mode: 'edit', bank});
                                     }}>
-                                    <Text style={s.menuItemText}>{translate('UpdateBank')}</Text>
+                                    <Text style={s.menuItemText}>{translate('Update')}</Text>
                                 </TouchableOpacity>
-                                {menuState.bank.isConnected ? (
+                                {menuState.bank.isConnected && (
                                     <TouchableOpacity style={s.menuItem} onPress={showTodo}>
                                         <Text style={s.menuItemText}>{translate('Disconnect')}</Text>
                                     </TouchableOpacity>
-                                ) : (
-                                    <TouchableOpacity style={s.menuItem} onPress={showTodo}>
-                                        <Text style={s.menuItemText}>{translate('Connect')}</Text>
-                                    </TouchableOpacity>
-                                )}
-                                <TouchableOpacity
-                                    style={s.menuItem}
-                                    onPress={() => {
-                                        const bank = menuState.bank;
-                                        closeMenu();
-                                        navigation.navigate('AccountEdit', {mode: 'create', bankId: bank.id});
-                                    }}>
-                                    <Text style={s.menuItemText}>{translate('AddAccount')}</Text>
-                                </TouchableOpacity>
+                                ) }                                
                                 <TouchableOpacity style={s.menuItem} onPress={() => onBankDelete(menuState.bank)}>
                                     <Text style={[s.menuItemText, s.menuItemDanger]}>{translate('Delete')}</Text>
                                 </TouchableOpacity>
@@ -623,40 +650,37 @@ export default function BanksAccountsListScreen() {
                             <>
                                 <TouchableOpacity
                                     style={s.menuItem}
-                                    disabled={menuState.account.isConnected}
-                                    onPress={() => onAccountDelete(menuState.bank, menuState.account)}>
-                                    <Text
-                                        style={[s.menuItemText, s.menuItemDanger, menuState.account.isConnected ? s.menuItemDisabled : undefined]}>
-                                        {translate('Delete')}
-                                    </Text>
+                                    onPress={() => {
+                                        const bankId = menuState.bank.id;
+                                        const account = menuState.account;
+                                        closeMenu();
+                                        navigation.navigate('AccountEdit', {mode: 'edit', bankId, account});
+                                    }}>
+                                    <Text style={s.menuItemText}>{translate('Update')}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={s.menuItem} disabled={menuState.account.isConnected}
-                                                  onPress={showTodo}>
-                                    <Text
-                                        style={[s.menuItemText, menuState.account.isConnected ? s.menuItemDisabled : undefined]}>{translate('Upload')}</Text>
-                                </TouchableOpacity>
-                                {menuState.bank.isConnected && !menuState.account.isConnected ? (
-                                    <TouchableOpacity style={s.menuItem} onPress={showTodo}>
-                                        <Text style={s.menuItemText}>{translate('Connect')}</Text>
-                                    </TouchableOpacity>
-                                ) : null}
+                                
+                                {/*<TouchableOpacity style={s.menuItem} disabled={menuState.account.isConnected}*/}
+                                {/*                  onPress={showTodo}>*/}
+                                {/*    <Text*/}
+                                {/*        style={[s.menuItemText, menuState.account.isConnected ? s.menuItemDisabled : undefined]}>{translate('Upload')}</Text>*/}
+                                {/*</TouchableOpacity>*/}
+
                                 {menuState.bank.isConnected && menuState.account.isConnected ? (
                                     <TouchableOpacity style={s.menuItem} onPress={showTodo}>
                                         <Text style={s.menuItemText}>{translate('Disconnect')}</Text>
                                     </TouchableOpacity>
                                 ) : null}
-                                {!menuState.bank.isConnected ? (
-                                    <TouchableOpacity
-                                        style={s.menuItem}
-                                        onPress={() => {
-                                            const bankId = menuState.bank.id;
-                                            const account = menuState.account;
-                                            closeMenu();
-                                            navigation.navigate('AccountEdit', {mode: 'edit', bankId, account});
-                                        }}>
-                                        <Text style={s.menuItemText}>{translate('UpdateAccount')}</Text>
-                                    </TouchableOpacity>
-                                ) : null}
+
+                                
+
+                                <TouchableOpacity
+                                    style={s.menuItem}
+                                    onPress={() => onAccountDelete(menuState.bank, menuState.account)}>
+                                    <Text
+                                        style={[s.menuItemText, s.menuItemDanger]}>
+                                        {translate('Delete')}
+                                    </Text>
+                                </TouchableOpacity>
                             </>
                         ) : null}
                     </View>

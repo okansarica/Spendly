@@ -25,9 +25,9 @@ export const ApiEndpoints = {
   },
   Categories: {
     Base: '/api/v1/user-categories',
-    ById: (id: string) => `/api/v1/categories/${id}`,
-    Merchants: (id: string) => `/api/v1/categories/${id}/merchants`,
-    MerchantLink: (id: string, merchantId: string) => `/api/v1/categories/${id}/merchants/${merchantId}`,
+    ById: (id: string) => `/api/v1/user-categories/${id}`,
+    Merchants: (id: string) => `/api/v1/user-categories/${id}/merchants`,
+    MerchantLink: (id: string, merchantId: string) => `/api/v1/user-categories/${id}/merchants/${merchantId}`,
   },
   Banks: {
     Base: '/api/v1/banks',
@@ -36,10 +36,10 @@ export const ApiEndpoints = {
     Accounts: (bankId: string) => `/api/v1/banks/${bankId}/accounts`,
     AccountById: (bankId: string, id: string) => `/api/v1/banks/${bankId}/accounts/${id}`,
   },
-  Merchants: {
-    Base: '/api/v1/merchants',
-    ById: (id: string) => `/api/v1/merchants/${id}`,
-    Category: (id: string) => `/api/v1/merchants/${id}/category`,
+  UserMerchants: {
+    Base: '/api/v1/user-merchants',
+    ById: (id: string) => `/api/v1/user-merchants/${id}`,
+    Category: (id: string) => `/api/v1/user-merchants/${id}/category`,
   },
   Users: {
     Profile: '/api/v1/users/profile',

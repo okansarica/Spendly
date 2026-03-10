@@ -77,7 +77,7 @@ public class ReportsService(
 			.Select(kvp => new ReportCategoryDistributionViewModel
 			{
 				CategoryId = kvp.Key.ToString(),
-				CategoryName = categoryLookup.TryGetValue(kvp.Key, out var category) ? category.Name : "Uncategorized",
+				CategoryName = categoryLookup[kvp.Key].Name,
 				CurrentMonthToDateTotal = kvp.Value,
 				PercentageOfTotal = currentTotal > 0 ? Math.Round(kvp.Value / currentTotal * 100, 1) : 0
 			})
@@ -300,7 +300,7 @@ public class ReportsService(
 		var categoryTotals = categories.Select(x => new AccountCategoryTotalViewModel
 			{
 				CategoryId = x.CategoryId.ToString(),
-				CategoryName = categoryLookup.TryGetValue(x.CategoryId, out var category) ? category.Name : "Uncategorized",
+				CategoryName = categoryLookup[x.CategoryId].Name,
 				TotalAmount = x.Total
 			})
 			.ToList();
@@ -472,7 +472,7 @@ public class ReportsService(
 		return new ReportCategoryChangeViewModel
 		{
 			CategoryId = categoryId.ToString(),
-			CategoryName = categoryLookup.TryGetValue(categoryId, out var category) ? category.Name : "Uncategorized",
+			CategoryName = categoryLookup[categoryId].Name,
 			CurrentMonthToDateTotal = current,
 			PreviousMonthSamePeriodTotal = previous,
 			DifferenceAmount = difference,
@@ -530,8 +530,8 @@ public class ReportsService(
 
 	private async Task<string> GetCategoryNameAsync(ObjectId categoryId)
 	{
-		var category = await categoryRepository.GetAsync(categoryId);
-		return category?.Name ?? "Uncategorized";
+		var category = await categoryRepository.GetRequiredAsync(categoryId);
+		return category.Name;
 	}
 
 

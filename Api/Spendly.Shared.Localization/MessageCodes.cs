@@ -35,6 +35,8 @@ public class MessageCodes
 	public const string MerchantNotFound = "MerchantNotFound";
 	public const string CategoryMerchantLinkInvalid = "CategoryMerchantLinkInvalid";
 	public const string CategoryHasChildren = "CategoryHasChildren";
+	public const string CannotModifyOtherCategory = "CannotModifyOtherCategory";
+	public const string CannotModifyOtherMerchant = "CannotModifyOtherMerchant";
 	public const string InvalidLanguage = "InvalidLanguage";
 	public const string NoActiveSubscription = "NoActiveSubscription";
 	public const string InvalidBankId = "InvalidBankId";
