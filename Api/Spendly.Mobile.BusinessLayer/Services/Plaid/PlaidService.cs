@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-10 - Add update-mode Plaid integration flow for connected bank account additions
 namespace Spendly.Mobile.BusinessLayer.Services.Plaid;
 
 using Microsoft.AspNetCore.DataProtection;
@@ -34,8 +35,13 @@ public class PlaidService(
 	private readonly IDataProtector _protector =
 		dataProtectionProvider.CreateProtector("UserPlaidTokenProtector");
 
-	public async Task<string> CreateLinkTokenAsync()
+	public async Task<string> CreateLinkTokenAsync(CreateLinkTokenRequestViewModel? createLinkTokenRequestViewModel)
 	{
+		var mode = createLinkTokenRequestViewModel?.Mode ?? PlaidFlowMode.Create;
+		var accessToken = mode == PlaidFlowMode.Update
+			? await GetUpdateModeAccessToken(createLinkTokenRequestViewModel)
+			: null;
+
 		//TODO make it strongly typed
 		var request = new
 		{
@@ -47,6 +53,7 @@ public class PlaidService(
 			user = new {client_user_id = requestContextViewModel.UserId},
 			products = new[] {"transactions"},
 			redirect_uri = plaidSettings.RedirectUrl,
+			access_token = accessToken,
 			webhook= "https://yourdomain.com/plaid/webhook" //TODO url
 		};
 
@@ -94,6 +101,11 @@ public class PlaidService(
 
 	public async Task<FunctionResponse<CompleteIntegrationResponseViewModel>> CompleteIntegration(CompleteIntegrationRequestViewModel completeIntegrationRequestViewModel)
 	{
+		if (completeIntegrationRequestViewModel.Mode == PlaidFlowMode.Update)
+		{
+			return await CompleteIntegrationForUpdateMode(completeIntegrationRequestViewModel);
+		}
+
 		var existingBank =  await bankRepository.GetAsync(p => p.UserId == requestContextViewModel.UserId.ToObjectId() &&p.PlaidInstitutionId == completeIntegrationRequestViewModel.Institution.Id);
 
 		if (existingBank != null)
@@ -105,20 +117,78 @@ public class PlaidService(
 		var exchangePublicTokenResponse = await ExchangePublicTokenAsync(completeIntegrationRequestViewModel.PublicToken);
 		var userPlaidToken = await SaveAccessToken(exchangePublicTokenResponse);
 		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution);
-		var newAccountIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
+		var newAccountPlaidIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
 
 		Debug.WriteLine(DateTime.Now+" Complete integrastion data saved");
 		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
 		{
 			AccessToken = exchangePublicTokenResponse.AccessToken,
 			BankId = bank.Id.ToString(),
+			NewAccountPlaidIds = newAccountPlaidIds
 		});
 	}
-	private async Task<List<ObjectId>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
+
+	private async Task<FunctionResponse<CompleteIntegrationResponseViewModel>> CompleteIntegrationForUpdateMode(CompleteIntegrationRequestViewModel completeIntegrationRequestViewModel)
 	{
-		var newAccountIds = new List<ObjectId>();
+		if (string.IsNullOrEmpty(completeIntegrationRequestViewModel.BankId))
+		{
+			return FunctionResponse.Failure<CompleteIntegrationResponseViewModel>(MessageCodes.InvalidBankId);
+		}
+
+		var bankId = completeIntegrationRequestViewModel.BankId.ToObjectId();
+		var bank = await bankRepository.GetRequiredAsync(p => p.Id == bankId && p.UserId == requestContextViewModel.UserId.ToObjectId());
+
+		if (!bank.UserPlaidTokenId.HasValue)
+		{
+			throw new Exception($"Connected bank has no UserPlaidTokenId. BankId: {bank.Id}");
+		}
+
+		var userPlaidToken = await userPlaidTokenRepository.GetRequiredAsync(bank.UserPlaidTokenId.Value);
+		var accessToken = _protector.Unprotect(userPlaidToken.EncryptedAccessToken);
+		var newAccountPlaidIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
+
+		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
+		{
+			AccessToken = accessToken,
+			BankId = bank.Id.ToString(),
+			NewAccountPlaidIds = newAccountPlaidIds
+		});
+	}
+
+	private async Task<string?> GetUpdateModeAccessToken(CreateLinkTokenRequestViewModel? createLinkTokenRequestViewModel)
+	{
+		if (createLinkTokenRequestViewModel is null || string.IsNullOrEmpty(createLinkTokenRequestViewModel.BankId))
+		{
+			throw new Exception("BankId is required for update mode link token creation.");
+		}
+
+		var bankId = createLinkTokenRequestViewModel.BankId.ToObjectId();
+		var bank = await bankRepository.GetRequiredAsync(p => p.Id == bankId && p.UserId == requestContextViewModel.UserId.ToObjectId());
+		if (!bank.UserPlaidTokenId.HasValue)
+		{
+			throw new Exception($"Connected bank has no UserPlaidTokenId. BankId: {bank.Id}");
+		}
+
+		var userPlaidToken = await userPlaidTokenRepository.GetRequiredAsync(bank.UserPlaidTokenId.Value);
+		return _protector.Unprotect(userPlaidToken.EncryptedAccessToken);
+	}
+
+	private async Task<List<string>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
+	{
+		var existingAccounts = await accountRepository.ListAsync(p => p.BankId == bankId);
+		var existingPlaidAccountIds = existingAccounts
+			.Where(p => !string.IsNullOrEmpty(p.PlaidAccountId))
+			.Select(p => p.PlaidAccountId!)
+			.ToHashSet();
+
+		var newAccountPlaidIds = new List<string>();
 		foreach (var plaidAccount in plaidAccounts)
 		{
+			if (existingPlaidAccountIds.Contains(plaidAccount.Id))
+			{
+				continue;
+			}
+
 			var account = new Account
 			{
 				BankId = bankId,
@@ -130,9 +200,9 @@ public class PlaidService(
 				ConnectionDateTime = DateTime.UtcNow,
 			};
 			await accountRepository.InsertAsync(account).ConfigureAwait(false);
-			newAccountIds.Add(account.Id);
+			newAccountPlaidIds.Add(plaidAccount.Id);
 		}
-		return newAccountIds;
+		return newAccountPlaidIds;
 	}
 	private async Task<Bank> SaveBank(ObjectId userPlaidTokenId, PlaidInstitutionViewModel institude)
 	{
@@ -483,5 +553,46 @@ public class PlaidService(
 		}
 
 		return result;
+	}
+
+	public async Task RemoveItemAsync(string accessToken)
+	{
+		var request = new
+		{
+			client_id = plaidSettings.ClientId,
+			secret = plaidSettings.Secret,
+			access_token = accessToken
+		};
+
+		var requestJson = JsonSerializer.Serialize(request);
+
+		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
+		{
+			Content = requestJson,
+			Type = PlaidCommunicationLogType.RemoveItemRequest
+		});
+
+		var response = await httpClient.PostAsJsonAsync(
+			plaidSettings.BaseUrl + "/item/remove",
+			request);
+
+		var responseContent = await response.Content.ReadAsStringAsync();
+
+		await plaidCommunicationLogRepository.InsertAsync(new PlaidCommunicationLog
+		{
+			Content = responseContent,
+			Type = PlaidCommunicationLogType.RemoveItemResponse
+		});
+
+		if (!response.IsSuccessStatusCode)
+		{
+			logger.LogError(
+				"Plaid item/remove failed for user {UserId} status {Status}. Response: {Response}",
+				requestContextViewModel.UserId,
+				response.StatusCode,
+				responseContent);
+
+			throw new Exception($"Plaid item/remove failed. Response: {responseContent}");
+		}
 	}
 }

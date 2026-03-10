@@ -23,4 +23,6 @@ public enum PlaidCommunicationLogType
 	GetAccountsResponse,
 	GetTransactionsRequest,
 	GetTransactionsResponse,
+	RemoveItemRequest,
+	RemoveItemResponse,
 }

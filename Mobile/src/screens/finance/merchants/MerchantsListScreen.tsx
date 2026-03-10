@@ -14,6 +14,7 @@ import {MerchantDefaults} from '../../../constants/merchantConstants';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {FinanceStackParamList} from '../../../navigation/FinanceNavigator';
+import Toast from "react-native-toast-message";
 
 export default function MerchantsListScreen() {
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
@@ -205,8 +206,11 @@ export default function MerchantsListScreen() {
         {
           text: translate('Delete'),
           style: 'destructive',
-          onPress: () => {
-            dispatch(deleteMerchant(id));
+          onPress: async () => {
+            const result = await dispatch(deleteMerchant(id));
+            if (result.meta.requestStatus !== 'fulfilled') {
+              Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+            }
           },
         },
       ]

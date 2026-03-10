@@ -1,6 +1,7 @@
 // CHANGED_BY_AI: 2026-03-03 - Implement user menu screen integration
 import React, {useEffect, useState} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {logout} from '../../store/authStore';
 import {loadUserProfile, setUserLanguage} from '../../store/userStore';
@@ -118,10 +119,13 @@ export default function UserScreen() {
     },
   });
 
-  const onLanguageSelect = (languageCode: string) => {
+  const onLanguageSelect = async (languageCode: string) => {
     setSelectedLanguage(languageCode);
     setLanguage(languageCode);
-    dispatch(setUserLanguage(languageCode));
+    const result = await dispatch(setUserLanguage(languageCode));
+    if (result.meta.requestStatus !== 'fulfilled') {
+      Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+    }
   };
 
   return (

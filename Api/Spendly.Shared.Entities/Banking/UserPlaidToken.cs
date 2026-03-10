@@ -6,7 +6,7 @@ using Spendly.Shared.Entities.Core;
 /// <summary>
 /// Each bank connection should have separate token. Bank entity has a FK to this table
 /// </summary>
-public class UserPlaidToken : BaseEntity
+public class UserPlaidToken : BaseEntity,ISoftDeletable
 {
     public required ObjectId UserId { get; set; }
 
@@ -19,5 +19,7 @@ public class UserPlaidToken : BaseEntity
     public string ItemId { get; set; } = string.Empty;
 
     public DateTime? ExpirationDateTime { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }
 

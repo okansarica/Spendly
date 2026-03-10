@@ -45,6 +45,7 @@ class Program
 	static async Task GenerateTestData()
 	{
 		var users = await CreateUsers();
+		await CreateBankDefinitions();
 		await CreateUserSubscriptions(users);
 		var allCategories = await CreateCategories(users);
 		await CreatePreDefinedMerchants(allCategories); 
@@ -398,6 +399,49 @@ class Program
 		}
 
 		Console.WriteLine($"✓ Created {merchants.Count} merchants");
+	}
+
+	private static async Task CreateBankDefinitions()
+	{
+		var collection = _database.GetCollection<BankDefinition>("BankDefinition");
+		await collection.DeleteManyAsync(FilterDefinition<BankDefinition>.Empty);
+
+		var bankNames = new[]
+		{
+			"Barclays",
+			"HSBC",
+			"Lloyds Bank",
+			"NatWest",
+			"Royal Bank of Scotland",
+			"Santander UK",
+			"Halifax",
+			"Nationwide",
+			"TSB",
+			"Metro Bank",
+			"First Direct",
+			"Monzo",
+			"Starling Bank",
+			"Revolut",
+			"Virgin Money"
+		};
+
+		var banks = new List<BankDefinition>();
+		foreach (var name in bankNames)
+		{
+			banks.Add(new BankDefinition
+			{
+				Id = ObjectId.GenerateNewId(),
+				Name = name,
+				CreatedAt = DateTime.UtcNow
+			});
+		}
+
+		if (banks.Any())
+		{
+			await collection.InsertManyAsync(banks);
+		}
+
+		Console.WriteLine($"✓ Created {banks.Count} bank definitions");
 	}
 
 }

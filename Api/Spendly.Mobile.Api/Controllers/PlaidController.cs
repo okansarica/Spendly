@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-10 - Support Plaid update-mode token creation and new-account background processing scope
 namespace Spendly.Mobile.Api.Controllers;
 
 using BusinessLayer.Services.Plaid;
@@ -25,9 +26,9 @@ public class PlaidController(
         dataProtectionProvider.CreateProtector("UserPlaidTokenProtector");
     
     [HttpPost("create-link-token")]
-    public async Task<IActionResult> CreateLinkToken()
+    public async Task<IActionResult> CreateLinkToken([FromBody] CreateLinkTokenRequestViewModel? request)
     {
-        var token = await plaidService.CreateLinkTokenAsync();
+        var token = await plaidService.CreateLinkTokenAsync(request);
         return Ok(new { linkToken = token });
     }
 
@@ -46,7 +47,7 @@ public class PlaidController(
             UserId = User.Identity!.Name!,
             AccessToken = completeResponse.Data!.AccessToken,
             BankId = completeResponse.Data!.BankId,
-            //NewAccountIds = completeResponse.Data!.NewAccountPlaidIds
+            NewAccountPlaidIds = completeResponse.Data!.NewAccountPlaidIds
         });
         Debug.WriteLine(DateTime.Now+" Complete integrastion finished");
         return Ok();
@@ -75,10 +76,9 @@ public class PlaidController(
             UserId = response.bank.UserId.ToString(),
             AccessToken = accessToken,
             BankId = response.bank.Id.ToString(),
-            //NewAccountIds = completeResponse.Data!.NewAccountPlaidIds
+            NewAccountPlaidIds = []
         });
         
         return Ok();
     }
 }
-

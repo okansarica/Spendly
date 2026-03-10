@@ -10,6 +10,7 @@ import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {deleteUserAccount, loadUserProfile, updateUserProfile} from '../../store/userStore';
 import {logoutLocal} from '../../store/authStore';
 import Button from '../../components/Button';
+import Toast from "react-native-toast-message";
 
 type DeleteQuestion = {
   id: number;
@@ -133,13 +134,18 @@ export default function ProfileScreen() {
 
     if (nError || sError) return;
 
-    await dispatch(
+    const result = await dispatch(
         updateUserProfile({
           name: trimmedName,
           surname: trimmedSurname,
           isNewsletterSubscribed: newsletter,
         }),
     );
+
+    if (result.meta.requestStatus !== 'fulfilled') {
+      Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+      return;
+    }
 
     Alert.alert(translate('SuccessTitle'), translate('ProfileUpdatedMessage'));
   };

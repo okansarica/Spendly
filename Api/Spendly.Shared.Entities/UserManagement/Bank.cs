@@ -9,8 +9,10 @@ public class Bank:BaseEntity,ISoftDeletable
 	public ObjectId? BankDefinitionId { get; set; }
 	public ObjectId? UserPlaidTokenId { get; set; }
 	
-	
-	public string Name { get; set; } =  string.Empty;
+	/// <summary>
+	/// BankDefinition Id dolu oldugunda banka combodan secilmisitr, bu alan bos olur
+	/// </summary>
+	public string? Name { get; set; } =  string.Empty;
 	public string? Description { get; set; }
 
 	/// <summary>

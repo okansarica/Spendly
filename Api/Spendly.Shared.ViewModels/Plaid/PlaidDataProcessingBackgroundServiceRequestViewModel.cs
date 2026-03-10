@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-10 - Add new account plaid id filter for scoped background processing
 namespace Spendly.Shared.ViewModels.Plaid;
 
 public class PlaidDataProcessingBackgroundServiceRequestViewModel
@@ -7,6 +8,5 @@ public class PlaidDataProcessingBackgroundServiceRequestViewModel
     
 	//TODO access token aktarilmasin, db den cekilsin
 	public required string AccessToken { get; set; } = string.Empty;
-	//public List<string> NewAccountIds { get; set; } = [];
-
+	public List<string> NewAccountPlaidIds { get; set; } = [];
 }

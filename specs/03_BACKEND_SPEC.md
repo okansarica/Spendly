@@ -201,6 +201,7 @@ public interface IRepository<T> where T : BaseEntity
 - Entities live in Spendly.Shared.Entities/ 
 - DTOs live in `*ViewModels` projects
 - Mapping in business layer services (not in controllers)
+- All enums should be placed in Enums project Enums.cs file
 
 ## Validation
 

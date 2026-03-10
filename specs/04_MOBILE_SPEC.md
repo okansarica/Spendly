@@ -107,7 +107,7 @@ Backend API
 
 ## Error Handling
 
-- API errors (400): show error message from response body
+- API errors (400): show error message from response body. When calling api from stores, when the response code is 400 reject the request with the error message and handle that in the screen and show it via toast
 - Server errors (500): show generic error message
 - No try/catch for API calls in screens or services - use the base API call function
 - See UI_ARCHITECTURE.md for client-side response handling pattern

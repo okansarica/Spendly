@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-10 - Scope Plaid transaction ingestion to new account ids for update mode
 namespace Spendly.Shared.BusinessLayer;
 
 using Core;
@@ -68,7 +69,7 @@ public class SharedPlaidService(
 			startDate,
 			endDate,
 			request.UserId.ToObjectId(),
-			[]);
+			request.NewAccountPlaidIds);
 
 		//normalize et
 		var normalizedTransactions = await NormalizeTransactions(rawTransactions, request.BankId.ToObjectId(), request.UserId.ToObjectId());
@@ -463,7 +464,14 @@ public class SharedPlaidService(
 			}
 
 			// Her yeni banka baglantisi yapildiginda newAccountPlaidIds callback sonucunda gelir. Zaten var olan bir banka tekrar baglanmak istenebilir (varolan account cikarilabilir ya da yeni account eklenebilir. newAccountPlaidIds sadece eklenen 
-			var plaidTransactionsInDate = plaidTransactionGetResponse.Transactions.Where(p => p.Date == date && !newAccountPlaidIds.Contains(p.AccountId)).ToList();
+			var plaidTransactionsInDate = plaidTransactionGetResponse.Transactions
+				.Where(p => p.Date == date && (newAccountPlaidIds.Count == 0 || newAccountPlaidIds.Contains(p.AccountId)))
+				.ToList();
+
+			if (!plaidTransactionsInDate.Any())
+			{
+				continue;
+			}
 
 			var plaidAccountsForTransactions = plaidTransactionGetResponse.Accounts?.Where(p => plaidTransactionsInDate.Select(t => t.AccountId).Contains(p.AccountId)).ToList();
 

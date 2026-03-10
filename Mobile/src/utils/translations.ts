@@ -131,6 +131,7 @@ const translations: Record<string, Record<string, string>> = {
     AccountNameRequired: 'Account name is required',
     DeleteBankTitle: 'Delete bank?',
     DeleteBankMessage: 'This will delete the bank and all accounts.',
+    DeleteAccountsFirstMessage: 'Please delete all accounts first before deleting the bank.',
     DeleteBankAccountTitle: 'Delete account?',
     DeleteBankAccountMessage: 'This action cannot be undone.',
     Connect: 'Connect',

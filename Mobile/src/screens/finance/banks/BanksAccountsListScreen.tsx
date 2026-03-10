@@ -1,4 +1,5 @@
 // CHANGED_BY_AI: 2026-03-06 - Add banks and accounts listing screen
+// CHANGED_BY_AI: 2026-03-10 - Trigger Plaid update-mode flow from connected bank AddAccount
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Modal, Alert } from 'react-native';
 import { useTheme } from '../../../theme/ThemeContext';
@@ -25,7 +26,7 @@ import {
     LinkTokenConfiguration
 } from 'react-native-plaid-link-sdk';
 import Button from '../../../components/Button';
-import { CompleteIntegrationRequest, plaidService } from "../../../services/plaidService.ts";
+import { CompleteIntegrationRequest, plaidService, PlaidFlowMode } from "../../../services/plaidService.ts";
 
 type FinanceNavProp = NativeStackNavigationProp<FinanceStackParamList, 'BanksAccountsList'>;
 
@@ -375,13 +376,20 @@ export default function BanksAccountsListScreen() {
 
     const onBankDelete = (bank: BankListItem) => {
         closeMenu();
+        if (!bank.isConnected && bank.accounts.length > 0) {
+            Toast.show({type: 'error', text1: translate('Error'), text2: translate('DeleteAccountsFirstMessage')});
+            return;
+        }
         Alert.alert(translate('DeleteBankTitle'), translate('DeleteBankMessage'), [
             {text: translate('Cancel'), style: 'cancel'},
             {
                 text: translate('Delete'),
                 style: 'destructive',
-                onPress: () => {
-                    dispatch(deleteBank(bank.id));
+                onPress: async () => {
+                    const result = await dispatch(deleteBank(bank.id));
+                    if (result.meta.requestStatus !== 'fulfilled') {
+                        Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+                    }
                 },
             },
         ]);
@@ -397,8 +405,11 @@ export default function BanksAccountsListScreen() {
             {
                 text: translate('Delete'),
                 style: 'destructive',
-                onPress: () => {
-                    dispatch(deleteBankAccount({bankId: bank.id, id: account.id}));
+                onPress: async () => {
+                    const result = await dispatch(deleteBankAccount({bankId: bank.id, id: account.id}));
+                    if (result.meta.requestStatus !== 'fulfilled') {
+                        Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+                    }
                 },
             },
         ]);
@@ -423,7 +434,7 @@ export default function BanksAccountsListScreen() {
         });
     };
 
-    const openPlaidFlow = async (linkToken: string) => {
+    const openPlaidFlow = async (linkToken: string, mode: PlaidFlowMode, bankId?: string) => {
         const tokenConfiguration: LinkTokenConfiguration = {
             token: linkToken,
         };
@@ -438,6 +449,8 @@ export default function BanksAccountsListScreen() {
 
                 const request: CompleteIntegrationRequest = {
                     publicToken: linkSuccess.publicToken,
+                    mode,
+                    bankId,
                     accounts: linkSuccess.metadata.accounts.map(a => ({
                         verificationStatus: a.verificationStatus?.toString(),
                         type: a.type,
@@ -478,17 +491,30 @@ export default function BanksAccountsListScreen() {
         open(openProps);
     };
 
+    const startConnectedBankUpdateFlow = async (bank: BankListItem) => {
+        closeMenu();
+        try {
+            setIsPlaidLoading(true);
+            const linkTokenResponse = await plaidService.createPlaidLinkToken({mode: 'update', bankId: bank.id});
+            await openPlaidFlow(linkTokenResponse.data.linkToken, 'update', bank.id);
+        } catch (err: any) {
+            console.log(err);
+            showPlaidError(err);
+            setIsPlaidLoading(false);
+        }
+    };
+
     const onContinueAddBank = async () => {
         if (!addBankMode) return;
 
         if (addBankMode === 'openBanking') {
             try {
                 setIsPlaidLoading(true);
-                const linkTokenResponse = await plaidService.createPlaidLinkToken();
+                const linkTokenResponse = await plaidService.createPlaidLinkToken({mode: 'create'});
 
                 //TODO linkTokenResponse success donmeyebilir kontrol et
 
-                await openPlaidFlow(linkTokenResponse.data.linkToken);
+                await openPlaidFlow(linkTokenResponse.data.linkToken, 'create');
             } catch (err: any) {
                 console.log(err);
                 showPlaidError(err);
@@ -616,11 +642,11 @@ export default function BanksAccountsListScreen() {
                                     style={s.menuItem}
                                     onPress={() => {
                                         const bank = menuState.bank;
-                                        closeMenu();
                                         if (bank.isConnected) {
-                                            //TODO update mode plaid ac
+                                            startConnectedBankUpdateFlow(bank);
                                         }
                                         else {
+                                            closeMenu();
                                             navigation.navigate('AccountEdit', {mode: 'create', bankId: bank.id});
                                         }
                                     }}>
@@ -635,12 +661,7 @@ export default function BanksAccountsListScreen() {
                                         navigation.navigate('BankEdit', {mode: 'edit', bank});
                                     }}>
                                     <Text style={s.menuItemText}>{translate('Update')}</Text>
-                                </TouchableOpacity>
-                                {menuState.bank.isConnected && (
-                                    <TouchableOpacity style={s.menuItem} onPress={showTodo}>
-                                        <Text style={s.menuItemText}>{translate('Disconnect')}</Text>
-                                    </TouchableOpacity>
-                                ) }                                
+                                </TouchableOpacity>  
                                 <TouchableOpacity style={s.menuItem} onPress={() => onBankDelete(menuState.bank)}>
                                     <Text style={[s.menuItemText, s.menuItemDanger]}>{translate('Delete')}</Text>
                                 </TouchableOpacity>
@@ -658,20 +679,6 @@ export default function BanksAccountsListScreen() {
                                     }}>
                                     <Text style={s.menuItemText}>{translate('Update')}</Text>
                                 </TouchableOpacity>
-                                
-                                {/*<TouchableOpacity style={s.menuItem} disabled={menuState.account.isConnected}*/}
-                                {/*                  onPress={showTodo}>*/}
-                                {/*    <Text*/}
-                                {/*        style={[s.menuItemText, menuState.account.isConnected ? s.menuItemDisabled : undefined]}>{translate('Upload')}</Text>*/}
-                                {/*</TouchableOpacity>*/}
-
-                                {menuState.bank.isConnected && menuState.account.isConnected ? (
-                                    <TouchableOpacity style={s.menuItem} onPress={showTodo}>
-                                        <Text style={s.menuItemText}>{translate('Disconnect')}</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-
-                                
 
                                 <TouchableOpacity
                                     style={s.menuItem}

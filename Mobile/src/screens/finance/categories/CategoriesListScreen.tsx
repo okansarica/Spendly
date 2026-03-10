@@ -1,6 +1,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add compact list layout and item menu
 import React, {useMemo, useState, useEffect} from 'react';
 import {View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Modal, Alert} from 'react-native';
+import Toast from 'react-native-toast-message';
 import {useTheme} from '../../../theme/ThemeContext';
 import {translate} from '../../../utils/translations';
 import Header from '../../../components/Header';
@@ -232,8 +233,11 @@ export default function CategoriesListScreen() {
         {
           text: translate('Delete'),
           style: 'destructive',
-          onPress: () => {
-            dispatch(deleteCategory(target.id));
+          onPress: async () => {
+            const result = await dispatch(deleteCategory(target.id));
+            if (result.meta.requestStatus !== 'fulfilled') {
+              Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+            }
           },
         },
       ]

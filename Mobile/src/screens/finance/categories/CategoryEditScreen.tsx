@@ -168,12 +168,13 @@ export default function CategoryEditScreen() {
                 {
                     text: translate('Delete'),
                     style: 'destructive',
-                    onPress: () => {
-                        dispatch(deleteCategory(category.id)).then(result => {
-                            if (result.meta.requestStatus === 'fulfilled') {
-                                navigation.goBack();
-                            }
-                        });
+                    onPress: async () => {
+                        const result = await dispatch(deleteCategory(category.id));
+                        if (result.meta.requestStatus === 'fulfilled') {
+                            navigation.goBack();
+                        } else {
+                            Toast.show({type: 'error', text1: translate('Error'), text2: result.payload as string});
+                        }
                     },
                 },
             ]
