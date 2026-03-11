@@ -268,14 +268,13 @@ public class SharedPlaidService(
 		{
 			ValidateRawTransaction(rawTransaction);
 
+			var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Account!;
+			var account = allAccounts.Single(p => p.PlaidAccountId == plaidAccount.AccountId);
+			var accountNormalizationState = accountNormalizationStates[account.Id].MaxBy(p => p.Date);
+
 			foreach (var plaidTransaction in rawTransaction.PlaidTransactionsGetResponse.Transactions)
 			{
-				var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Accounts!
-					.Single(p => p.AccountId == plaidTransaction.AccountId);
-				var account = allAccounts.Single(p => p.PlaidAccountId == plaidAccount.AccountId);
-				
-				var accountNormalizationState =  accountNormalizationStates[account.Id].MaxBy(p=>p.Date);
-				if (ShouldSkip(plaidTransaction,accountNormalizationState))
+				if (ShouldSkip(plaidTransaction, accountNormalizationState))
 				{
 					continue;
 				}
@@ -458,8 +457,8 @@ public class SharedPlaidService(
 
 	private static void ValidateRawTransaction(RawTransaction rawTransaction)
 	{
-		if (rawTransaction.PlaidTransactionsGetResponse.Accounts is null)
-			throw new Exception($"Account list is null. RawTransactionId: {rawTransaction.Id}");
+		if (rawTransaction.PlaidTransactionsGetResponse.Account is null)
+			throw new Exception($"Account is null. RawTransactionId: {rawTransaction.Id}");
 	}
 
 	private static void ValidatePlaidTransaction(RawTransaction rawTransaction, PlaidTransaction plaidTransaction)
@@ -478,11 +477,10 @@ public class SharedPlaidService(
 		ObjectId userId,
 		List<string> newAccountPlaidIds)
 	{
-		var daysToProcess = (endDate.ToDateTime(TimeOnly.MinValue) - startDate.ToDateTime(TimeOnly.MinValue)).Days + 1; //+1 is to include the last date
+		var daysToProcess = (endDate.ToDateTime(TimeOnly.MinValue) - startDate.ToDateTime(TimeOnly.MinValue)).Days + 1;
 
 		var rawTransactions = new List<RawTransaction>();
 
-		//Her gun icin transactionlari al parcala kaydet
 		for (var i = 0; i < daysToProcess; i++)
 		{
 			var date = startDate.AddDays(i);
@@ -491,11 +489,9 @@ public class SharedPlaidService(
 
 			if (plaidTransactionGetResponse is null)
 			{
-				//This means there is no transaction for that day
 				continue;
 			}
 
-			// Her yeni banka baglantisi yapildiginda newAccountPlaidIds callback sonucunda gelir. Zaten var olan bir banka tekrar baglanmak istenebilir (varolan account cikarilabilir ya da yeni account eklenebilir. newAccountPlaidIds sadece eklenen 
 			var plaidTransactionsInDate = plaidTransactionGetResponse.Transactions
 				.Where(p => p.Date == date && (newAccountPlaidIds.Count == 0 || newAccountPlaidIds.Contains(p.AccountId)))
 				.ToList();
@@ -505,26 +501,33 @@ public class SharedPlaidService(
 				continue;
 			}
 
-			var plaidAccountsForTransactions = plaidTransactionGetResponse.Accounts?.Where(p => plaidTransactionsInDate.Select(t => t.AccountId).Contains(p.AccountId)).ToList();
+			var accountGroups = plaidTransactionsInDate.GroupBy(t => t.AccountId);
 
-			var plaidTransactionsGetResponse = new PlaidTransactionsGetResponse
+			foreach (var accountGroup in accountGroups)
 			{
-				Accounts = plaidAccountsForTransactions?.Select(MapPlaidTransactionAccountFromViewModel).ToList(),
-				Transactions = plaidTransactionsInDate.Select(MapPlaidTransactionFromViewModel),
-				Item = plaidTransactionGetResponse.Item != null ? MapPlaidTransactionItemFromViewModel(plaidTransactionGetResponse.Item) : null,
-				RequestId = plaidTransactionGetResponse.RequestId,
-				TotalTransactions = plaidTransactionGetResponse.TotalTransactions,
-			};
+				var plaidAccountId = accountGroup.Key;
+				var plaidAccount = plaidTransactionGetResponse.Accounts?.SingleOrDefault(p => p.AccountId == plaidAccountId);
 
-			var rawTransaction = new RawTransaction
-			{
-				UserId = userId,
-				Date = date,
-				Initial = true,
-				PlaidTransactionsGetResponse = plaidTransactionsGetResponse
-			};
+				var plaidTransactionsGetResponse = new PlaidTransactionsGetResponse
+				{
+					Account = plaidAccount != null ? MapPlaidTransactionAccountFromViewModel(plaidAccount) : null,
+					Transactions = accountGroup.Select(MapPlaidTransactionFromViewModel),
+					Item = plaidTransactionGetResponse.Item != null ? MapPlaidTransactionItemFromViewModel(plaidTransactionGetResponse.Item) : null,
+					RequestId = plaidTransactionGetResponse.RequestId,
+					TotalTransactions = accountGroup.Count(),
+				};
 
-			rawTransactions.Add(rawTransaction);
+				var rawTransaction = new RawTransaction
+				{
+					UserId = userId,
+					Date = date,
+					Initial = true,
+					PlaidAccountId = plaidAccountId,
+					PlaidTransactionsGetResponse = plaidTransactionsGetResponse
+				};
+
+				rawTransactions.Add(rawTransaction);
+			}
 		}
 
 		if (rawTransactions.Any())
@@ -559,9 +562,9 @@ public class SharedPlaidService(
 				options = new
 				{
 					count = count,
-					offset = offset
+					offset = offset,
+					account_ids = requestNewAccountPlaidIds,
 				},
-				account_ids = string.Join(",", requestNewAccountPlaidIds),
 			};
 
 			var requestJson = JsonSerializer.Serialize(request);
