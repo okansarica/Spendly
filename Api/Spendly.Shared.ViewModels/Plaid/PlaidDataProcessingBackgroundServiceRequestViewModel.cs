@@ -8,5 +8,9 @@ public class PlaidDataProcessingBackgroundServiceRequestViewModel
     
 	//TODO access token aktarilmasin, db den cekilsin
 	public required string AccessToken { get; set; } = string.Empty;
+	
+	/// <summary>
+	/// Kullanici plaid update mode a girip hesaplari tekrar sectiginde, her zaman son secili mesajlar gecerlidir. Bu liste en son secilen account listesini tutar
+	/// </summary>
 	public List<string> NewAccountPlaidIds { get; set; } = [];
 }

@@ -122,7 +122,6 @@ public class PlaidService(
 		var bank = await SaveBank(userPlaidToken.Id, completeIntegrationRequestViewModel.Institution, existingBank);
 		var newAccountPlaidIds = await SaveAccounts(bank.Id, completeIntegrationRequestViewModel.Accounts);
 
-		Debug.WriteLine(DateTime.Now + " Complete integrastion data saved");
 		return FunctionResponse.Success(new CompleteIntegrationResponseViewModel
 		{
 			AccessToken = exchangePublicTokenResponse.AccessToken,
@@ -179,25 +178,26 @@ public class PlaidService(
 
 	private async Task<List<string>> SaveAccounts(ObjectId bankId, List<PlaidAccountViewModel> plaidAccounts)
 	{
-		var allAccountsIncludingDeleted = await accountRepository.ListIncludingSoftDeletedAsync(p => p.BankId == bankId);
+		var allExistingAccountsIncludingDeleted = await accountRepository.ListIncludingSoftDeletedAsync(p => p.BankId == bankId);
 
 		var newAccountPlaidIds = new List<string>();
 		foreach (var plaidAccount in plaidAccounts)
 		{
-			var existingAccount = allAccountsIncludingDeleted.SingleOrDefault(p => p.PlaidAccountId == plaidAccount.Id);
+			var existingAccount = allExistingAccountsIncludingDeleted.SingleOrDefault(p => p.PlaidAccountId == plaidAccount.Id);
 			if (existingAccount != null &&
 			    !existingAccount.IsDeleted)
 			{
 				//boyle bir account zaten var ve silinmemis 
 				logger.LogInformation(
-					$"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(allAccountsIncludingDeleted.Select(p => new {p.Id, p.PlaidAccountId, p.IsDeleted}))}, PlaidAccountId:{plaidAccount.Id}");
+					$"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(allExistingAccountsIncludingDeleted.Select(p => new {p.Id, p.PlaidAccountId, p.IsDeleted}))}, PlaidAccountId:{plaidAccount.Id}");
+				newAccountPlaidIds.Add(plaidAccount.Id);
 				continue;
 			}
 
 			if (existingAccount == null)
 			{
 				//eger hesap yoksa mask + subtype eslesmesi dene
-				existingAccount = allAccountsIncludingDeleted.SingleOrDefault(p => p.IsDeleted && p.Mask == plaidAccount.Mask && p.Subtype == plaidAccount.Subtype);
+				existingAccount = allExistingAccountsIncludingDeleted.SingleOrDefault(p => p.IsDeleted && p.Mask == plaidAccount.Mask && p.Subtype == plaidAccount.Subtype);
 			}
 
 			if (existingAccount != null &&
@@ -212,7 +212,7 @@ public class PlaidService(
 
 				await accountRepository.UpdateAsync(existingAccount).ConfigureAwait(false);
 				newAccountPlaidIds.Add(plaidAccount.Id);
-				
+
 				continue;
 			}
 
@@ -229,8 +229,18 @@ public class PlaidService(
 			};
 			await accountRepository.InsertAsync(account).ConfigureAwait(false);
 			newAccountPlaidIds.Add(plaidAccount.Id);
-
 		}
+
+		foreach (var existingAccount in allExistingAccountsIncludingDeleted)
+		{
+			var plaidAccount = plaidAccounts.SingleOrDefault(p => p.Id == existingAccount.PlaidAccountId);
+			if (plaidAccount is null &&
+			    !existingAccount.IsDeleted)
+			{
+				await accountRepository.DeleteAsync(existingAccount.Id);
+			}
+		}
+
 		return newAccountPlaidIds;
 	}
 

@@ -3,6 +3,10 @@ namespace Spendly.Shared.Entities.TransactionManagement;
 using Core;
 using MongoDB.Bson;
 
+/// <summary>
+/// Normal senaryoda her gun icin 1 kayit olmasi gerekiyor ama istisnalar var bu nedenle tablo tarih bazinda uniqueue DEGILDIR.
+/// Eger bir kullanici plaid secimi uzerinden bir guncelleme yaparsa yeni secilen hesaplarla ayni tarihlerle yeni bir kayit eklenir.
+/// </summary>
 public class RawTransaction : BaseEntity
 {
     public ObjectId UserId { get; set; }

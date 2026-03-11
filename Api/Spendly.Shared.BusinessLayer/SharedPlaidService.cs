@@ -259,7 +259,7 @@ public class SharedPlaidService(
 			userCategories,
 			userMerchants);
 
-		var accountNormalizationStates = await accountNormalizationStateRepository.ListAsync(allAccounts.Select(p => p.Id));
+		var accountNormalizationStates = await accountNormalizationStateRepository.ListDictionaryAsync(allAccounts.Select(p => p.Id), p=>p.AccountId);
 		
 
 		var normalizedTransactions = new List<NormalizedTransaction>();
@@ -283,10 +283,11 @@ public class SharedPlaidService(
 
 				var (merchantId, userMerchantId, userCategoryId) = await ResolveMerchantAndCategoryAsync(plaidTransaction, context);
 
-				var accountNormalizationState =  accountNormalizationStates.Where(p => p.AccountId == account.Id).MaxBy(p=>p.Date);
+				var accountNormalizationState =  accountNormalizationStates[account.Id].MaxBy(p=>p.Date);
 				if (accountNormalizationState!=null && accountNormalizationState.Date >= plaidTransaction.Date)
 				{
 					//Kullanici bankasini kaldirip tekrar eklediginda arada 90 gunden az varsa normalization transactioni duplicate etmemek icin state tutulur ve burda kontrol edilir. Eger ilk donemde ekli son gun 90 gunden once degilse normalization transaction tekrar eklenmez 
+					//Ya da kullanici hesapta guncelleme yapmis olabilir, bu durumda eski hesabi yeniden secer ve sistem plaidden toplu sekilde datayi ceker ama tekrar normalize etmemesi gerekir cunku o data zaten var
 					continue;
 				}
 
