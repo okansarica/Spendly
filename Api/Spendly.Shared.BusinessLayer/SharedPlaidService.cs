@@ -57,7 +57,8 @@ public class SharedPlaidService(
 		var allTransactionResponses = await GetAllTransactionsAsync(request.AccessToken,
 			startDate,
 			endDate,
-			request.UserId.ToObjectId());
+			request.UserId.ToObjectId(),
+			request.NewAccountPlaidIds);
 
 		if (!allTransactionResponses.Any())
 		{
@@ -260,7 +261,6 @@ public class SharedPlaidService(
 			userMerchants);
 
 		var accountNormalizationStates = await accountNormalizationStateRepository.ListDictionaryAsync(allAccounts.Select(p => p.Id), p=>p.AccountId);
-		
 
 		var normalizedTransactions = new List<NormalizedTransaction>();
 
@@ -270,26 +270,19 @@ public class SharedPlaidService(
 
 			foreach (var plaidTransaction in rawTransaction.PlaidTransactionsGetResponse.Transactions)
 			{
-				if (ShouldSkip(plaidTransaction))
+				var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Accounts!
+					.Single(p => p.AccountId == plaidTransaction.AccountId);
+				var account = allAccounts.Single(p => p.PlaidAccountId == plaidAccount.AccountId);
+				
+				var accountNormalizationState =  accountNormalizationStates[account.Id].MaxBy(p=>p.Date);
+				if (ShouldSkip(plaidTransaction,accountNormalizationState))
 				{
 					continue;
 				}
 
 				ValidatePlaidTransaction(rawTransaction, plaidTransaction);
 
-				var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Accounts!
-					.Single(p => p.AccountId == plaidTransaction.AccountId);
-				var account = allAccounts.Single(p => p.PlaidAccountId == plaidAccount.AccountId);
-
 				var (merchantId, userMerchantId, userCategoryId) = await ResolveMerchantAndCategoryAsync(plaidTransaction, context);
-
-				var accountNormalizationState =  accountNormalizationStates[account.Id].MaxBy(p=>p.Date);
-				if (accountNormalizationState!=null && accountNormalizationState.Date >= plaidTransaction.Date)
-				{
-					//Kullanici bankasini kaldirip tekrar eklediginda arada 90 gunden az varsa normalization transactioni duplicate etmemek icin state tutulur ve burda kontrol edilir. Eger ilk donemde ekli son gun 90 gunden once degilse normalization transaction tekrar eklenmez 
-					//Ya da kullanici hesapta guncelleme yapmis olabilir, bu durumda eski hesabi yeniden secer ve sistem plaidden toplu sekilde datayi ceker ama tekrar normalize etmemesi gerekir cunku o data zaten var
-					continue;
-				}
 
 				normalizedTransactions.Add(new NormalizedTransaction
 				{
@@ -441,10 +434,19 @@ public class SharedPlaidService(
 	}
 
 
-	private static bool ShouldSkip(PlaidTransaction plaidTransaction)
+	private static bool ShouldSkip(PlaidTransaction plaidTransaction, AccountNormalizationState? accountNormalizationState)
 	{
 		if (plaidTransaction.Pending)
+		{
 			return true;
+		}
+		
+		if (accountNormalizationState!=null && accountNormalizationState.Date >= plaidTransaction.Date)
+		{
+			//Kullanici bankasini kaldirip tekrar eklediginda arada 90 gunden az varsa normalization transactioni duplicate etmemek icin state tutulur ve burda kontrol edilir. Eger ilk donemde ekli son gun 90 gunden once degilse normalization transaction tekrar eklenmez 
+			//Ya da kullanici hesapta guncelleme yapmis olabilir, bu durumda eski hesabi yeniden secer ve sistem plaidden toplu sekilde datayi ceker ama tekrar normalize etmemesi gerekir cunku o data zaten var
+			return true;
+		}
 
 		// Negatif amount para girişi, refund değilse ignore edilir
 		var isRefund = plaidTransaction.Name.Contains("refund", StringComparison.OrdinalIgnoreCase) ||
@@ -537,7 +539,8 @@ public class SharedPlaidService(
 	public async Task<List<PlaidTransactionsGetResponseViewModel>> GetAllTransactionsAsync(string accessToken,
 		DateOnly startDate,
 		DateOnly endDate,
-		ObjectId userId)
+		ObjectId userId,
+		List<string> requestNewAccountPlaidIds)
 	{
 		var allPages = new List<PlaidTransactionsGetResponseViewModel>();
 		var offset = 0;
@@ -558,6 +561,7 @@ public class SharedPlaidService(
 					count = count,
 					offset = offset
 				},
+				account_ids = string.Join(",", requestNewAccountPlaidIds),
 			};
 
 			var requestJson = JsonSerializer.Serialize(request);

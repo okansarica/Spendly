@@ -190,7 +190,6 @@ public class PlaidService(
 				//boyle bir account zaten var ve silinmemis 
 				logger.LogInformation(
 					$"Account already exists not adding one more time. existingPlaisAccountIds:{JsonSerializer.Serialize(allExistingAccountsIncludingDeleted.Select(p => new {p.Id, p.PlaidAccountId, p.IsDeleted}))}, PlaidAccountId:{plaidAccount.Id}");
-				newAccountPlaidIds.Add(plaidAccount.Id);
 				continue;
 			}
 
