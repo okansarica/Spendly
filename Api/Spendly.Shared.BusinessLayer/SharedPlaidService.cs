@@ -34,6 +34,7 @@ public class SharedPlaidService(
 	IRepository<MonthlyUserExpense> monthlyUserExpenseRepository,
 	IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
 	IRepository<PredefinedMerchant> predefinedMerchantRepository,
+	IRepository<AccountNormalizationState> accountNormalizationStateRepository,
 	IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository)
 {
 	private readonly string[] _categoriesToIgnoreMerchantGeneration =
@@ -258,6 +259,9 @@ public class SharedPlaidService(
 			userCategories,
 			userMerchants);
 
+		var accountNormalizationStates = await accountNormalizationStateRepository.ListAsync(allAccounts.Select(p => p.Id));
+		
+
 		var normalizedTransactions = new List<NormalizedTransaction>();
 
 		foreach (var rawTransaction in rawTransactions)
@@ -279,6 +283,13 @@ public class SharedPlaidService(
 
 				var (merchantId, userMerchantId, userCategoryId) = await ResolveMerchantAndCategoryAsync(plaidTransaction, context);
 
+				var accountNormalizationState =  accountNormalizationStates.Where(p => p.AccountId == account.Id).MaxBy(p=>p.Date);
+				if (accountNormalizationState!=null && accountNormalizationState.Date >= plaidTransaction.Date)
+				{
+					//Kullanici bankasini kaldirip tekrar eklediginda arada 90 gunden az varsa normalization transactioni duplicate etmemek icin state tutulur ve burda kontrol edilir. Eger ilk donemde ekli son gun 90 gunden once degilse normalization transaction tekrar eklenmez 
+					continue;
+				}
+
 				normalizedTransactions.Add(new NormalizedTransaction
 				{
 					AccountId = account.Id,
@@ -298,6 +309,24 @@ public class SharedPlaidService(
 		if (normalizedTransactions.Any())
 		{
 			await normalizedTransactionRepository.InsertManyAsync(normalizedTransactions);
+
+			var lastTransactionByAccount = normalizedTransactions
+				.GroupBy(t => t.AccountId)
+				.Select(g => new
+				{
+					AccountId = g.Key,
+					LastDate = g.Max(t => t.DateTime)
+				})
+				.ToList();
+
+			await accountNormalizationStateRepository.InsertManyAsync(
+				lastTransactionByAccount.Select(p => new AccountNormalizationState
+					{
+						AccountId = p.AccountId,
+						Date = DateOnly.FromDateTime(p.LastDate)
+					})
+					.ToList()
+			);
 		}
 
 		return normalizedTransactions;
@@ -342,7 +371,7 @@ public class SharedPlaidService(
 		var merchant = new Merchant
 		{
 			CategoryId = predefinedMerchant?.CategoryId ?? ctx.OtherCategory.Id,
-			Name = plaidTransaction.MerchantName??plaidTransaction.Name,
+			Name = plaidTransaction.MerchantName ?? plaidTransaction.Name,
 			PlaidId = plaidTransaction.MerchantEntityId,
 		};
 		await merchantRepository.InsertAsync(merchant);
