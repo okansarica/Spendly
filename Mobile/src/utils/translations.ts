@@ -154,6 +154,9 @@ const translations: Record<string, Record<string, string>> = {
     ProfileTitle: 'Profile',
     ChangePasswordTitle: 'Change Password',
     LogoutTitle: 'Logout',
+    LogoutConfirmMessage: 'Are you sure you want to log out?',
+    AreYouSure: 'Are you sure?',
+    Error: 'Error',
     FirstNameTitle: 'First Name',
     LastNameTitle: 'Last Name',
     EmailTitle: 'Email',
@@ -176,6 +179,7 @@ const translations: Record<string, Record<string, string>> = {
     SubscriptionExpiredTitle: 'Subscription Expired',
     SubscriptionExpiredMessage: 'Your subscription has expired. Please renew to continue using the app.',
     RenewSubscription: 'Renew Subscription',
+    ReselectAccounts:"Reselect Accounts",
   },
 };
 

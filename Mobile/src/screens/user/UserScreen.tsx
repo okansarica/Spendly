@@ -1,6 +1,6 @@
 // CHANGED_BY_AI: 2026-03-03 - Implement user menu screen integration
 import React, {useEffect, useState} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, Alert} from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {logout} from '../../store/authStore';
@@ -128,6 +128,18 @@ export default function UserScreen() {
     }
   };
 
+  const confirmLogout = () => {
+    Alert.alert(
+      translate('LogoutTitle'),
+      translate('LogoutConfirmMessage') || translate('AreYouSure') || 'Are you sure you want to logout?',
+      [
+        { text: translate('Cancel') || 'Cancel', style: 'cancel' },
+        { text: translate('LogoutTitle'), style: 'destructive', onPress: () => dispatch(logout()) }
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <View style={s.container}>
       <Header title={translate('UserTitle')} showBack={false} />
@@ -158,7 +170,7 @@ export default function UserScreen() {
           <Text style={s.navArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={s.logoutBtn} onPress={() => dispatch(logout())}>
+        <TouchableOpacity style={s.logoutBtn} onPress={confirmLogout}>
           <Text style={s.logoutText}>{translate('LogoutTitle')}</Text>
         </TouchableOpacity>
       </View>

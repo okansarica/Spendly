@@ -666,7 +666,7 @@ export default function BanksAccountsListScreen() {
                                             navigation.navigate('AccountEdit', {mode: 'create', bankId: bank.id});
                                         }
                                     }}>
-                                    <Text style={s.menuItemText}>{translate('AddAccount')}</Text>
+                                    <Text style={s.menuItemText}>{translate('ReselectAccounts')}</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity

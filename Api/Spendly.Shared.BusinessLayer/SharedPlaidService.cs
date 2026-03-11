@@ -74,7 +74,7 @@ public class SharedPlaidService(
 			request.NewAccountPlaidIds);
 
 		//normalize et
-		var normalizedTransactions = await NormalizeTransactions(rawTransactions, request.BankId.ToObjectId(), request.UserId.ToObjectId());
+		var normalizedTransactions = await NormalizeTransactions(rawTransactions, request.BankId.ToObjectId(), request.UserId.ToObjectId(),endDate);
 
 		//rapor tablolarini doldur
 		await CreateReportingData(normalizedTransactions, request.UserId.ToObjectId());
@@ -237,7 +237,7 @@ public class SharedPlaidService(
 		}
 	}
 
-	private async Task<List<NormalizedTransaction>> NormalizeTransactions(List<RawTransaction> rawTransactions, ObjectId bankId, ObjectId userId)
+	private async Task<List<NormalizedTransaction>> NormalizeTransactions(List<RawTransaction> rawTransactions, ObjectId bankId, ObjectId userId, DateOnly date)
 	{
 		var allAccounts = await accountRepository.ListAsync(p => p.BankId == bankId);
 		var allMerchants = await merchantRepository.ListAsync(filter: null);
@@ -260,7 +260,7 @@ public class SharedPlaidService(
 			userCategories,
 			userMerchants);
 
-		var accountNormalizationStates = await accountNormalizationStateRepository.ListDictionaryAsync(allAccounts.Select(p => p.Id), p=>p.AccountId);
+		var accountNormalizationStates = await accountNormalizationStateRepository.ListSingleDictionaryAsync(allAccounts.Select(p => p.Id), p=>p.AccountId);
 
 		var normalizedTransactions = new List<NormalizedTransaction>();
 
@@ -270,11 +270,10 @@ public class SharedPlaidService(
 
 			var plaidAccount = rawTransaction.PlaidTransactionsGetResponse.Account!;
 			var account = allAccounts.Single(p => p.PlaidAccountId == plaidAccount.AccountId);
-			var accountNormalizationState = accountNormalizationStates[account.Id].MaxBy(p => p.Date);
 
 			foreach (var plaidTransaction in rawTransaction.PlaidTransactionsGetResponse.Transactions)
 			{
-				if (ShouldSkip(plaidTransaction, accountNormalizationState))
+				if (ShouldSkip(plaidTransaction, accountNormalizationStates.TryGetValue(account.Id, out var accountNormalizationState)? accountNormalizationState:null))
 				{
 					continue;
 				}
@@ -302,24 +301,23 @@ public class SharedPlaidService(
 		if (normalizedTransactions.Any())
 		{
 			await normalizedTransactionRepository.InsertManyAsync(normalizedTransactions);
-
-			var lastTransactionByAccount = normalizedTransactions
-				.GroupBy(t => t.AccountId)
-				.Select(g => new
+			foreach (var account in allAccounts)
+			{
+				if(accountNormalizationStates.TryGetValue(account.Id, out var accountNormalizationState))
 				{
-					AccountId = g.Key,
-					LastDate = g.Max(t => t.DateTime)
-				})
-				.ToList();
-
-			await accountNormalizationStateRepository.InsertManyAsync(
-				lastTransactionByAccount.Select(p => new AccountNormalizationState
+					accountNormalizationState.Date = date;
+					await accountNormalizationStateRepository.UpdateAsync(accountNormalizationState);
+				}
+				else
+				{
+					accountNormalizationState = new AccountNormalizationState
 					{
-						AccountId = p.AccountId,
-						Date = DateOnly.FromDateTime(p.LastDate)
-					})
-					.ToList()
-			);
+						AccountId = account.Id,
+						Date = date
+					};
+					await accountNormalizationStateRepository.InsertAsync(accountNormalizationState);
+				}
+			}
 		}
 
 		return normalizedTransactions;
@@ -433,10 +431,13 @@ public class SharedPlaidService(
 	}
 
 
-	private static bool ShouldSkip(PlaidTransaction plaidTransaction, AccountNormalizationState? accountNormalizationState)
+	private bool ShouldSkip(PlaidTransaction plaidTransaction, AccountNormalizationState? accountNormalizationState)
 	{
+		var logData = JsonSerializer.Serialize(new
+			{plaidTransaction.AccountId, plaidTransaction.Amount, plaidTransaction.Date, plaidTransaction.Pending, plaidTransaction.Name, plaidTransaction.TransactionType});
 		if (plaidTransaction.Pending)
 		{
+			logger.LogInformation("skipping transaction normalization, transaction is pending. plaidTransaction: {PlaidTransaction}", logData);
 			return true;
 		}
 		
@@ -444,6 +445,8 @@ public class SharedPlaidService(
 		{
 			//Kullanici bankasini kaldirip tekrar eklediginda arada 90 gunden az varsa normalization transactioni duplicate etmemek icin state tutulur ve burda kontrol edilir. Eger ilk donemde ekli son gun 90 gunden once degilse normalization transaction tekrar eklenmez 
 			//Ya da kullanici hesapta guncelleme yapmis olabilir, bu durumda eski hesabi yeniden secer ve sistem plaidden toplu sekilde datayi ceker ama tekrar normalize etmemesi gerekir cunku o data zaten var
+			
+			logger.LogInformation("skipping transaction normalization, transaction already normalized. plaidTransaction: {PlaidTransaction}",logData);
 			return true;
 		}
 
@@ -451,8 +454,19 @@ public class SharedPlaidService(
 		var isRefund = plaidTransaction.Name.Contains("refund", StringComparison.OrdinalIgnoreCase) ||
 		               plaidTransaction.TransactionType?.Contains("refund", StringComparison.OrdinalIgnoreCase) == true;
 
-		//TODO refund analmak icin category controlu de ekle
-		return plaidTransaction.Amount < 0 && !isRefund;
+		if (isRefund)
+		{
+			logger.LogInformation("skipping transaction normalization, transaction is refund. plaidTransaction: {PlaidTransaction}", logData);
+			return true;
+		}
+
+		if (plaidTransaction.Amount < 0)
+		{
+			logger.LogInformation("skipping transaction normalization, transaction amount is less than 0 which indicates the payment not expense. plaidTransaction: {PlaidTransaction}", logData);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static void ValidateRawTransaction(RawTransaction rawTransaction)
