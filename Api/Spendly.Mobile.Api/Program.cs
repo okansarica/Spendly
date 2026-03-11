@@ -152,6 +152,8 @@ app.UseCors("MobileClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<SubscriptionCheckMiddleware>();
+
 // Add request session middleware early so SessionId is available to logging
 app.UseMiddleware<RequestSessionMiddleware>();
 app.UseMiddleware<SerilogContextEnricherMiddleware>();

@@ -49,7 +49,7 @@ export default function PieChartCard({   data,
                                 },
                             ]}
                         />
-                        <Text style={s.legendLabel}>{item.label}</Text>
+                        <Text style={s.legendLabel} numberOfLines={1} ellipsizeMode="tail">{item.label}</Text>
                     </View>
                     <Text style={s.legendValue}>
                         {formatPercentage(item.percentage)}% • {formatCurrency(item.amount)}
@@ -94,6 +94,8 @@ export default function PieChartCard({   data,
             flexDirection: 'row',
             alignItems: 'center',
             gap: spacing.xs,
+            flex: 1,
+            marginRight: spacing.xs,
         },
         legendDot: {
             width: 8,
@@ -103,10 +105,13 @@ export default function PieChartCard({   data,
         legendLabel: {
             fontSize: fontSizes.sm,
             color: colors.textPrimary,
+            flex: 1,
         },
         legendValue: {
             fontSize: fontSizes.sm,
             color: colors.textSecondary,
+            textAlign: 'right',
+            flexShrink: 0,
         },
     });
 
@@ -134,4 +139,3 @@ export default function PieChartCard({   data,
         </View>
     );
 }
-

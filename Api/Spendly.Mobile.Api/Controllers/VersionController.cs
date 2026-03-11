@@ -1,5 +1,6 @@
 namespace Spendly.Mobile.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Spendly.Shared.ViewModels.Settings;
 
@@ -9,6 +10,7 @@ public class VersionController(VersionSettings settings) : ControllerBase
 {
 
 	[HttpPost("check")]
+	[AllowAnonymous]
 	[Produces("application/json")]
 	public IActionResult CheckVersion([FromBody] VersionCheckRequest request)
 	{

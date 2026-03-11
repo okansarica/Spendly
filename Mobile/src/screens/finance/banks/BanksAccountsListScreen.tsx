@@ -611,41 +611,41 @@ export default function BanksAccountsListScreen() {
                 <ErrorDisplay message={error}/>
             ) : (
                 <>
-                <View style={s.content}>
-                    <View style={s.searchRow}>
-                        <TextInput
-                            value={search}
-                            onChangeText={setSearch}
-                            placeholder={translate('SearchBanksAccounts')}
-                            placeholderTextColor={colors.textSecondary}
-                            style={s.searchInput}
+                    <View style={s.content}>
+                        <View style={s.searchRow}>
+                            <TextInput
+                                value={search}
+                                onChangeText={setSearch}
+                                placeholder={translate('SearchBanksAccounts')}
+                                placeholderTextColor={colors.textSecondary}
+                                style={s.searchInput}
+                            />
+                        </View>
+                        <FlatList
+                            data={data}
+                            renderItem={renderItem}
+                            keyExtractor={item => (item.type === 'bank' ? `bank-${item.bank.id}` : `account-${item.bank.id}-${item.account.id}`)}
+                            contentContainerStyle={s.listContent}
+                            scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
+                            ListEmptyComponent={!isLoading ?
+                                <Text style={s.empty}>{translate('NoBanks')}</Text> : undefined}
+                            ListFooterComponent={() => (
+                                <View style={s.footerWrap}>
+                                    <Button
+                                        text={translate('AddBank')}
+                                        onPress={() => {
+                                            setAddBankMode('openBanking');
+                                            setIsAddBankOptionsOpen(true);
+                                        }}
+                                        variant="primary"
+                                        size="small"
+                                        style={s.bottomAddButton}
+                                        textStyle={s.addBankText}
+                                    />
+                                </View>
+                            )}
                         />
                     </View>
-                    <FlatList
-                        data={data}
-                        renderItem={renderItem}
-                        keyExtractor={item => (item.type === 'bank' ? `bank-${item.bank.id}` : `account-${item.bank.id}-${item.account.id}`)}
-                        contentContainerStyle={s.listContent}
-                        scrollIndicatorInsets={{right: -spacing.sm, bottom: tabBarHeight + spacing.xl}}
-                        ListEmptyComponent={!isLoading ?
-                            <Text style={s.empty}>{translate('NoBanks')}</Text> : undefined}
-                        ListFooterComponent={() => (
-                            <View style={s.footerWrap}>
-                                <Button
-                                    text={translate('AddBank')}
-                                    onPress={() => {
-                                        setAddBankMode('openBanking');
-                                        setIsAddBankOptionsOpen(true);
-                                    }}
-                                    variant="primary"
-                                    size="small"
-                                    style={s.bottomAddButton}
-                                    textStyle={s.addBankText}
-                                />
-                            </View>
-                        )}
-                    />
-                </View>
 
                 </>
             )}
@@ -653,7 +653,7 @@ export default function BanksAccountsListScreen() {
                 <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={closeMenu}>
                     <View style={s.menuCard}>
                         {menuState?.type === 'bank' ? (
-                            <>                               
+                            <>
                                 <TouchableOpacity
                                     style={s.menuItem}
                                     onPress={() => {
@@ -666,7 +666,12 @@ export default function BanksAccountsListScreen() {
                                             navigation.navigate('AccountEdit', {mode: 'create', bankId: bank.id});
                                         }
                                     }}>
-                                    <Text style={s.menuItemText}>{translate('ReselectAccounts')}</Text>
+                                    {menuState.bank.isConnected ?
+                                        <Text style={s.menuItemText}>{translate('ReselectAccounts')}</Text>
+                                        :
+                                        <Text style={s.menuItemText}>{translate('AddAccount')}</Text>
+                                    }
+
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -677,7 +682,7 @@ export default function BanksAccountsListScreen() {
                                         navigation.navigate('BankEdit', {mode: 'edit', bank});
                                     }}>
                                     <Text style={s.menuItemText}>{translate('Update')}</Text>
-                                </TouchableOpacity>  
+                                </TouchableOpacity>
                                 <TouchableOpacity style={s.menuItem} onPress={() => onBankDelete(menuState.bank)}>
                                     <Text style={[s.menuItemText, s.menuItemDanger]}>{translate('Delete')}</Text>
                                 </TouchableOpacity>

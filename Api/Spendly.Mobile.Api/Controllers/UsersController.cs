@@ -10,7 +10,7 @@ using Spendly.Mobile.ViewModels.User;
 [ApiController]
 [Route("api/v1/users")]
 [Authorize]
-public class UsersController(UserService userService, SubscriptionService subscriptionService) : ControllerBase
+public class UsersController(UserService userService, UserSubscriptionService userSubscriptionService) : ControllerBase
 {
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
@@ -87,7 +87,7 @@ public class UsersController(UserService userService, SubscriptionService subscr
     [HttpGet("subscription-plans")]
     public async Task<IActionResult> GetSubscriptionPlans()
     {
-        var response = await subscriptionService.GetSubscriptionPlansAsync();
+        var response = await userSubscriptionService.GetSubscriptionPlansAsync();
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -99,7 +99,7 @@ public class UsersController(UserService userService, SubscriptionService subscr
     [HttpPost("create-payment-url")]
     public async Task<IActionResult> CreatePaymentUrl([FromBody] CreatePaymentUrlRequestViewModel request)
     {
-        var response = await subscriptionService.CreatePaymentUrlAsync(request);
+        var response = await userSubscriptionService.CreatePaymentUrlAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -115,7 +115,7 @@ public class UsersController(UserService userService, SubscriptionService subscr
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
         var signature = Request.Headers["Stripe-Signature"].ToString();
 
-        var response = await subscriptionService.HandleStripeWebhookAsync(json, signature);
+        var response = await userSubscriptionService.HandleStripeWebhookAsync(json, signature);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -128,7 +128,7 @@ public class UsersController(UserService userService, SubscriptionService subscr
     [AllowAnonymous]
     public async Task<IActionResult> FirebaseToken([FromBody] SaveFirebaseTokenRequest request)
     {
-        var response = await subscriptionService.SaveFirebaseToken(request);
+        var response = await userSubscriptionService.SaveFirebaseToken(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

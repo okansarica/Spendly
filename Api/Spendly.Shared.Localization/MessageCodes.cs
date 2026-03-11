@@ -49,4 +49,5 @@ public class MessageCodes
 	public const string AccountNameRequired = "AccountNameRequired";
 	public const string BankCanNotBeAddedMultipleTimes = "BankCanNotBeAddedMultipleTimes";
 	public const string BankHasAccounts = "BankHasAccounts";
+	public const string SubscriptionExpired = "SubscriptionExpired";
 }

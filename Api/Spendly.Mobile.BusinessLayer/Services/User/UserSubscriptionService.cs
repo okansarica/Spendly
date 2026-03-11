@@ -15,7 +15,7 @@ using Spendly.Shared.ViewModels.Settings;
 using Stripe;
 using Stripe.Checkout;
 
-public class SubscriptionService(
+public class UserSubscriptionService(
 	IRepository<UserSubscription> userSubscriptionRepository,
 	IRepository<UserSubscriptionPaymentUrl> paymentUrlRepository,
 	IRepository<StripeCommunicationLog> stripeCommunicationLogRepository,
@@ -23,10 +23,10 @@ public class SubscriptionService(
 	RequestContextViewModel requestContextViewModel,
 	StripeSettings stripeSettings,
 	FirebaseNotificationService firebaseNotificationService,
-	ILogger<SubscriptionService> logger)
+	ILogger<UserSubscriptionService> logger)
 {
-	private const decimal MonthlyPrice = 3.99m;
-	private const decimal YearlyPrice = 39.99m;
+	private const decimal MonthlyPrice = 6.99m;
+	private const decimal YearlyPrice = 69.99m;
 
 	public async Task<FunctionResponse<List<SubscriptionPlanResponseViewModel>>> GetSubscriptionPlansAsync()
 	{
