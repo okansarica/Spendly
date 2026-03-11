@@ -1,14 +1,13 @@
 // CHANGED_BY_AI: 2026-03-02 - Add timezone header to api client
 import axios, {AxiosResponse} from 'axios';
-import {Platform} from 'react-native';
 import TokenInterceptor from './tokenInterceptor';
 import {translate} from '../utils/translations';
+import {APP_CONFIG} from '../config/appConfig';
 
-const BASE_URL = Platform.OS === 'ios' ? 'http://localhost:5001' : 'http://10.0.2.2:5001';
 const TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: APP_CONFIG.apiBaseUrl,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -17,7 +16,7 @@ const apiClient = axios.create({
   },
 });
 
-new TokenInterceptor(apiClient, BASE_URL);
+new TokenInterceptor(apiClient, APP_CONFIG.apiBaseUrl);
 
 export type ApiResponse<T = undefined> = {
   isSuccess: boolean;

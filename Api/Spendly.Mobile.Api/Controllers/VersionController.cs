@@ -14,44 +14,70 @@ public class VersionController(VersionSettings settings) : ControllerBase
 	{
 		if (string.IsNullOrWhiteSpace(request.Version))
 		{
-			return BadRequest(new { success = false, message = "version required" });
+			return BadRequest(new {success = false, message = "version required"});
 		}
 
-		var minSupported = settings.MinSupportedVersion ?? string.Empty;
+		var isThereNewVersion = IsThereANewVersion(request.Version, settings.MinSupportedVersion);
 
-		bool isSatisfied = VersionMatches(request.Version, minSupported);
-
-		return Ok(new { satisfy = isSatisfied, forceUpdate = settings.ForceUpdate && !isSatisfied });
+		return Ok(new
+		{
+			isThereNewVersion = isThereNewVersion, forceUpdate = settings.ForceUpdate && !isThereNewVersion, appleStoreUrl = settings.AppleStoreUrl, playStoreUrl = settings.PlayStoreUrl,
+			requiredVersion = settings.MinSupportedVersion,
+			localizedMessages = settings.LocalizedMessages
+		});
 	}
 
-	private static bool VersionMatches(string clientVersion, string supportedVersion)
+	private static bool IsThereANewVersion(string clientVersion, string supportedVersion)
 	{
-		if (string.IsNullOrWhiteSpace(supportedVersion)) return true;
-
-		var cvParts = clientVersion.Split('.');
-		var svParts = supportedVersion.Split('.');
-
-		var len = System.Math.Max(cvParts.Length, svParts.Length);
-
-		for (int i = 0; i < len; i++)
+		if (string.IsNullOrWhiteSpace(clientVersion) ||
+		    string.IsNullOrWhiteSpace(supportedVersion))
 		{
-			var cv = 0;
-			var sv = 0;
-			int.TryParse(i < cvParts.Length ? cvParts[i] : "0", out cv);
-			int.TryParse(i < svParts.Length ? svParts[i] : "0", out sv);
-
-			if (cv < sv)
-			{
-				return false;
-			}
-			if (cv > sv)
-			{
-				return true;
-			}
+			return false;
 		}
 
-		return true;
+		var clientParts = clientVersion.Split('.');
+		var supportedParts = supportedVersion.Split('.');
+
+		var clientMajor = Convert.ToInt32(clientParts[0]);
+		var clientMinor = Convert.ToInt32(clientParts[1]);
+		var clientPatch = Convert.ToInt32(clientParts[2]);
+
+		var supportedMajor = Convert.ToInt32(supportedParts[0]);
+		var supportedMinor = Convert.ToInt32(supportedParts[1]);
+		var supportedPatch = Convert.ToInt32(supportedParts[2]);
+
+		if (clientMajor < supportedMajor)
+		{
+			return true;
+		}
+		if (clientMajor > supportedMajor)
+		{
+			return false;
+		}
+
+		if (clientMinor < supportedMinor)
+		{
+			return true;
+		}
+		if (clientMinor > supportedMinor)
+		{
+			return false;
+		}
+
+		if (clientPatch < supportedPatch)
+		{
+			return true;
+		}
+		if (clientPatch > supportedPatch)
+		{
+			return false;
+		}
+
+		return false;
 	}
 }
 
-public class VersionCheckRequest { public string? Version { get; set; } }
+public class VersionCheckRequest
+{
+	public string? Version { get; set; }
+}

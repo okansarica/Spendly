@@ -180,6 +180,13 @@ const translations: Record<string, Record<string, string>> = {
     SubscriptionExpiredMessage: 'Your subscription has expired. Please renew to continue using the app.',
     RenewSubscription: 'Renew Subscription',
     ReselectAccounts:"Reselect Accounts",
+    ForceUpdateTitle: 'Update Required',
+    ForceUpdateMessage: 'Please update the app to continue using Spendly.',
+    OptionalUpdateTitle: 'Update Available',
+    OptionalUpdateMessage: 'A newer version is available. You can update now or continue for now.',
+    UpdateNow: 'Update',
+    SkipForNow: 'Skip',
+    StoreLinkNotAvailable: 'Store link is not available.',
   },
 };
 
