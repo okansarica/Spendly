@@ -3,7 +3,7 @@ namespace Spendly.Shared.Entities.Reporting;
 using Core;
 using MongoDB.Bson;
 
-public class CategoryMonthlyExpense : BaseEntity
+public class CategoryMonthlyExpense : BaseReportEntity
 {
     public ObjectId CategoryId { get; set; }
     public int TransactionCount { get; set; }

@@ -120,7 +120,6 @@ var app = AppBootstrapper
 		{
 			options.Filters.Add<LoggingActionFilter>();
 			options.Filters.Add<CacheControlHeaderFilter>();
-			options.Filters.Add<RequestContextFilter>();
 		});
 		// Ensure FluentValidation runs for API models and discover validators in API assembly
 		builder.Services.AddFluentValidationAutoValidation();
@@ -152,6 +151,7 @@ app.UseCors("MobileClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<RequestContextMiddleware>();
 app.UseMiddleware<SubscriptionCheckMiddleware>();
 
 // Add request session middleware early so SessionId is available to logging

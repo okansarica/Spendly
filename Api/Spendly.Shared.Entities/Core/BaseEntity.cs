@@ -23,7 +23,7 @@ public class BaseReportEntity : BaseEntity
 //Local mongodb queue icin kullaniliyor
 public class BaseLocalQueueEntity : BaseEntity
 {
-	public ObjectId SellerId { get; set; }
+	public ObjectId UserId { get; set; }
 }
 
 public interface ISoftDeletable

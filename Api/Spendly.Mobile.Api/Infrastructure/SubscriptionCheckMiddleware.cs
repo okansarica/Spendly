@@ -7,7 +7,7 @@ using Spendly.Shared.ViewModels;
 
 public class SubscriptionCheckMiddleware(RequestDelegate next)
 {
-    public async Task InvokeAsync(HttpContext context, UserService userService, TranslationService translationService, RequestContextViewModel requestContextViewModel)
+    public async Task InvokeAsync(HttpContext context, UserService userService, RequestContextViewModel requestContextViewModel)
     {
         var endpoint = context.GetEndpoint();
         var authorizeAttribute = endpoint?.Metadata.GetMetadata<AuthorizeAttribute>();

@@ -3,7 +3,7 @@ namespace Spendly.Shared.Entities.Reporting;
 using Core;
 using MongoDB.Bson;
 
-public class DailyAccountExpense : BaseEntity
+public class DailyAccountExpense : BaseReportEntity
 {
     public ObjectId UserId { get; set; }
     public DateTime DateTime { get; set; }

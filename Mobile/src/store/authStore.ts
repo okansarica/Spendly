@@ -99,6 +99,7 @@ export const forgotPassword = createAsyncThunk(
 export const logout = createAsyncThunk('auth/logout', async (_, {dispatch}) => {
   try {
     await apiCall(() => authService.logout());
+  } catch (error) {
   } finally {
     await Promise.all([
       tokenService.clearTokens().catch(() => undefined),
@@ -231,7 +232,19 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      .addCase(logout.pending, state => {
+        state.isLoading = true;
+      })
       .addCase(logout.fulfilled, state => {
+        state.isLoading = false;
+        state.userId = undefined;
+        state.email = undefined;
+        state.isAuthenticated = false;
+        state.emailVerificationRequired = false;
+        state.error = undefined;
+      })
+      .addCase(logout.rejected, state => {
+        state.isLoading = false;
         state.userId = undefined;
         state.email = undefined;
         state.isAuthenticated = false;

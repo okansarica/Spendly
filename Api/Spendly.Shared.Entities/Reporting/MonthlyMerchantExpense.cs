@@ -3,7 +3,7 @@ namespace Spendly.Shared.Entities.Reporting;
 using Core;
 using MongoDB.Bson;
 
-public class MerchantMonthlyExpense : BaseEntity
+public class MerchantMonthlyExpense : BaseReportEntity
 {
     public ObjectId MerchantId { get; set; }
     public int TransactionCount { get; set; }
