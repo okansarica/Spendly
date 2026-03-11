@@ -1,4 +1,3 @@
-// CHANGED_BY_AI: 2026-03-05 - Register remote messages before token fetch
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SubscriptionPaymentResultStatus} from './subscriptionService';
@@ -6,9 +5,14 @@ import {SubscriptionPaymentResultStatus} from './subscriptionService';
 const FIREBASE_TOKEN_KEY = 'firebase_token';
 
 type NotificationMessage = {
+  notification?: {
+    title?: string;
+    body?: string;
+  };
   data?: {
     type?: string;
     status?: string;
+    silent?: string;
   };
 };
 
@@ -57,10 +61,16 @@ export const firebaseService = {
           return;
         }
       }
+
+      const isSilent = message.data?.silent === 'true';
+      if (isSilent) {
+        return;
+      }
+
       await onNotification(message);
     };
 
-    const unsubscribe = messaging().onMessage(async message => {
+    const unsubscribeForeground = messaging().onMessage(async message => {
       await handleMessage(message);
     });
 
@@ -73,7 +83,7 @@ export const firebaseService = {
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeForeground();
       unsubscribeOpened();
       unsubscribeTokenRefresh();
     };

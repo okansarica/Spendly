@@ -55,6 +55,13 @@ func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: Str
       willPresent notification: UNNotification,
       withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+      let userInfo = notification.request.content.userInfo
+      
+      if let silent = userInfo["silent"] as? String, silent == "true" {
+        completionHandler([])
+        return
+      }
+      
       completionHandler([.banner, .badge, .sound])
     }
 
