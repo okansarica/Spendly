@@ -347,28 +347,36 @@ public class AppBootstrapper
 	/// </summary>
 	 private void ConfigureLogging(IConfiguration configuration, string prefix)
 	{
-		var logDbSettings = configuration.Get<LogDbSettings>()!;
+		var logDbSettings = configuration.GetSection("LogDbSettings").Get<LogDbSettings>();
 
 		SerilogBootstrap.ConfigureGlobalLogger(configuration,
 			_appName,
 			loggerConfig =>
 			{
-				var mongoDatabase = logDbSettings.DatabaseName;
-				var mongoCollection = $"{prefix}_{_appName.Replace(".", "_")}Log";
-
-				if (!string.IsNullOrWhiteSpace(mongoDatabase))
+				if (logDbSettings != null && !string.IsNullOrWhiteSpace(logDbSettings.DatabaseName))
 				{
-					var mongoConn = logDbSettings.ConnectionString?.TrimEnd('/');
-					var databaseUrl = !string.IsNullOrWhiteSpace(mongoConn) ? mongoConn + "/" + mongoDatabase : mongoDatabase;
+					var mongoDatabase = logDbSettings.DatabaseName;
+					var mongoCollection = $"{prefix}_{_appName.Replace(".", "_")}Log";
+
+					var connectionString = logDbSettings.ConnectionString.TrimEnd('/');
+					
+					if (!string.IsNullOrWhiteSpace(logDbSettings.UserName) && !string.IsNullOrWhiteSpace(logDbSettings.Password))
+					{
+						var uri = new Uri(connectionString);
+						connectionString = $"mongodb://{logDbSettings.UserName}:{logDbSettings.Password}@{uri.Host}:{uri.Port}";
+					}
+
+					var databaseUrl = $"{connectionString}/{mongoDatabase}";
 
 					loggerConfig.WriteTo.MongoDB(databaseUrl,
-					collectionName: mongoCollection,
-					restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug
+						collectionName: mongoCollection,
+						restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug
 					);
 				}
 
 				_configureSerilog?.Invoke(loggerConfig, configuration);
-			});
+			},
+			addMongoFromSimpleKeys: false);
 	}
 
 }
