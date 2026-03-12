@@ -1,12 +1,8 @@
 // CHANGED_BY_AI: 2026-03-05 - Add subscription state listeners for payment push updates
+// CHANGED_BY_AI: 2026-03-12 - Move fetchSubscriptionPlans and createPaymentUrl to subscriptionStore
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
-
-type SubscriptionPlan = {
-  planType: 'Monthly' | 'Yearly';
-  price: number;
-};
 
 type SubscriptionStateListener = () => void;
 
@@ -91,36 +87,5 @@ export const subscriptionService = {
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     return {days, hours};
-  },
-
-  async fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    const cacheKey = 'subscriptionPlans';
-    const cacheTimeKey = 'subscriptionPlansCacheTime';
-    const cachedTime = await AsyncStorage.getItem(cacheTimeKey);
-    const cachedPlans = await AsyncStorage.getItem(cacheKey);
-
-    if (cachedTime && cachedPlans) {
-      const cacheAge = Date.now() - parseInt(cachedTime, 10);
-      if (cacheAge < 60 * 60 * 1000) {
-        return JSON.parse(cachedPlans);
-      }
-    }
-
-    const response = await apiClient.get<SubscriptionPlan[]>(
-      ApiEndpoints.Users.SubscriptionPlans,
-    );
-    
-    await AsyncStorage.setItem(cacheKey, JSON.stringify(response.data));
-    await AsyncStorage.setItem(cacheTimeKey, Date.now().toString());
-    
-    return response.data;
-  },
-
-  async createPaymentUrl(planType: 'Monthly' | 'Yearly'): Promise<string> {
-    const response = await apiClient.post<{paymentUrl: string}>(
-      ApiEndpoints.Users.CreatePaymentUrl,
-      {selectedPlanType: planType},
-    );
-    return response.data.paymentUrl;
   },
 };

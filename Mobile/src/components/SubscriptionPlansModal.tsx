@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, View, Modal, TouchableOpacity, ActivityIndicator, Alert} from 'react-native';
+import {StyleSheet, Text, View, Modal, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {useTheme} from '../theme/ThemeContext';
 import {translate} from '../utils/translations';
-import {subscriptionService} from '../services/subscriptionService';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
+import {useAppDispatch, useAppSelector} from '../store/hooks';
+import {fetchSubscriptionPlans, createPaymentUrl} from '../store/subscriptionStore';
 
 type PlanType = 'Monthly' | 'Yearly';
 
@@ -19,30 +20,15 @@ export default function SubscriptionPlansModal({
   onClose,
 }: SubscriptionPlansModalProps) {
   const {colors, spacing, fontSizes, fontWeights} = useTheme();
-  const [plans, setPlans] = useState<{planType: PlanType; price: number}[]>([]);
+  const dispatch = useAppDispatch();
+  const {plans, isLoading, isProcessing, error} = useAppSelector(state => state.subscription);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      loadPlans();
-      return;
+      dispatch(fetchSubscriptionPlans());
     }
-    setProcessing(false);
-  }, [visible]);
-
-  const loadPlans = async () => {
-    try {
-      setLoading(true);
-      const fetchedPlans = await subscriptionService.fetchSubscriptionPlans();
-      setPlans(fetchedPlans);
-      setLoading(false);
-    } catch {
-      setLoading(false);
-      Alert.alert('Error', 'Failed to load subscription plans');
-    }
-  };
+  }, [visible, dispatch]);
 
   const closeModal = () => {
     if (!dismissible) {
@@ -52,15 +38,10 @@ export default function SubscriptionPlansModal({
   };
 
   const handleRenewPress = async () => {
-    try {
-      setProcessing(true);
-      const paymentUrl = await subscriptionService.createPaymentUrl(selectedPlan);
-
+    const result = await dispatch(createPaymentUrl(selectedPlan));
+    if (createPaymentUrl.fulfilled.match(result)) {
+      const paymentUrl = result.payload;
       if (InAppBrowser && (await InAppBrowser.isAvailable())) {
-        try {
-          await InAppBrowser.close();
-        } catch {}
-
         await InAppBrowser.open(paymentUrl, {
           dismissButtonStyle: 'close',
           preferredBarTintColor: colors.backgroundPrimary,
@@ -73,15 +54,6 @@ export default function SubscriptionPlansModal({
           enableBarCollapsing: false,
         });
       }
-
-      setProcessing(false);
-      if (dismissible) {
-        onClose?.();
-      }
-    } catch (error) {
-      console.log(error);
-      setProcessing(false);
-      Alert.alert('Error', 'Failed to open payment page');
     }
   };
 
@@ -282,10 +254,10 @@ export default function SubscriptionPlansModal({
         activeOpacity={1}
         style={s.overlay}
         onPress={closeModal}
-        disabled={!dismissible || processing}>
+        disabled={!dismissible || isProcessing}>
         <TouchableOpacity activeOpacity={1} style={s.container} onPress={() => undefined}>
           {dismissible && (
-            <TouchableOpacity style={s.closeButton} onPress={closeModal} disabled={processing}>
+            <TouchableOpacity style={s.closeButton} onPress={closeModal} disabled={isProcessing}>
               <Text style={s.closeText}>×</Text>
             </TouchableOpacity>
           )}
@@ -296,7 +268,7 @@ export default function SubscriptionPlansModal({
           <Text style={s.title}>{translate('SubscriptionExpiredTitle')}</Text>
           <Text style={s.subtitle}>{translate('SubscriptionExpiredMessage')}</Text>
 
-          {loading ? (
+          {isLoading ? (
             <ActivityIndicator size="large" color={colors.buttonPrimary} style={s.loader} />
           ) : (
             <>
@@ -337,10 +309,10 @@ export default function SubscriptionPlansModal({
               </View>
 
               <TouchableOpacity
-                style={[s.button, (processing || loading) && s.buttonDisabled]}
+                style={[s.button, (isProcessing || isLoading) && s.buttonDisabled]}
                 onPress={handleRenewPress}
-                disabled={processing || loading}>
-                {processing ? (
+                disabled={isProcessing || isLoading}>
+                {isProcessing ? (
                   <ActivityIndicator size="small" color={colors.buttonPrimaryText} />
                 ) : (
                   <Text style={s.buttonText}>{translate('RenewSubscription')}</Text>

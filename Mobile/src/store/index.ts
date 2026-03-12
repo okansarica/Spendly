@@ -2,6 +2,7 @@
 // CHANGED_BY_AI: 2026-03-02 - Add homepage reducer
 // CHANGED_BY_AI: 2026-03-02 - Add finance reducers
 // CHANGED_BY_AI: 2026-03-03 - Add user reducer
+// CHANGED_BY_AI: 2026-03-12 - Add subscription reducer
 import {configureStore} from '@reduxjs/toolkit';
 import authReducer from './authStore';
 import homepageReducer from './homepageStore';
@@ -10,6 +11,7 @@ import categoriesReducer from './categoriesStore';
 import merchantsReducer from './merchantsStore';
 import banksReducer from './banksStore';
 import userReducer from './userStore';
+import subscriptionReducer from './subscriptionStore';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +22,7 @@ export const store = configureStore({
     merchants: merchantsReducer,
     banks: banksReducer,
     user: userReducer,
+    subscription: subscriptionReducer,
   },
 });
 
