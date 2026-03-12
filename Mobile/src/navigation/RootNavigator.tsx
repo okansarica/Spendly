@@ -6,7 +6,7 @@ import {useAppSelector} from '../store/hooks';
 import SplashScreen from '../screens/splash/SplashScreen';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
-import SubscriptionBlocker from '../components/SubscriptionBlocker';
+import SubscriptionPlansModal from '../components/SubscriptionPlansModal';
 import {subscriptionService} from '../services/subscriptionService';
 
 export type RootStackParamList = {
@@ -53,7 +53,10 @@ export default function RootNavigator() {
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}
       </Stack.Navigator>
-      <SubscriptionBlocker visible={isAuthenticated && isSubscriptionExpired} />
+      <SubscriptionPlansModal
+        visible={isAuthenticated && isSubscriptionExpired}
+        dismissible={false}
+      />
     </>
   );
 }

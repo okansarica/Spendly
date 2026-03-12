@@ -24,7 +24,7 @@ public class UserSubscriptionService(
 	RequestContextViewModel requestContextViewModel,
 	StripeSettings stripeSettings,
 	FirebaseNotificationService firebaseNotificationService,
-	EmailService  emailService,
+	EmailService emailService,
 	ILogger<UserSubscriptionService> logger)
 {
 	private const decimal MonthlyPrice = 6.99m;
@@ -46,7 +46,15 @@ public class UserSubscriptionService(
 		var userId = requestContextViewModel.UserId.ToObjectId();
 		var amount = request.SelectedPlanType == UserSubscriptionDurationType.Monthly ? MonthlyPrice : YearlyPrice;
 
-		var userSubscription = await userSubscriptionRepository.GetRequiredAsync(p => p.UserId == userId);
+//		var userSubscription = await userSubscriptionRepository.GetRequiredAsync(p => p.UserId == userId);
+		var paidUserSubscription = new UserSubscription
+		{
+			SubscriptionType = SubscriptionType.Paid,
+			UserId = userId,
+			State = UserSubscriptionStateType.Waiting,
+			Duration = request.SelectedPlanType
+		};
+		await userSubscriptionRepository.InsertAsync(paidUserSubscription);
 
 		var clientReferenceId = ObjectId.GenerateNewId().ToString();
 
@@ -119,9 +127,14 @@ public class UserSubscriptionService(
 		var paymentUrl = new UserSubscriptionPaymentUrl
 		{
 			Id = clientReferenceId.ToObjectId(),
-			UserSubscriptionId = userSubscription.Id,
+			UserSubscriptionId = paidUserSubscription.Id,
 			StripeSessionId = session.Id,
 			PaymentUrl = session.Url,
+			Payment = new UserSubscriptionPayment
+			{
+				Amount = amount,
+				PaymentStatus = UserSubscriptionPaymentStatusType.Waiting
+			},
 		};
 
 		await userSubscriptionPaymentUrlRepository.InsertAsync(paymentUrl);
@@ -167,9 +180,9 @@ public class UserSubscriptionService(
 
 			string? clientReferenceId = null;
 			string? paymentIntentId = null;
-			
+
 			//tODO stripeEvent.id kullanilarak idempotency olusturulabilir
-			
+
 			if (stripeEvent.Data.Object is PaymentIntent paymentIntent)
 			{
 				paymentIntentId = paymentIntent.Id;
@@ -206,7 +219,7 @@ public class UserSubscriptionService(
 				logger.LogWarning("Stripe webhook received without ClientReferenceId");
 				throw new Exception("CLIENTREFERENCE_ID_NOT_FOUND");
 			}
-			
+
 			isPaymentComplete = true;
 
 			log.ClientReferenceId = clientReferenceId;
@@ -219,18 +232,22 @@ public class UserSubscriptionService(
 				return FunctionResponse.Failure("WEBHOOK_PAYMENT_URL_NOT_FOUND");
 			}
 			
-			var userSubscription = await userSubscriptionRepository.GetRequiredAsync(userSubscriptionPaymentUrl.UserSubscriptionId);
-
-			if (userSubscription.Payment.PaymentStatus == UserSubscriptionPaymentStatusType.Paid)
+			if (userSubscriptionPaymentUrl.Payment.PaymentStatus == UserSubscriptionPaymentStatusType.Paid)
 			{
 				return FunctionResponse.Success();
 			}
 			
+			userSubscriptionPaymentUrl.Payment.PaymentCompletionDateTime = DateTime.UtcNow;
+			userSubscriptionPaymentUrl.Payment.PaymentStatus = UserSubscriptionPaymentStatusType.Paid;
+			await userSubscriptionPaymentUrlRepository.UpdateAsync(userSubscriptionPaymentUrl);
+
+			var userSubscription = await userSubscriptionRepository.GetRequiredAsync(userSubscriptionPaymentUrl.UserSubscriptionId);
+
 			var firebaseToken = await firebaseTokenRepository.GetRequiredAsync(p => p.UserId == userSubscription.UserId);
 
-			userSubscription.Payment.PaymentStatus = UserSubscriptionPaymentStatusType.Paid;
 			userSubscription.StartDateTime = DateTime.UtcNow;
-			userSubscription.ExpectedEndDateTime = userSubscription.Payment.Duration == UserSubscriptionDurationType.Monthly ? DateTime.UtcNow.AddMonths(1) : DateTime.UtcNow.AddYears(1);
+			userSubscription.ExpectedEndDateTime = userSubscription.Duration == UserSubscriptionDurationType.Monthly ? DateTime.UtcNow.AddMonths(1) : DateTime.UtcNow.AddYears(1);
+			userSubscription.State = UserSubscriptionStateType.Active;
 
 			await userSubscriptionRepository.UpdateAsync(userSubscription);
 

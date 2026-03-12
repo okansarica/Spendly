@@ -6,7 +6,7 @@ namespace Spendly.Shared.BusinessLayer;
 using Microsoft.Extensions.Logging;
 using ViewModels.Settings;
 
-public class EmailService(IAmazonSimpleEmailService sesClient, EmailSettings  emailSettings, Logger<EmailService> logger)
+public class EmailService(IAmazonSimpleEmailService sesClient, EmailSettings  emailSettings, ILogger<EmailService> logger)
 {
 
 	public async Task<bool> SendEmailAsync(string toAddress, string subject, string bodyHtml)

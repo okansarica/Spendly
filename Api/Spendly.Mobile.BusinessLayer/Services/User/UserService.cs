@@ -1,6 +1,8 @@
 // CHANGED_BY_AI: 2026-03-03 - Add user profile, password, language, and account deletion service
 namespace Spendly.Mobile.BusinessLayer.Services.User;
 
+using Shared.BusinessLayer;
+using Shared.Enums;
 using Spendly.Shared.Core.Interception;
 using Spendly.Mobile.ViewModels.User;
 using Spendly.Shared.Core;
@@ -31,6 +33,7 @@ public class UserService(
     IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository,
     IRepository<UserSubscription> userSubscriptionRepository,
     IRepository<Bank> bankRepository,
+    EmailService emailService,
     RequestContextViewModel requestContextViewModel)
 {
     public async Task<FunctionResponse<UserProfileResponseViewModel>> GetProfileAsync()
@@ -175,16 +178,24 @@ public class UserService(
         var userId = requestContextViewModel.UserId.ToObjectId();
         var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == userId).ConfigureAwait(false);
 
-        var activeSubscription = userSubscriptions.SingleOrDefault(p =>
-            p.SubscriptionType == Shared.Enums.SubscriptionType.Paid &&
+        var paidActiveSubscriptions = userSubscriptions.Where(p =>
+            p.SubscriptionType == SubscriptionType.Paid &&
+            p.State == UserSubscriptionStateType.Active &&
             p.StartDateTime.HasValue &&
-            p.StartDateTime.Value >= DateTime.UtcNow &&
-            ((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
+            p.StartDateTime.Value <= DateTime.UtcNow &&
+            ((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow))).ToList();
+
+        if (paidActiveSubscriptions.Count() > 1)
+        {
+            await emailService.SendAlarmEmailAsync($"User has multiple paid subscriptions. UserId: {requestContextViewModel.UserId}");
+        }
+
+        var paidActiveSubscription = paidActiveSubscriptions.FirstOrDefault();
 
         DateTime? subscriptionEndDate = null;
-        if (activeSubscription == null)
+        if (paidActiveSubscription == null)
         {
-            var trialSubscriptions = userSubscriptions.SingleOrDefault(p => p.SubscriptionType == Shared.Enums.SubscriptionType.Trial);
+            var trialSubscriptions = userSubscriptions.SingleOrDefault(p => p.SubscriptionType == SubscriptionType.Trial);
             subscriptionEndDate = trialSubscriptions?.EndDateTime ?? trialSubscriptions?.ExpectedEndDateTime;
         }
 

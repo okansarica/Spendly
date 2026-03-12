@@ -5,13 +5,19 @@ import {translate} from '../utils/translations';
 import {subscriptionService} from '../services/subscriptionService';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 
-type SubscriptionBlockerProps = {
-  visible: boolean;
-};
-
 type PlanType = 'Monthly' | 'Yearly';
 
-export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps) {
+type SubscriptionPlansModalProps = {
+  visible: boolean;
+  dismissible?: boolean;
+  onClose?: () => void;
+};
+
+export default function SubscriptionPlansModal({
+  visible,
+  dismissible = true,
+  onClose,
+}: SubscriptionPlansModalProps) {
   const {colors, spacing, fontSizes, fontWeights} = useTheme();
   const [plans, setPlans] = useState<{planType: PlanType; price: number}[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
@@ -21,7 +27,9 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
   useEffect(() => {
     if (visible) {
       loadPlans();
+      return;
     }
+    setProcessing(false);
   }, [visible]);
 
   const loadPlans = async () => {
@@ -30,22 +38,29 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
       const fetchedPlans = await subscriptionService.fetchSubscriptionPlans();
       setPlans(fetchedPlans);
       setLoading(false);
-    } catch (error) {
+    } catch {
       setLoading(false);
       Alert.alert('Error', 'Failed to load subscription plans');
     }
+  };
+
+  const closeModal = () => {
+    if (!dismissible) {
+      return;
+    }
+    onClose?.();
   };
 
   const handleRenewPress = async () => {
     try {
       setProcessing(true);
       const paymentUrl = await subscriptionService.createPaymentUrl(selectedPlan);
-      
-      if (InAppBrowser && await InAppBrowser.isAvailable()) {
+
+      if (InAppBrowser && (await InAppBrowser.isAvailable())) {
         try {
           await InAppBrowser.close();
         } catch {}
-        
+
         await InAppBrowser.open(paymentUrl, {
           dismissButtonStyle: 'close',
           preferredBarTintColor: colors.backgroundPrimary,
@@ -58,8 +73,11 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
           enableBarCollapsing: false,
         });
       }
-      
+
       setProcessing(false);
+      if (dismissible) {
+        onClose?.();
+      }
     } catch (error) {
       console.log(error);
       setProcessing(false);
@@ -88,6 +106,25 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
       elevation: 20,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
+      position: 'relative',
+    },
+    closeButton: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      zIndex: 1,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.backgroundPrimary,
+    },
+    closeText: {
+      color: colors.textSecondary,
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.bold,
+      lineHeight: fontSizes.lg,
     },
     headerIcon: {
       width: 64,
@@ -232,29 +269,27 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
     loader: {
       marginVertical: spacing.xl * 1.5,
     },
-    features: {
-      marginTop: spacing.md,
-      gap: spacing.xs,
-    },
-    feature: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    featureIcon: {
-      fontSize: 14,
-      color: colors.success,
-    },
-    featureText: {
-      fontSize: fontSizes.sm,
-      color: colors.textSecondary,
-    },
   });
 
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      <View style={s.overlay}>
-        <View style={s.container}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={closeModal}>
+      <TouchableOpacity
+        activeOpacity={1}
+        style={s.overlay}
+        onPress={closeModal}
+        disabled={!dismissible || processing}>
+        <TouchableOpacity activeOpacity={1} style={s.container} onPress={() => undefined}>
+          {dismissible && (
+            <TouchableOpacity style={s.closeButton} onPress={closeModal} disabled={processing}>
+              <Text style={s.closeText}>×</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={s.headerIcon}>
             <Text style={s.iconText}>💎</Text>
           </View>
@@ -293,9 +328,7 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
                           <Text style={s.planName}>{plan.planType} Plan</Text>
                           <Text style={s.planPrice}>£{plan.price.toFixed(2)}</Text>
                           <Text style={s.planPeriod}>£{monthlyCost}/month</Text>
-                          {savings && (
-                            <Text style={s.savingsText}>Save {savings}%</Text>
-                          )}
+                          {savings && <Text style={s.savingsText}>Save {savings}%</Text>}
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -315,9 +348,8 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
               </TouchableOpacity>
             </>
           )}
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
-

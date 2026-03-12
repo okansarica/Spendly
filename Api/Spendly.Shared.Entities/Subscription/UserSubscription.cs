@@ -5,7 +5,7 @@ using Enums;
 using MongoDB.Bson;
 
 /// <summary>
-/// User can have only active subscription
+/// User can have only active subscription at time t but multiple with passive ones
 /// </summary>
 public class UserSubscription:BaseEntity
 {
@@ -21,13 +21,39 @@ public class UserSubscription:BaseEntity
 	/// This will be populated in case ended before expected
 	/// </summary>
 	public DateTime? EndDateTime { get; set; }
-	public UserSubscriptionPayment Payment { get; set; } = new ();
 	public SubscriptionType SubscriptionType { get; set; }
+
+	public UserSubscriptionStateType State
+	{
+		get
+		{
+			if (SubscriptionType== SubscriptionType.Trial)
+			{
+				return UserSubscriptionStateType.Active;
+			}
+			return field;
+		}
+		set;
+	}
+
+	public UserSubscriptionDurationType Duration
+	{
+		get
+		{
+			if (SubscriptionType == SubscriptionType.Trial)
+			{
+				return UserSubscriptionDurationType.Trial;
+			}
+			return field;
+		}
+		set;
+	}
 }
 
 public class UserSubscriptionPayment
 {
-	public UserSubscriptionDurationType Duration { get; set; }
+	public DateTime? PaymentCompletionDateTime { get; set; }
+	
 	public decimal Amount { get; set; }
 	public UserSubscriptionPaymentStatusType PaymentStatus { get; set; }
 }
@@ -38,6 +64,8 @@ public class UserSubscriptionPaymentUrl : BaseEntity
 	public ObjectId UserSubscriptionId { get; set; }
 	public string StripeSessionId { get; set; } = string.Empty;
 	public string PaymentUrl { get; set; } = string.Empty;
+	
+	public UserSubscriptionPayment Payment { get; set; } = new ();
 }
 
 public class StripeCommunicationLog : BaseReportEntity

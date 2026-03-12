@@ -1,5 +1,5 @@
 // CHANGED_BY_AI: 2026-03-05 - Add header right light/dark mode buttons
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {SafeAreaView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
@@ -7,6 +7,7 @@ import {useTheme} from '../theme/ThemeContext';
 import {HeaderConstants} from '../constants/headerConstants';
 import {subscriptionService} from '../services/subscriptionService';
 import {translate} from '../utils/translations';
+import SubscriptionPlansModal from './SubscriptionPlansModal';
 
 type HeaderProps = {
   title?: string;
@@ -22,16 +23,24 @@ export default function Header({title, showBack}: HeaderProps) {
   const shouldShowBack = showBack ?? canGoBack;
   const [showWarning, setShowWarning] = useState(false);
   const [timeUntilExpiration, setTimeUntilExpiration] = useState<{days: number; hours: number} | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  const checkSubscription = useCallback(async () => {
+    const isExpiring = await subscriptionService.isSubscriptionExpiring();
+    const time = await subscriptionService.getTimeUntilExpiration();
+    setShowWarning(isExpiring);
+    setTimeUntilExpiration(time);
+  }, []);
 
   useEffect(() => {
-    const checkSubscription = async () => {
-      const isExpiring = await subscriptionService.isSubscriptionExpiring();
-      const time = await subscriptionService.getTimeUntilExpiration();
-      setShowWarning(isExpiring);
-      setTimeUntilExpiration(time);
-    };
     checkSubscription();
-  }, []);
+  }, [checkSubscription]);
+
+  useEffect(() => {
+    return subscriptionService.subscribeToSubscriptionState(() => {
+      checkSubscription();
+    });
+  }, [checkSubscription]);
 
   const s = StyleSheet.create({
     safeArea: {backgroundColor: colors.buttonPrimary, width: '100%'},
@@ -121,14 +130,19 @@ export default function Header({title, showBack}: HeaderProps) {
         </View>
       </SafeAreaView>
       {showWarning && timeUntilExpiration !== null && (
-        <View style={s.warningBanner}>
+        <TouchableOpacity style={s.warningBanner} onPress={() => setShowSubscriptionModal(true)}>
           <Text style={s.warningText}>
             {timeUntilExpiration.days === 0
               ? translate('SubscriptionExpiringWarningLastDay').replace('{hours}', timeUntilExpiration.hours.toString())
               : translate('SubscriptionExpiringWarning').replace('{days}', (timeUntilExpiration.hours>12?(timeUntilExpiration.days+1):timeUntilExpiration.days).toString())}
           </Text>
-        </View>
+        </TouchableOpacity>
       )}
+      <SubscriptionPlansModal
+        visible={showSubscriptionModal}
+        dismissible
+        onClose={() => setShowSubscriptionModal(false)}
+      />
     </>
   );
 }

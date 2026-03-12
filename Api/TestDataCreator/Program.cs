@@ -259,14 +259,10 @@ class Program
 				StartDateTime = start,
 				ExpectedEndDateTime = expectedEnd,
 				EndDateTime = null,
-				Payment = new UserSubscriptionPayment
-				{
-					Duration = UserSubscriptionDurationType.Monthly,
-					Amount = 0m,
-					PaymentStatus = UserSubscriptionPaymentStatusType.Paid
-				},
 				SubscriptionType = SubscriptionType.Trial,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = DateTime.UtcNow,
+				State =  UserSubscriptionStateType.Active,
+			
 			});
 		}
 
