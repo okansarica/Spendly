@@ -35,7 +35,7 @@ export default function VerificationScreen() {
     if (error) {
       Toast.show({
         type: 'error',
-        text1: 'Verification Failed',
+        text1: translate('VerificationFailed'),
         text2: error,
       });
       dispatch(clearError());
@@ -114,8 +114,8 @@ export default function VerificationScreen() {
   return (
     <View style={s.container}>
       <Header title={translate('VerificationTitle')} />
-      <Text style={s.title}>Verify your email</Text>
-      <Text style={s.subtitle}>Enter the 4-digit code sent to your email address.</Text>
+      <Text style={s.title}>{translate('VerifyYourEmail')}</Text>
+      <Text style={s.subtitle}>{translate('EnterVerificationCode')}</Text>
 
 
       <View style={s.codeRow}>
@@ -135,11 +135,11 @@ export default function VerificationScreen() {
       </View>
 
       <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={handleVerify} disabled={!isValid || isLoading}>
-        {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Verify</Text>}
+        {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>{translate('Verify')}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend} disabled={isLoading}>
-        <Text style={s.link}>Resend code</Text>
+        <Text style={s.link}>{translate('ResendCode')}</Text>
       </TouchableOpacity>
     </View>
   );

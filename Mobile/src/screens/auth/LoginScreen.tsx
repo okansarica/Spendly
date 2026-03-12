@@ -12,7 +12,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {login, socialLogin, clearError} from '../../store/authStore';
+import {login, socialLogin} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import Button from '../../components/Button';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
@@ -28,7 +28,6 @@ export default function LoginScreen() {
   const navigation = useNavigation<LoginNavProp>();
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
-  const error = useAppSelector(s => s.auth.error);
   const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
   const [email, setEmail] = useState('');
@@ -43,30 +42,33 @@ export default function LoginScreen() {
     // });
   }, []);
 
-  const handleLogin = () => {
-    dispatch(login({email, password}));
-  };
-
-  const handleSocialLogin = (provider: 'google' | 'facebook', token: string) => {
-    dispatch(socialLogin({provider, token}));
-  };
-
   useEffect(() => {
     if (emailVerificationRequired) {
       navigation.navigate('Verification');
     }
   }, [emailVerificationRequired, navigation]);
 
-  useEffect(() => {
-    if (error) {
+  const handleLogin = async () => {
+    const result = await dispatch(login({email, password}));
+    if (login.rejected.match(result)) {
       Toast.show({
         type: 'error',
-        text1: 'Login Failed',
-        text2: error,
+        text1: translate('LoginFailed'),
+        text2: result.payload as string,
       });
-      dispatch(clearError());
     }
-  }, [error, dispatch]);
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook', token: string) => {
+    const result = await dispatch(socialLogin({provider, token}));
+    if (socialLogin.rejected.match(result)) {
+      Toast.show({
+        type: 'error',
+        text1: translate('LoginFailed'),
+        text2: result.payload as string,
+      });
+    }
+  };
 
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundPrimary},
@@ -107,14 +109,14 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Header title={translate('LoginTitle')} showBack={false} />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Welcome back</Text>
-        <Text style={s.subtitle}>Sign in to continue to Spendly</Text>
+        <Text style={s.title}>{translate('WelcomeBack')}</Text>
+        <Text style={s.subtitle}>{translate('SignInToContinue')}</Text>
 
 
-        <Text style={s.inputLabel}>Email</Text>
+        <Text style={s.inputLabel}>{translate('Email')}</Text>
         <TextInput
           style={s.input}
-          placeholder="Enter your email"
+          placeholder={translate('EnterYourEmail')}
           placeholderTextColor={colors.inputPlaceholder}
           autoCapitalize="none"
           keyboardType="email-address"
@@ -122,10 +124,10 @@ export default function LoginScreen() {
           onChangeText={setEmail}
         />
 
-        <Text style={s.inputLabel}>Password</Text>
+        <Text style={s.inputLabel}>{translate('Password')}</Text>
         <TextInput
           style={s.input}
-          placeholder="Enter your password"
+          placeholder={translate('EnterYourPassword')}
           placeholderTextColor={colors.inputPlaceholder}
           secureTextEntry
           value={password}
@@ -134,7 +136,7 @@ export default function LoginScreen() {
 
         
         <Button
-          text="Sign in"
+          text={translate('SignIn')}
           onPress={handleLogin}
           variant="primary"
           isLoading={isLoading}
@@ -143,7 +145,7 @@ export default function LoginScreen() {
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={s.link}>Forgot your password?</Text>
+          <Text style={s.link}>{translate('ForgotYourPassword')}</Text>
         </TouchableOpacity>
 
         <SocialLoginButtons
@@ -153,7 +155,7 @@ export default function LoginScreen() {
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={s.link}>Don't have an account? Sign up</Text>
+          <Text style={s.link}>{translate('DontHaveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

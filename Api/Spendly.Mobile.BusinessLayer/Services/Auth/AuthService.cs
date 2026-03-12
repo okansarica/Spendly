@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Entities.Subscription;
+using Shared.Entities.TransactionManagement;
 using Shared.Entities.UserManagement;
 using Spendly.Mobile.ViewModels.Auth;
 using Spendly.Shared.Core;
@@ -23,6 +24,10 @@ public class AuthService(
 	IRepository<UserSubscription> userSubscriptionRepository,
 	IRepository<UserRefreshToken> refreshTokenRepository,
 	IRepository<FirebaseToken> firebaseTokenRepository,
+	IRepository<Category> categoryRepository,
+	IRepository<UserCategory> userCategoryRepository,
+	IRepository<Merchant> merchantRepository,
+	IRepository<UserMerchant> userMerchantRepository,
 	JwtSettings jwtSettings,
 	IHttpClientFactory httpClientFactory,
 	RequestContextViewModel requestContextViewModel)
@@ -287,6 +292,40 @@ public class AuthService(
 			}
 		}
 		
+		var allCategories = await categoryRepository.ListAsync(filter: null).ConfigureAwait(false);
+		var otherCategory = allCategories.Single(p => p.IsOther);
+
+		UserCategory? otherUserCategory = null;
+		foreach (var category in allCategories)
+		{
+			var userCategory = new UserCategory
+			{
+				CategoryId = category.Id,
+				Color = category.Color,
+				IsOther = category.IsOther,
+				Name = category.Name,
+				MerchantCount = 0,
+				UserId = user.Id,
+			};
+			await userCategoryRepository.InsertAsync(userCategory).ConfigureAwait(false);
+			if (category.IsOther)
+			{
+				otherUserCategory = userCategory;
+			}
+		}
+		
+		var otherMerchant = await merchantRepository.GetRequiredAsync(p => p.IsOther);
+		var otherUserMerchant = new UserMerchant
+		{
+			IsOther = true,
+			MerchantId = otherMerchant.Id,
+			TotalTransactionAmount = 0,
+			TotalTransactionCount = 0,
+			UserCategoryId = otherUserCategory!.Id,
+			UserId = user.Id,
+		};
+		await userMerchantRepository.InsertAsync(otherUserMerchant).ConfigureAwait(false);
+		
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
 			Id = user.Id.ToString(),
@@ -295,8 +334,6 @@ public class AuthService(
 			LanguageCode = user.LanguageCode,
 			SubscriptionEndDateTime = subscriptionEndDate
 		});
-		
-		//TODO cateegory, merchant kaydi eklenecek, isOther
 	}
 
 	public async Task<FunctionResponse<AuthResponseViewModel>> RefreshAccessTokenAsync(RefreshTokenRequestViewModel request)

@@ -16,7 +16,6 @@ type AuthState = {
   isAuthenticated: boolean;
   isInitializing: boolean;
   isLoading: boolean;
-  error: string | undefined;
   emailVerificationRequired: boolean;
 };
 
@@ -26,7 +25,6 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isInitializing: true,
   isLoading: false,
-  error: undefined,
   emailVerificationRequired: false,
 };
 
@@ -169,11 +167,7 @@ export const resendCode = createAsyncThunk(
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {
-    clearError: state => {
-      state.error = undefined;
-    },
-  },
+  reducers: {},
   extraReducers: builder => {
     builder
       .addCase(checkAuth.fulfilled, (state, action) => {
@@ -182,7 +176,6 @@ const authSlice = createSlice({
       })
       .addCase(login.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -200,13 +193,11 @@ const authSlice = createSlice({
           state.emailVerificationRequired = false;
         }
       })
-      .addCase(login.rejected, (state, action) => {
+      .addCase(login.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       })
       .addCase(socialLogin.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(socialLogin.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -217,20 +208,17 @@ const authSlice = createSlice({
         state.email = action.payload.email;
         state.isAuthenticated = true;
       })
-      .addCase(socialLogin.rejected, (state, action) => {
+      .addCase(socialLogin.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       })
       .addCase(forgotPassword.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(forgotPassword.fulfilled, state => {
         state.isLoading = false;
       })
-      .addCase(forgotPassword.rejected, (state, action) => {
+      .addCase(forgotPassword.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       })
       .addCase(logout.pending, state => {
         state.isLoading = true;
@@ -241,7 +229,6 @@ const authSlice = createSlice({
         state.email = undefined;
         state.isAuthenticated = false;
         state.emailVerificationRequired = false;
-        state.error = undefined;
       })
       .addCase(logout.rejected, state => {
         state.isLoading = false;
@@ -249,18 +236,15 @@ const authSlice = createSlice({
         state.email = undefined;
         state.isAuthenticated = false;
         state.emailVerificationRequired = false;
-        state.error = undefined;
       })
       .addCase(logoutLocal.fulfilled, state => {
         state.userId = undefined;
         state.email = undefined;
         state.isAuthenticated = false;
         state.emailVerificationRequired = false;
-        state.error = undefined;
       })
       .addCase(register.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -271,13 +255,11 @@ const authSlice = createSlice({
         state.userId = action.payload.id;
         state.email = action.payload.email;
       })
-      .addCase(register.rejected, (state, action) => {
+      .addCase(register.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       })
       .addCase(verifyEmail.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(verifyEmail.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -289,23 +271,19 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.emailVerificationRequired = false;
       })
-      .addCase(verifyEmail.rejected, (state, action) => {
+      .addCase(verifyEmail.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       })
       .addCase(resendCode.pending, state => {
         state.isLoading = true;
-        state.error = undefined;
       })
       .addCase(resendCode.fulfilled, state => {
         state.isLoading = false;
       })
-      .addCase(resendCode.rejected, (state, action) => {
+      .addCase(resendCode.rejected, state => {
         state.isLoading = false;
-        state.error = action.payload as string;
       });
   },
 });
 
-export const {clearError} = authSlice.actions;
 export default authSlice.reducer;

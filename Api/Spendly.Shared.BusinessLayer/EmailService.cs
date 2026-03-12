@@ -55,7 +55,7 @@ public class EmailService(IAmazonSimpleEmailService sesClient, EmailSettings  em
 		{
 			var body = $"{message} {exception.Message} {exception.StackTrace}, {exception.InnerException?.Message } {exception.InnerException?.StackTrace}";
 			
-			await SendEmailAsync("okansarica@gmail.com","SPENDLY ALARM",body);
+			await SendEmailAsync("okansarica+spendly@gmail.com","SPENDLY ALARM",body);
 		}
 		catch (Exception e)
 		{

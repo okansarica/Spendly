@@ -219,7 +219,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         var entity = await cursor.FirstOrDefaultAsync().ConfigureAwait(false);
 
         if (entity is null)
-            throw new Exception("Entity not found for given expression filter.");
+            throw new Exception($"Entity of type '{typeof(T).Name}' not found for given expression filter: {filter}");
 
         return entity;
     }

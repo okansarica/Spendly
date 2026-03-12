@@ -243,7 +243,7 @@ public class SharedPlaidService(
 		var allMerchants = await merchantRepository.ListAsync(filter: null);
 		var otherMerchant = allMerchants.Single(p => p.IsOther);
 		var allPredefinedMerchants = await predefinedMerchantRepository.ListAsync(filter: null);
-		var otherUserMerchant = await userMerchantRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther);
+		var otherUserMerchant = await userMerchantRepository.GetRequiredAsync(p => p.UserId == userId && p.IsOther == true);
 		var otherCategory = await categoryRepository.GetRequiredAsync(p => p.IsOther);
 		var userCategories = await userCategoryRepository.ListAsync(p => p.UserId == userId);
 		var otherUserCategory = userCategories.Single(p => p.IsOther);

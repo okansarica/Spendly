@@ -13,7 +13,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {register, socialLogin, clearError} from '../../store/authStore';
+import {register, socialLogin} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
 import Header from '../../components/Header';
@@ -28,7 +28,6 @@ export default function RegisterScreen() {
   const navigation = useNavigation<RegisterNavProp>();
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
-  const error = useAppSelector(s => s.auth.error);
   const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
   const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
   const [name, setName] = useState('');
@@ -44,23 +43,27 @@ export default function RegisterScreen() {
     }
   }, [emailVerificationRequired, navigation]);
 
-  useEffect(() => {
-    if (error) {
+
+  const handleRegister = async () => {
+    const result = await dispatch(register({name, surname, email, password}));
+    if (register.rejected.match(result)) {
       Toast.show({
         type: 'error',
-        text1: 'Registration Failed',
-        text2: error,
+        text1: translate('RegistrationFailed'),
+        text2: result.payload as string,
       });
-      dispatch(clearError());
     }
-  }, [error, dispatch]);
-
-  const handleRegister = () => {
-    dispatch(register({name, surname, email, password}));
   };
 
-  const handleSocialLogin = (provider: 'google' | 'facebook', token: string) => {
-    dispatch(socialLogin({provider, token}));
+  const handleSocialLogin = async (provider: 'google' | 'facebook', token: string) => {
+    const result = await dispatch(socialLogin({provider, token}));
+    if (socialLogin.rejected.match(result)) {
+      Toast.show({
+        type: 'error',
+        text1: translate('RegistrationFailed'),
+        text2: result.payload as string,
+      });
+    }
   };
 
   const s = StyleSheet.create({
@@ -104,12 +107,12 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Header title={translate('RegisterTitle')} />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Create your account</Text>
-        <Text style={s.subtitle}>Sign up to start managing your expenses</Text>
+        <Text style={s.title}>{translate('CreateYourAccount')}</Text>
+        <Text style={s.subtitle}>{translate('SignUpToStartManaging')}</Text>
 
         <TextInput
           style={s.input}
-          placeholder="Name"
+          placeholder={translate('Name')}
           placeholderTextColor={colors.inputPlaceholder}
           value={name}
           onChangeText={setName}
@@ -117,7 +120,7 @@ export default function RegisterScreen() {
 
         <TextInput
           style={s.input}
-          placeholder="Surname"
+          placeholder={translate('Surname')}
           placeholderTextColor={colors.inputPlaceholder}
           value={surname}
           onChangeText={setSurname}
@@ -125,7 +128,7 @@ export default function RegisterScreen() {
 
         <TextInput
           style={s.input}
-          placeholder="Email"
+          placeholder={translate('Email')}
           placeholderTextColor={colors.inputPlaceholder}
           autoCapitalize="none"
           keyboardType="email-address"
@@ -135,7 +138,7 @@ export default function RegisterScreen() {
 
         <TextInput
           style={s.input}
-          placeholder="Password"
+          placeholder={translate('Password')}
           placeholderTextColor={colors.inputPlaceholder}
           secureTextEntry
           value={password}
@@ -143,7 +146,7 @@ export default function RegisterScreen() {
         />
 
         <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={handleRegister} disabled={!isValid || isLoading}>
-          {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>Register</Text>}
+          {isLoading ? <ActivityIndicator color={colors.buttonPrimaryText} /> : <Text style={s.btnText}>{translate('Register')}</Text>}
         </TouchableOpacity>
 
         <SocialLoginButtons
@@ -153,7 +156,7 @@ export default function RegisterScreen() {
         />
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={s.link}>Already have an account? Login</Text>
+          <Text style={s.link}>{translate('AlreadyHaveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

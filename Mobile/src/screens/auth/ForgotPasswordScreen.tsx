@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
     if (error) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: translate('Error'),
         text2: error,
       });
       dispatch(clearError());
@@ -44,8 +44,8 @@ export default function ForgotPasswordScreen() {
       setSubmitted(true);
       Toast.show({
         type: 'success',
-        text1: 'Success',
-        text2: 'If the email exists, a reset link has been sent.',
+        text1: translate('SuccessTitle'),
+        text2: translate('PasswordResetEmailSent'),
       });
     }
   };
@@ -56,7 +56,7 @@ export default function ForgotPasswordScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={translate('Email')}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -67,16 +67,16 @@ export default function ForgotPasswordScreen() {
         {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Send Reset Link</Text>
+          <Text style={styles.buttonText}>{translate('SendResetLink')}</Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.link}>Login</Text>
+        <Text style={styles.link}>{translate('BackToLogin')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Register</Text>
+        <Text style={styles.link}>{translate('Register')}</Text>
       </TouchableOpacity>
     </View>
   );

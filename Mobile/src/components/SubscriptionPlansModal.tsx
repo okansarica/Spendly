@@ -5,6 +5,7 @@ import {translate} from '../utils/translations';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
 import {fetchSubscriptionPlans, createPaymentUrl} from '../store/subscriptionStore';
+import Toast from 'react-native-toast-message';
 
 type PlanType = 'Monthly' | 'Yearly';
 
@@ -30,6 +31,16 @@ export default function SubscriptionPlansModal({
     }
   }, [visible, dispatch]);
 
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: 'error',
+        text1: translate('Error'),
+        text2: error,
+      });
+    }
+  }, [error]);
+
   const closeModal = () => {
     if (!dismissible) {
       return;
@@ -41,19 +52,28 @@ export default function SubscriptionPlansModal({
     const result = await dispatch(createPaymentUrl(selectedPlan));
     if (createPaymentUrl.fulfilled.match(result)) {
       const paymentUrl = result.payload;
-      if (InAppBrowser && (await InAppBrowser.isAvailable())) {
-        await InAppBrowser.open(paymentUrl, {
-          dismissButtonStyle: 'close',
-          preferredBarTintColor: colors.backgroundPrimary,
-          preferredControlTintColor: colors.textPrimary,
-          readerMode: false,
-          animated: true,
-          modalPresentationStyle: 'pageSheet',
-          modalTransitionStyle: 'coverVertical',
-          modalEnabled: true,
-          enableBarCollapsing: false,
-        });
+      if (InAppBrowser && (await InAppBrowser.isAvailable())) {        
+        
+        try {
+          await InAppBrowser.open(paymentUrl, {
+            dismissButtonStyle: 'close',
+            preferredBarTintColor: colors.backgroundPrimary,
+            preferredControlTintColor: colors.textPrimary,
+            readerMode: false,
+            animated: true,
+            modalPresentationStyle: 'pageSheet',
+            modalTransitionStyle: 'coverVertical',
+            modalEnabled: true,
+            enableBarCollapsing: false,
+          });
+        } catch {}
       }
+    } else if (createPaymentUrl.rejected.match(result)) {
+      Toast.show({
+        type: 'error',
+        text1: translate('Error'),
+        text2: result.payload as string,
+      });
     }
   };
 

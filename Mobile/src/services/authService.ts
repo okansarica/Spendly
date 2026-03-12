@@ -6,13 +6,13 @@ import {ApiEndpoints} from '../constants/apiEndpoints';
 export type LoginRequest = {
   email: string;
   password: string;
-  firebaseToken: string;
+  firebaseToken?: string;
 };
 
 export type SocialLoginRequest = {
-  provider: 'google' | 'facebook'; //TODO enum yapilmali. enumlar ayri bir dosyada tutulmali
+  provider: 'google' | 'facebook';
   token: string;
-  firebaseToken: string;
+  firebaseToken?: string;
 };
 
 export type ForgotPasswordRequest = {
@@ -24,7 +24,7 @@ export type RegisterRequest = {
   surname: string;
   email: string;
   password: string;
-  firebaseToken: string;
+  firebaseToken?: string;
 };
 
 export type VerifyEmailRequest = {

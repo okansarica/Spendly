@@ -1,11 +1,8 @@
 namespace Spendly.Mobile.Api.Services;
 
 using Shared.BusinessLayer;
-using Shared.Core;
 using Shared.ViewModels.Plaid;
 using System.Threading.Channels;
-using Spendly.Mobile.BusinessLayer.Services.Finance;
-using ViewModels.Plaid;
 
 public class PlaidDataProcessorHostedService(
     Channel<PlaidDataProcessingBackgroundServiceRequestViewModel> channel,
@@ -18,6 +15,7 @@ public class PlaidDataProcessorHostedService(
     {
         await foreach (var request in channel.Reader.ReadAllAsync(stoppingToken))
         {
+            logger.LogInformation("Started Plaid data waiting before processing for user {UserId}", request.UserId);
             await Task.Delay(30000, stoppingToken);
             try
             {
@@ -25,8 +23,8 @@ public class PlaidDataProcessorHostedService(
                 
                 using var scope = serviceScopeFactory.CreateScope();
 
-                var sharedPlaidSservice = scope.ServiceProvider.GetRequiredService<SharedPlaidService>();
-                await sharedPlaidSservice.TransferTransactionsFromPlaidAsync(
+                var sharedPlaidService = scope.ServiceProvider.GetRequiredService<SharedPlaidService>();
+                await sharedPlaidService.TransferTransactionsFromPlaidAsync(
                     DateOnly.FromDateTime(DateTime.Today.AddDays(-90)), // son gun dahil degil, bitis tarihi dahil, bugunun kayitlari gece cekilecek onlari cekme
                     DateOnly.FromDateTime(DateTime.Today.AddDays(-1)),
                     request
