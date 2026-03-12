@@ -40,7 +40,7 @@ public class UserSubscriptionPaymentUrl : BaseEntity
 	public string PaymentUrl { get; set; } = string.Empty;
 }
 
-public class StripeCommunicationLog : BaseEntity
+public class StripeCommunicationLog : BaseReportEntity
 {
 	public string ClientReferenceId { get; set; } = string.Empty;
 	public string RequestPayload { get; set; } = string.Empty;

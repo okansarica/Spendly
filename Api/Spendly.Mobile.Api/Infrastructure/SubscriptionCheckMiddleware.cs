@@ -12,8 +12,9 @@ public class SubscriptionCheckMiddleware(RequestDelegate next)
         var endpoint = context.GetEndpoint();
         var authorizeAttribute = endpoint?.Metadata.GetMetadata<AuthorizeAttribute>();
         var allowAnonymousAttribute = endpoint?.Metadata.GetMetadata<IAllowAnonymous>();
+        var skipSubscriptionCheckAttribute = endpoint?.Metadata.GetMetadata<SkipSubscriptionCheckAttribute>();
 
-        if (authorizeAttribute != null && allowAnonymousAttribute == null)
+        if (authorizeAttribute != null && allowAnonymousAttribute == null && skipSubscriptionCheckAttribute == null)
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {

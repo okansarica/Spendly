@@ -73,6 +73,7 @@ public class UsersController(UserService userService, UserSubscriptionService us
     }
 
     [HttpGet("subscription-end")]
+    [SkipSubscriptionCheck]
     public async Task<IActionResult> GetSubscriptionEndDate()
     {
         var response = await userService.GetSubscriptionEndDateAsync();
@@ -85,6 +86,7 @@ public class UsersController(UserService userService, UserSubscriptionService us
     }
 
     [HttpGet("subscription-plans")]
+    [SkipSubscriptionCheck]
     public async Task<IActionResult> GetSubscriptionPlans()
     {
         var response = await userSubscriptionService.GetSubscriptionPlansAsync();
@@ -97,6 +99,7 @@ public class UsersController(UserService userService, UserSubscriptionService us
     }
 
     [HttpPost("create-payment-url")]
+    [SkipSubscriptionCheck]
     public async Task<IActionResult> CreatePaymentUrl([FromBody] CreatePaymentUrlRequestViewModel request)
     {
         var response = await userSubscriptionService.CreatePaymentUrlAsync(request);

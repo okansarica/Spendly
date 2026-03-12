@@ -181,6 +181,7 @@ public class UserSubscriptionService(
 
 			if (string.IsNullOrWhiteSpace(clientReferenceId) && !string.IsNullOrWhiteSpace(paymentIntentId))
 			{
+				StripeConfiguration.ApiKey = stripeSettings.ApiKey;
 				var stripeSessionService = new SessionService();
 				var sessions = await stripeSessionService.ListAsync(new SessionListOptions
 				{

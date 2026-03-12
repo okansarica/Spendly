@@ -225,6 +225,22 @@ public class AppBootstrapper
 
             // ---- SETTINGS & SHARED REPOS ----
             builder.Services.AddSettingsConfiguration(builder.Configuration);
+            
+            var firebaseSettings = builder.Configuration.GetSection("FirebaseSettings").Get<FirebaseSettings>();
+            if (firebaseSettings != null && !string.IsNullOrEmpty(firebaseSettings.ServiceAccountKey))
+            {
+	            try
+	            {
+		            FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
+		            {
+			            Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(firebaseSettings.ServiceAccountKey)
+		            });
+	            }
+	            catch
+	            {
+	            }
+            }
+            
             builder.Services.AddMongoRepositories(builder.Configuration);
             builder.Services.AddLocalQueueRepositories(builder.Configuration);
             

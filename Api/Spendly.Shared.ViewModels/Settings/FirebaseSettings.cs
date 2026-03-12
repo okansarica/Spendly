@@ -3,7 +3,7 @@ namespace Spendly.Shared.ViewModels.Settings;
 
 public class FirebaseSettings
 {
-	public string Endpoint { get; set; } = "https://fcm.googleapis.com/fcm/send";
-	public string ServerKey { get; set; } = string.Empty;
+	public string ProjectId { get; set; } = string.Empty;
+	public string ServiceAccountKey { get; set; } = string.Empty;
 }
 

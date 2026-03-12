@@ -42,6 +42,10 @@ export default function SubscriptionBlocker({visible}: SubscriptionBlockerProps)
       const paymentUrl = await subscriptionService.createPaymentUrl(selectedPlan);
       
       if (InAppBrowser && await InAppBrowser.isAvailable()) {
+        try {
+          await InAppBrowser.close();
+        } catch {}
+        
         await InAppBrowser.open(paymentUrl, {
           dismissButtonStyle: 'close',
           preferredBarTintColor: colors.backgroundPrimary,

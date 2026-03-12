@@ -5,6 +5,8 @@
 // using Amazon.SQS;
 using AspectCore.Configuration;
 using AspectCore.Extensions.DependencyInjection;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.IdentityModel.Tokens;
