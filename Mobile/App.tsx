@@ -1,9 +1,10 @@
 // CHANGED_BY_AI: 2026-03-11 - Extract VersionUpdateScreen to separate component file
 // CHANGED_BY_AI: 2026-03-11 - Add startup version check and update gate screen
 // CHANGED_BY_AI: 2026-03-05 - Handle subscription payment push results in app root
+// CHANGED_BY_AI: 2026-03-12 - Redirect to dashboard and refresh after subscription payment success
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Provider} from 'react-redux';
-import {NavigationContainer} from '@react-navigation/native';
+import {CommonActions, createNavigationContainerRef, NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import {Alert, AppState, Linking, Platform} from 'react-native';
@@ -18,6 +19,12 @@ import {versionService} from './src/services/versionService';
 import APP_CONFIG from './src/config/appConfig';
 import {getCurrentLanguage, translate} from './src/utils/translations';
 import VersionUpdateScreen from './src/components/VersionUpdateScreen';
+import {refreshHomepage} from './src/store/homepageStore';
+import type {RootStackParamList} from './src/navigation/RootNavigator';
+
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+const delay = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
 
 type VersionGateState = {
   visible: boolean;
@@ -37,6 +44,27 @@ export default function App() {
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+
+    const redirectToDashboardAndRefresh = async () => {
+      if (navigationRef.isReady()) {
+        navigationRef.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  index: 0,
+                  routes: [{name: 'Dashboard'}],
+                },
+              },
+            ],
+          }),
+        );
+      }
+
+      await store.dispatch(refreshHomepage());
+    };
 
     const initializeApp = async () => {
       try {
@@ -76,6 +104,8 @@ export default function App() {
 
           if (status === 'success') {
             await subscriptionService.fetchSubscriptionEndDate();
+            await delay(300);
+            await redirectToDashboardAndRefresh();
             Toast.show({
               type: 'success',
               text1: 'Payment completed',
@@ -163,7 +193,7 @@ export default function App() {
               onSkip={handleSkipUpdate}
             />
           ) : (
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
               <RootNavigator />
             </NavigationContainer>
           )}
