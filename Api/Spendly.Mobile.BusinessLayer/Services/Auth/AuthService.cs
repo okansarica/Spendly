@@ -450,6 +450,8 @@ public class AuthService(
 		user.EmailVerification.VerificationAttemptCount = 0;
 		user.UpdatedAt = DateTime.UtcNow;
 		await userRepository.UpdateAsync(user);
+		
+		//TODO send e mail
 
 		return FunctionResponse.Success();
 	}

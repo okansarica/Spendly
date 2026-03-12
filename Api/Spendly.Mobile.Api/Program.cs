@@ -1,8 +1,8 @@
-// CHANGED_BY_AI: 2026-02-28 - Added JWT authentication and HttpClient registration
-// using Amazon;
-// using Amazon.Lambda;
-// using Amazon.Runtime;
-// using Amazon.SQS;
+using Amazon;
+using Amazon.Lambda;
+using Amazon.Runtime;
+using Amazon.SimpleEmail;
+using Amazon.SQS;
 using AspectCore.Configuration;
 using AspectCore.Extensions.DependencyInjection;
 using FirebaseAdmin;
@@ -47,6 +47,15 @@ var app = AppBootstrapper
 		services.AddMemoryCache();
 		services.AddHttpContextAccessor();
 		services.AddReportRepositories(config);
+		
+		services.AddSingleton<IAmazonSimpleEmailService>(sp =>
+		{
+			var awsSettings = sp.GetRequiredService<AwsSettings>();
+			var credentials = new BasicAWSCredentials(awsSettings.AccessKeyId, awsSettings.SecretAccessKey);
+			var region = RegionEndpoint.GetBySystemName(awsSettings.Region);
+			return new AmazonSimpleEmailServiceClient(credentials, region);
+		});
+		
 		// services.AddSingleton<IAmazonSQS>(sp =>
 		// {
 		// 	var awsSettings = sp.GetRequiredService<AwsSettings>();

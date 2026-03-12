@@ -3,11 +3,12 @@ namespace Spendly.Mobile.BusinessLayer.Services.Notification;
 
 using FirebaseAdmin.Messaging;
 using Microsoft.Extensions.Logging;
+using Shared.BusinessLayer;
 using Spendly.Shared.Enums;
 
-public class FirebaseNotificationService(ILogger<FirebaseNotificationService> logger)
+public class FirebaseNotificationService(ILogger<FirebaseNotificationService> logger, EmailService emailService)
 {
-	public async virtual Task SendSubscriptionPaymentResultAsync(string token, SubscriptionPaymentResultStatusType status)
+	public async virtual Task<bool> SendSubscriptionPaymentResultAsync(string token, SubscriptionPaymentResultStatusType status)
 	{
 		try
 		{
@@ -17,18 +18,21 @@ public class FirebaseNotificationService(ILogger<FirebaseNotificationService> lo
 				Data = new Dictionary<string, string>
 				{
 					{ "type", "subscription_payment_result" },
-					{ "status", status.ToString().ToLowerInvariant() }
+					{ "status", status.ToString().ToLowerInvariant() },
 				}
 			};
 
-			await FirebaseMessaging.DefaultInstance.SendAsync(message);
-			
-			//tODO responseda gonderilen sayiyi kontrol et, gonderinin basarili oldugunu verify et
-		}
-		catch (Exception)
-		{
-			//TODO hataya duserse alarm e postasi gondermek gerekiyor
-		}
+			var messageId = await FirebaseMessaging.DefaultInstance.SendAsync(message);
 
+			logger.LogInformation("Firebase message sent. MessageId: {MessageId}", messageId);
+
+			return true;
+		}
+		catch (Exception exception)
+		{
+			logger.LogError(exception, exception.Message);
+			await emailService.SendAlarmEmailAsync("Error when sending firebase notification", exception);
+			return false;
+		}
 	}
 }

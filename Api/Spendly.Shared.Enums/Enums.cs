@@ -32,4 +32,5 @@ public enum SubscriptionPaymentResultStatusType
 {
     Success,
     Fail,
+    Exception,
 }

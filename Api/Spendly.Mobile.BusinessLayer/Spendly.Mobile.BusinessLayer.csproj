@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Spendly.Mobile.ViewModels\Spendly.Mobile.ViewModels.csproj" />
+      <ProjectReference Include="..\Spendly.Shared.BusinessLayer\Spendly.Shared.BusinessLayer.csproj" />
       <ProjectReference Include="..\Spendly.Shared.DataLayer\Spendly.Shared.DataLayer.csproj" />
       <ProjectReference Include="..\Spendly.Shared.Entities\Spendly.Shared.Entities.csproj" />
       <ProjectReference Include="..\Spendly.Shared.Enums\Spendly.Shared.Enums.csproj" />

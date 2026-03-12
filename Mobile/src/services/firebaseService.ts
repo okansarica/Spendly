@@ -62,11 +62,6 @@ export const firebaseService = {
         }
       }
 
-      const isSilent = message.data?.silent === 'true';
-      if (isSilent) {
-        return;
-      }
-
       await onNotification(message);
     };
 
