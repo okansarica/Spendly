@@ -1,3 +1,5 @@
+// CHANGED_BY_AI: 2026-03-12 - Add CTA wording to expiring trial warning banner
+// CHANGED_BY_AI: 2026-03-12 - Add upgrade-focused subscription modal translations for dismissible state
 // CHANGED_BY_AI: 2026-03-02 - Add merchant edit localization keys
 // CHANGED_BY_AI: 2026-03-02 - Add reports menu translations
 // CHANGED_BY_AI: 2026-03-02 - Add homepage translations
@@ -199,10 +201,13 @@ const translations: Record<string, Record<string, string>> = {
     DeleteAccountChallengeTitle: 'Final Confirmation',
     DeleteAccountChallengeMessage: 'Are you sure? All your data will be deleted permanently. Solve the math question to continue.',
     DeleteAccountChallengeError: 'Answers are incorrect. Please try again.',
-    SubscriptionExpiringWarning: 'Your trial subscription expires in {days} days',
-    SubscriptionExpiringWarningLastDay: 'Your trial subscription expires in {hours} hours',
+    SubscriptionExpiringWarning: 'Your trial ends in {days} days. Tap here to upgrade.',
+    SubscriptionExpiringWarningLastDay: 'Your trial ends in {hours} hours. Tap here to upgrade.',
     SubscriptionExpiredTitle: 'Subscription Expired',
     SubscriptionExpiredMessage: 'Your subscription has expired. Please renew to continue using the app.',
+    SubscriptionUpgradeTitle: 'Keep Growing with Spendly',
+    SubscriptionUpgradeMessage: 'Your trial is still active. Upgrade now to unlock the full experience and stay in control of your spending.',
+    SubscriptionUpgradeAction: 'Upgrade Now',
     RenewSubscription: 'Renew Subscription',
     ReselectAccounts:"Reselect Accounts",
     ForceUpdateTitle: 'Update Required',

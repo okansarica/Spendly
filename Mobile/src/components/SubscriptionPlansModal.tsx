@@ -1,3 +1,7 @@
+// CHANGED_BY_AI: 2026-03-12 - Harmonize plan selection colors in dark mode
+// CHANGED_BY_AI: 2026-03-12 - Improve diamond icon background visibility in dark mode
+// CHANGED_BY_AI: 2026-03-12 - Improve modal close button visibility in light mode
+// CHANGED_BY_AI: 2026-03-12 - Use different subscription modal copy for dismissible vs non-dismissible states
 import React, {useEffect, useState} from 'react';
 import {StyleSheet, Text, View, Modal, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {useTheme} from '../theme/ThemeContext';
@@ -20,7 +24,7 @@ export default function SubscriptionPlansModal({
   dismissible = true,
   onClose,
 }: SubscriptionPlansModalProps) {
-  const {colors, spacing, fontSizes, fontWeights} = useTheme();
+  const {colors, spacing, fontSizes, fontWeights, mode} = useTheme();
   const dispatch = useAppDispatch();
   const {plans, isLoading, isProcessing, error} = useAppSelector(state => state.subscription);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
@@ -47,6 +51,10 @@ export default function SubscriptionPlansModal({
     }
     onClose?.();
   };
+
+  const titleKey = dismissible ? 'SubscriptionUpgradeTitle' : 'SubscriptionExpiredTitle';
+  const messageKey = dismissible ? 'SubscriptionUpgradeMessage' : 'SubscriptionExpiredMessage';
+  const buttonKey = dismissible ? 'SubscriptionUpgradeAction' : 'RenewSubscription';
 
   const handleRenewPress = async () => {
     const result = await dispatch(createPaymentUrl(selectedPlan));
@@ -110,7 +118,14 @@ export default function SubscriptionPlansModal({
       borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.backgroundPrimary,
+      backgroundColor: colors.backgroundSecondary,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      shadowColor: colors.cardShadow,
+      shadowOffset: {width: 0, height: 1},
+      shadowOpacity: 0.18,
+      shadowRadius: 2,
+      elevation: 2,
     },
     closeText: {
       color: colors.textSecondary,
@@ -122,7 +137,7 @@ export default function SubscriptionPlansModal({
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: colors.buttonPrimary + '15',
+      backgroundColor: mode === 'dark' ? colors.buttonPrimary + '33' : colors.buttonPrimary + '15',
       alignItems: 'center',
       justifyContent: 'center',
       alignSelf: 'center',
@@ -156,16 +171,16 @@ export default function SubscriptionPlansModal({
       borderColor: colors.borderSubtle,
       borderRadius: 16,
       padding: spacing.lg,
-      backgroundColor: colors.backgroundPrimary,
+      backgroundColor: mode === 'dark' ? colors.backgroundSecondary : colors.backgroundPrimary,
       position: 'relative',
       overflow: 'visible',
     },
     planCardSelected: {
       borderColor: colors.buttonPrimary,
-      backgroundColor: colors.buttonPrimary + '08',
+      backgroundColor: mode === 'dark' ? colors.buttonPrimary + '0D' : colors.buttonPrimary + '08',
       shadowColor: colors.buttonPrimary,
       shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.3,
+      shadowOpacity: mode === 'dark' ? 0.22 : 0.3,
       shadowRadius: 12,
       elevation: 8,
     },
@@ -187,7 +202,7 @@ export default function SubscriptionPlansModal({
     planPrice: {
       fontSize: fontSizes.xl,
       fontWeight: fontWeights.bold,
-      color: colors.buttonPrimary,
+      color: mode === 'dark' ? colors.textPrimary : colors.buttonPrimary,
       marginBottom: 2,
     },
     planPeriod: {
@@ -229,6 +244,8 @@ export default function SubscriptionPlansModal({
       height: 24,
       borderRadius: 12,
       backgroundColor: colors.buttonPrimary,
+      borderWidth: mode === 'dark' ? 1 : 0,
+      borderColor: mode === 'dark' ? colors.borderSubtle : colors.buttonPrimary,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -285,8 +302,8 @@ export default function SubscriptionPlansModal({
           <View style={s.headerIcon}>
             <Text style={s.iconText}>💎</Text>
           </View>
-          <Text style={s.title}>{translate('SubscriptionExpiredTitle')}</Text>
-          <Text style={s.subtitle}>{translate('SubscriptionExpiredMessage')}</Text>
+          <Text style={s.title}>{translate(titleKey)}</Text>
+          <Text style={s.subtitle}>{translate(messageKey)}</Text>
 
           {isLoading ? (
             <ActivityIndicator size="large" color={colors.buttonPrimary} style={s.loader} />
@@ -335,7 +352,7 @@ export default function SubscriptionPlansModal({
                 {isProcessing ? (
                   <ActivityIndicator size="small" color={colors.buttonPrimaryText} />
                 ) : (
-                  <Text style={s.buttonText}>{translate('RenewSubscription')}</Text>
+                  <Text style={s.buttonText}>{translate(buttonKey)}</Text>
                 )}
               </TouchableOpacity>
             </>

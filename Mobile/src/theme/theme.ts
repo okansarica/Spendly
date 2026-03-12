@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Add semantic linkColor token for theme-driven link readability
 import {lightColors, darkColors} from './colors';
 
 export const spacing = {
@@ -38,6 +39,7 @@ export const lineHeights = {
 
 export const lightTheme = {
   colors: lightColors,
+  linkColor: lightColors.buttonPrimary,
   spacing,
   radius,
   fontSizes,
@@ -48,6 +50,7 @@ export const lightTheme = {
 export const darkTheme = {
   ...lightTheme,
   colors: darkColors,
+  linkColor: darkColors.textPrimary,
 };
 
 export type AppTheme = typeof lightTheme;

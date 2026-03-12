@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Use theme linkColor token for auth link readability
 // CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useEffect} from 'react';
 import {
@@ -29,7 +30,7 @@ export default function LoginScreen() {
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
   const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
-  const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
+  const {colors, spacing, radius, fontSizes, fontWeights, linkColor} = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -102,7 +103,13 @@ export default function LoginScreen() {
       color: colors.inputText,
       backgroundColor: colors.inputBackground,
     },
-    link: {color: colors.buttonPrimary, textAlign: 'center' as const, marginTop: spacing.sm, fontSize: fontSizes.sm, fontWeight: fontWeights.medium},
+    link: {
+      color: linkColor,
+      textAlign: 'center' as const,
+      marginTop: spacing.sm,
+      fontSize: fontSizes.sm,
+      fontWeight: fontWeights.medium,
+    },
   });
 
   return (

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Use theme linkColor token for auth link readability
 // CHANGED_BY_AI: 2026-03-02 - Add shared header usage
 import React, {useState, useEffect} from 'react';
 import {
@@ -29,7 +30,7 @@ export default function RegisterScreen() {
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
   const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
-  const {colors, spacing, radius, fontSizes, fontWeights} = useTheme();
+  const {colors, spacing, radius, fontSizes, fontWeights, linkColor} = useTheme();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
@@ -100,7 +101,12 @@ export default function RegisterScreen() {
     },
     btnPrimary: {backgroundColor: isValid && !isLoading ? colors.buttonPrimary : colors.buttonPrimaryDisabled},
     btnText: {color: colors.buttonPrimaryText, fontSize: fontSizes.md, fontWeight: fontWeights.semiBold},
-    link: {color: colors.buttonPrimary, textAlign: 'center', marginTop: spacing.sm, fontSize: fontSizes.sm},
+    link: {
+      color: linkColor,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+      fontSize: fontSizes.sm,
+    },
   });
 
   return (

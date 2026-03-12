@@ -431,7 +431,7 @@ export default function DashboardScreen() {
                   <View style={s.expenseLeft}>
                     <Text style={s.listItemLabel}>{translate('HighestExpense')}</Text>
                     <Text style={s.expenseDetails}>
-                      {new Date(data.highestSingleExpense.date).toLocaleDateString('en-GB', {month: 'short', day: 'numeric'})}
+                      {new Date(data.highestSingleExpense.date).toLocaleDateString('en-GB', {month: 'long', day: 'numeric'})}
                     </Text>
                   </View>
                   <View style={{alignItems: 'flex-end'}}>
