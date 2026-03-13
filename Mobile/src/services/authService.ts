@@ -47,6 +47,7 @@ export type AuthResponse = {
   languageCode: string;
   subscriptionEndDateTime?: string;
   paymentUrl?: string;
+  subscriptionExpired?: boolean;
 };
 
 export const authService = {

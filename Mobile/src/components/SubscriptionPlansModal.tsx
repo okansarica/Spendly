@@ -38,7 +38,7 @@ export default function SubscriptionPlansModal({
     {planType: 'Monthly', price: 6.99},
     {planType: 'Yearly', price: 69.99},
   ];
-  const displayedPlans: PaidPlan[] = plans.length > 0 ? plans : includeTrialOption ? publicFallbackPlans : [];
+  const displayedPlans: PaidPlan[] = plans.length > 0 ? plans : publicFallbackPlans;
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
   const [isSubmittingSelection, setIsSubmittingSelection] = useState(false);
 

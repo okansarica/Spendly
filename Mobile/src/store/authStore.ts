@@ -44,7 +44,16 @@ export const login = createAsyncThunk(
       return rejectWithValue(response.errorMessage);
     }
     const auth = response.data!;
-    if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
+    
+    // If subscription expired, save tokens as pending (waiting for payment)
+    if (auth.subscriptionExpired && auth.accessToken && auth.refreshToken) {
+      await tokenService.savePendingTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire
+      );
+    } else if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
       await tokenService.saveTokens(
         auth.accessToken,
         auth.refreshToken,
@@ -52,6 +61,7 @@ export const login = createAsyncThunk(
         auth.refreshTokenExpire
       );
     }
+    
     if (auth.subscriptionEndDateTime) {
       await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
     }
@@ -219,6 +229,12 @@ const authSlice = createSlice({
           state.emailVerificationRequired = true;
           state.userId = action.payload.id;
           state.email = action.payload.email;
+        } else if (action.payload.subscriptionExpired) {
+          // Subscription expired - don't authenticate yet, waiting for payment
+          state.userId = action.payload.id;
+          state.email = action.payload.email;
+          state.isAuthenticated = false;
+          state.emailVerificationRequired = false;
         } else {
           state.userId = action.payload.id;
           state.email = action.payload.email;

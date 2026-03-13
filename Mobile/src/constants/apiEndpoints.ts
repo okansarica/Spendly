@@ -49,6 +49,7 @@ export const ApiEndpoints = {
     SubscriptionEnd: '/api/v1/users/subscription-end',
     SubscriptionPlans: '/api/v1/users/subscription-plans',
     CreatePaymentUrl: '/api/v1/users/create-payment-url',
+    CreatePaymentUrlWithToken: '/api/v1/users/create-payment-url-with-token',
     FirebaseToken: '/api/v1/users/firebase-token',
   },
 };

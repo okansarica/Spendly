@@ -13,6 +13,12 @@ public class CreatePaymentUrlRequestViewModel
 	public UserSubscriptionDurationType SelectedPlanType { get; set; }
 }
 
+public class CreatePaymentUrlWithTokenRequestViewModel
+{
+	public string AccessToken { get; set; } = string.Empty;
+	public UserSubscriptionDurationType SelectedPlanType { get; set; }
+}
+
 public class CreatePaymentUrlResponseViewModel
 {
 	public string PaymentUrl { get; set; } = string.Empty;

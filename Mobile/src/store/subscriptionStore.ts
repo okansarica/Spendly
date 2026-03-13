@@ -2,6 +2,7 @@ import {createAsyncThunk, createSlice} from '@reduxjs/toolkit';
 import {apiCall} from '../services/apiClient';
 import apiClient from '../services/apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
+import {tokenService} from '../services/tokenService';
 
 type SubscriptionPlan = {
   planType: 'Monthly' | 'Yearly';
@@ -26,7 +27,11 @@ export const fetchSubscriptionPlans = createAsyncThunk(
   'subscription/fetchPlans',
   async (_, {rejectWithValue}) => {
     const response = await apiCall(() =>
-      apiClient.get<SubscriptionPlan[]>(ApiEndpoints.Users.SubscriptionPlans)
+      apiClient.get<SubscriptionPlan[]>(ApiEndpoints.Users.SubscriptionPlans,
+        {
+          headers: {'X-Disable-Auth': 'true'},
+        }
+      )
     );
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
@@ -42,6 +47,33 @@ export const createPaymentUrl = createAsyncThunk(
       apiClient.post<{paymentUrl: string}>(ApiEndpoints.Users.CreatePaymentUrl, {
         selectedPlanType: planType,
       })
+    );
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    return response.data!.paymentUrl;
+  }
+);
+
+export const createPaymentUrlWithToken = createAsyncThunk(
+  'subscription/createPaymentUrlWithToken',
+  async (planType: 'Monthly' | 'Yearly', {rejectWithValue}) => {
+    const pendingToken = await tokenService.getPendingAccessToken();
+    if (!pendingToken) {
+      return rejectWithValue('No pending token found');
+    }
+
+    const response = await apiCall(() =>
+      apiClient.post<{paymentUrl: string}>(
+        ApiEndpoints.Users.CreatePaymentUrlWithToken,
+        {
+          accessToken: pendingToken,
+          selectedPlanType: planType,
+        },
+        {
+          headers: {'X-Disable-Auth': 'true'},
+        }
+      )
     );
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
@@ -80,6 +112,17 @@ const subscriptionSlice = createSlice({
         state.isProcessing = false;
       })
       .addCase(createPaymentUrl.rejected, (state, action) => {
+        state.isProcessing = false;
+        state.error = action.payload as string;
+      })
+      .addCase(createPaymentUrlWithToken.pending, state => {
+        state.isProcessing = true;
+        state.error = undefined;
+      })
+      .addCase(createPaymentUrlWithToken.fulfilled, state => {
+        state.isProcessing = false;
+      })
+      .addCase(createPaymentUrlWithToken.rejected, (state, action) => {
         state.isProcessing = false;
         state.error = action.payload as string;
       });

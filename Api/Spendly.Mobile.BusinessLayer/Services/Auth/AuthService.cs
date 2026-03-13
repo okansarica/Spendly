@@ -92,16 +92,25 @@ public class AuthService(
 				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
 
 		DateTime? subscriptionEndDate = null;
+		bool subscriptionExpired = false;
+		
 		if (activeSubscription == null)
 		{
-			var trialSubscriptions = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
-			if ((trialSubscriptions.EndDateTime.HasValue && trialSubscriptions.EndDateTime.Value <= DateTime.UtcNow) ||
-			    trialSubscriptions.ExpectedEndDateTime <= DateTime.UtcNow)
+			var trialSubscription = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
+			if ((trialSubscription.EndDateTime.HasValue && trialSubscription.EndDateTime.Value <= DateTime.UtcNow) ||
+			    trialSubscription.ExpectedEndDateTime <= DateTime.UtcNow)
 			{
-				return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.NoActiveSubscription);
+				// Trial expired - return token but mark subscription as expired
+				subscriptionExpired = true;
 			}
-
-			subscriptionEndDate = trialSubscriptions.EndDateTime ?? trialSubscriptions.ExpectedEndDateTime;
+			else
+			{
+				subscriptionEndDate = trialSubscription.EndDateTime ?? trialSubscription.ExpectedEndDateTime;
+			}
+		}
+		else
+		{
+			subscriptionEndDate = activeSubscription.EndDateTime ?? activeSubscription.ExpectedEndDateTime;
 		}
 
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
@@ -135,6 +144,7 @@ public class AuthService(
 			EmailVerificationRequired = false,
 			LanguageCode = user.LanguageCode,
 			SubscriptionEndDateTime = subscriptionEndDate,
+			SubscriptionExpired = subscriptionExpired
 		});
 	}
 

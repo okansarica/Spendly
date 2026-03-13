@@ -13,5 +13,6 @@ public class AuthResponseViewModel
     public string LanguageCode { get; set; }
     public DateTime? SubscriptionEndDateTime { get; set; }
     public string? PaymentUrl { get; set; }
+    public bool SubscriptionExpired { get; set; }
 }
 

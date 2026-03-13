@@ -1,8 +1,12 @@
+// CHANGED_BY_AI: 2026-03-13 - Add token-based payment URL creation for login expired subscription flow
 // CHANGED_BY_AI: 2026-03-12 - Reuse payment url creation during registration flow
 // CHANGED_BY_AI: 2026-03-04 - Add subscription and Stripe payment service
 namespace Spendly.Mobile.BusinessLayer.Services.User;
 
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using Shared.BusinessLayer;
 using Shared.Core;
@@ -12,10 +16,12 @@ using Spendly.Mobile.ViewModels.User;
 using Spendly.Shared.DataLayer;
 using Spendly.Shared.Entities.Subscription;
 using Spendly.Shared.Enums;
+using Spendly.Shared.Localization;
 using Spendly.Shared.ViewModels;
 using Spendly.Shared.ViewModels.Settings;
 using Stripe;
 using Stripe.Checkout;
+using System.Security.Claims;
 
 public class UserSubscriptionService(
 	IRepository<UserSubscription> userSubscriptionRepository,
@@ -24,6 +30,7 @@ public class UserSubscriptionService(
 	IRepository<FirebaseToken> firebaseTokenRepository,
 	RequestContextViewModel requestContextViewModel,
 	StripeSettings stripeSettings,
+	JwtSettings jwtSettings,
 	FirebaseNotificationService firebaseNotificationService,
 	EmailService emailService,
 	ILogger<UserSubscriptionService> logger)
@@ -46,6 +53,18 @@ public class UserSubscriptionService(
 	{
 		var userId = requestContextViewModel.UserId.ToObjectId();
 		return await CreatePaymentUrlAsync(userId, request.SelectedPlanType);
+	}
+
+	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlWithTokenAsync(CreatePaymentUrlWithTokenRequestViewModel request)
+	{
+		// Validate access token and extract user ID
+		var tokenValidation = ValidateAccessToken(request.AccessToken);
+		if (!tokenValidation.isValid || tokenValidation.userId == null)
+		{
+			return FunctionResponse<CreatePaymentUrlResponseViewModel>.Failure(MessageCodes.InvalidToken);
+		}
+
+		return await CreatePaymentUrlAsync(tokenValidation.userId.Value, request.SelectedPlanType);
 	}
 
 	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(ObjectId userId, UserSubscriptionDurationType selectedPlanType)
@@ -301,5 +320,47 @@ public class UserSubscriptionService(
 		}
 
 		return FunctionResponse.Success();
+	}
+
+	private (bool isValid, ObjectId? userId) ValidateAccessToken(string accessToken)
+	{
+		try
+		{
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var key = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
+
+			var validationParameters = new TokenValidationParameters
+			{
+				ValidateIssuerSigningKey = true,
+				IssuerSigningKey = new SymmetricSecurityKey(key),
+				ValidateIssuer = true,
+				ValidIssuer = jwtSettings.Issuer,
+				ValidateAudience = true,
+				ValidAudience = jwtSettings.Audience,
+				ValidateLifetime = true,
+				ClockSkew = TimeSpan.Zero
+			};
+
+			var principal = tokenHandler.ValidateToken(accessToken, validationParameters, out var validatedToken);
+			
+			if (validatedToken is not JwtSecurityToken jwtToken ||
+			    !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+			{
+				return (false, null);
+			}
+
+			var userIdClaim = principal.FindFirst(ClaimTypes.Name)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !ObjectId.TryParse(userIdClaim, out var userId))
+			{
+				return (false, null);
+			}
+
+			return (true, userId);
+		}
+		catch (Exception ex)
+		{
+			logger.LogWarning(ex, "Access token validation failed");
+			return (false, null);
+		}
 	}
 }

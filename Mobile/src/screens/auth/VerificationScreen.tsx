@@ -72,8 +72,7 @@ export default function VerificationScreen() {
         // Ignore error if no browser was open
       }
       
-      // Delay to allow navigation and cleanup
-      setTimeout(async () => {
+      
         try {
           await InAppBrowser.open(paymentUrl, {
             dismissButtonStyle: 'close',
@@ -97,7 +96,6 @@ export default function VerificationScreen() {
         } finally {
           setIsOpeningBrowser(false);
         }
-      }, 500);
     }
   };
 

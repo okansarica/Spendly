@@ -87,6 +87,7 @@ public class UsersController(UserService userService, UserSubscriptionService us
 
     [HttpGet("subscription-plans")]
     [SkipSubscriptionCheck]
+    [AllowAnonymous]
     public async Task<IActionResult> GetSubscriptionPlans()
     {
         var response = await userSubscriptionService.GetSubscriptionPlansAsync();
@@ -103,6 +104,19 @@ public class UsersController(UserService userService, UserSubscriptionService us
     public async Task<IActionResult> CreatePaymentUrl([FromBody] CreatePaymentUrlRequestViewModel request)
     {
         var response = await userSubscriptionService.CreatePaymentUrlAsync(request);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+
+        return Ok(response.Data);
+    }
+
+    [HttpPost("create-payment-url-with-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreatePaymentUrlWithToken([FromBody] CreatePaymentUrlWithTokenRequestViewModel request)
+    {
+        var response = await userSubscriptionService.CreatePaymentUrlWithTokenAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
