@@ -93,12 +93,12 @@ export default function LoginScreen() {
 
     const paymentUrl = result.payload;
     if (InAppBrowser && (await InAppBrowser.isAvailable())) {
-      try {
-        // Close any existing browser instance first
-        await InAppBrowser.close();
-      } catch (error) {
-        // Ignore error if no browser was open
-      }
+      // try {
+      //   // Close any existing browser instance first
+      //   await InAppBrowser.close();
+      // } catch (error) {
+      //   // Ignore error if no browser was open
+      // }
 
       setTimeout(async () => {
         try {
@@ -116,14 +116,19 @@ export default function LoginScreen() {
 
           // Browser closed - activate pending tokens and login
           //await dispatch(activatePendingAuth());
-          setShowSubscriptionModal(false);
+          //setShowSubscriptionModal(false);
         } catch (error) {
           console.log('Failed to open payment URL in browser', error);
           // Even on error, try to activate pending tokens
-          await dispatch(activatePendingAuth());
-          setShowSubscriptionModal(false);
+          //await dispatch(activatePendingAuth());
+          //setShowSubscriptionModal(false);
+            Toast.show({
+            type: 'error',
+            text1: translate('Error'),
+            text2: result.payload as string,
+          });
         } finally {
-          setIsOpeningBrowser(false);
+          //setIsOpeningBrowser(false);
         }
       }, 500);
     }
