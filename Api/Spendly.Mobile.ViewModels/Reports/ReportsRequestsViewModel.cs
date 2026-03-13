@@ -12,6 +12,10 @@ public class ReportsCategoryRequestViewModel
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+    
+    /// <summary>
+    /// Account Id account reporundan gecerken kullaniliyor. Accounta basinca yine kategori listesi geliyor o durumda o accountun ve kategorinin altindaki transactionlar getirilmeli. bu nedenle account id nullable ve gerekli
+    /// </summary>
     public string? AccountId { get; set; }
     public int? Page { get; set; }
     public int? PageSize { get; set; }
