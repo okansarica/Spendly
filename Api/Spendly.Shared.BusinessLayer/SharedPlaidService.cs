@@ -14,6 +14,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using ViewModels.Plaid;
 using ViewModels.Settings;
+using Entities.UserManagement;
+using Notification;
 
 public class SharedPlaidService(
 	PlaidSettings plaidSettings,
@@ -35,7 +37,9 @@ public class SharedPlaidService(
 	IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
 	IRepository<PredefinedMerchant> predefinedMerchantRepository,
 	IRepository<AccountNormalizationState> accountNormalizationStateRepository,
-	IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository)
+	IRepository<MerchantMonthlyExpense> merchantMonthlyExpenseRepository,
+	IRepository<FirebaseToken> firebaseTokenRepository,
+	FirebaseNotificationService firebaseNotificationService)
 {
 	private readonly string[] _categoriesToIgnoreMerchantGeneration =
 	{
@@ -78,6 +82,12 @@ public class SharedPlaidService(
 
 		//rapor tablolarini doldur
 		await CreateReportingData(normalizedTransactions, request.UserId.ToObjectId());
+
+		var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.UserId == request.UserId.ToObjectId());
+		if (firebaseToken != null)
+		{
+			await firebaseNotificationService.SendTransactionProcessingCompleteAsync(firebaseToken.Token);
+		}
 	}
 	private async Task CreateReportingData(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
 	{
@@ -319,7 +329,7 @@ public class SharedPlaidService(
 				}
 			}
 		}
-
+//TODO 
 		return normalizedTransactions;
 	}
 

@@ -37,6 +37,7 @@ export type LatestExpense = {
 export type HomepageResponse = {
   currentMonthTotalSpending: number;
   previousMonthTotalSpending: number;
+  previousMonthSamePeriodTotalSpending: number;
   midMonthComparison: {
     isIncreased: boolean;
     percentageChange: number;

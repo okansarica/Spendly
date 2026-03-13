@@ -173,7 +173,7 @@ const translations: Record<string, Record<string, string>> = {
     ManualSetupDescription: 'Create your bank manually and manage accounts yourself.',
     Continue: 'Continue',
     NoBanks: 'No banks found',
-    OpenBankingUsageExplanation: 'Open Banking seçildiğinde, yalnızca hesap adı ve hesapla ilişkili tanımlayıcı bilgileri ile işlem özetleri paylaşılır. Bu özetler; hangi tarihte hangi işlem yapıldığı ve işlem tutarı gibi bilgileri içerir. Bu veriler sayesinde harcamalarınızı hesap bazında eşleştiririz — bankadaki giriş bilgilerinizi veya şifrelerinizi biz görmüyor veya saklamıyoruz. Amacımız yalnızca harcamalarınızın hangi hesaptan çıktığını ve temel işlem bilgilerini güvenli şekilde getirmektir. When you choose the manual setup, we will ask you to upload your statements so that we can generate your reports.',
+    OpenBankingUsageExplanation: 'When you choose Automatic Setup, we securely connect to your bank to retrieve basic transaction details such as account name, transaction date, amount, and merchant description. This information is used only to categorize your expenses and generate reports. We never see or store your banking login credentials, and your data is kept secure and never shared with third parties. By selecting Automatic Setup, you consent to retrieving and securely processing this information for reporting purposes.',
     ManualSetupUsageExplanation: 'If you choose the manual setup, we will ask you to upload your statements so that we can generate your reports.',
     Info: 'Info',
     FeatureComingSoon: 'Feature coming soon',
@@ -223,6 +223,7 @@ const translations: Record<string, Record<string, string>> = {
     UpdateNow: 'Update',
     SkipForNow: 'Skip',
     StoreLinkNotAvailable: 'Store link is not available.',
+    BankDataProcessingMessage: 'We are currently processing your data. You will be notified when it is complete.',
   },
 };
 

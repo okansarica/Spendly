@@ -374,6 +374,11 @@ export default function DashboardScreen() {
               <View style={s.heroDivider} />
 
               <View style={s.heroSecondary}>
+                <Text style={s.heroSecondaryLabel}>{translate('PreviousMonthSamePeriod')}</Text>
+                <Text style={s.heroSecondaryValue}>{formatCurrency(data.previousMonthSamePeriodTotalSpending)}</Text>
+              </View>
+
+              <View style={s.heroSecondary}>
                 <Text style={s.heroSecondaryLabel}>{translate('PreviousMonth')}</Text>
                 <Text style={s.heroSecondaryValue}>{formatCurrency(data.previousMonthTotalSpending)}</Text>
               </View>

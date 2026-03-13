@@ -12,6 +12,7 @@ import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {UserStackParamList} from '../../navigation/UserNavigator';
 import {Dropdown} from 'react-native-element-dropdown';
+import APP_CONFIG from '../../config/appConfig';
 
 type UserNavProp = NativeStackNavigationProp<UserStackParamList, 'UserMenu'>;
 
@@ -56,7 +57,7 @@ export default function UserScreen() {
 
   const s = StyleSheet.create({
     container: {flex: 1, backgroundColor: colors.backgroundSecondary},
-    content: {padding: spacing.lg, gap: spacing.md},
+    content: {flex: 1, padding: spacing.lg, gap: spacing.md},
     email: {color: colors.textPrimary, fontSize: fontSizes.md},
     sectionTitle: {color: colors.textSecondary, fontSize: fontSizes.sm, fontWeight: fontWeights.medium},
     pickerContainer: {
@@ -117,6 +118,16 @@ export default function UserScreen() {
       fontWeight: fontWeights.medium,
       textAlign: 'center',
     },
+    spacer: {
+      flex: 1,
+    },
+    versionText: {
+      color: colors.textSecondary,
+      fontSize: fontSizes.sm,
+      textAlign: 'left',
+      opacity: 0.4,
+      paddingBottom: spacing.md,
+    },
   });
 
   const onLanguageSelect = async (languageCode: string) => {
@@ -173,6 +184,10 @@ export default function UserScreen() {
         <TouchableOpacity style={s.logoutBtn} onPress={confirmLogout}>
           <Text style={s.logoutText}>{translate('LogoutTitle')}</Text>
         </TouchableOpacity>
+
+        <View style={s.spacer} />
+
+        <Text style={s.versionText}>v{APP_CONFIG.version}</Text>
       </View>
     </View>
   );

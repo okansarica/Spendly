@@ -5,6 +5,7 @@ public class HomepageResponseViewModel
 {
     public decimal CurrentMonthTotalSpending { get; set; }
     public decimal PreviousMonthTotalSpending { get; set; }
+    public decimal PreviousMonthSamePeriodTotalSpending { get; set; }
     public MidMonthComparisonViewModel MidMonthComparison { get; set; }
     public List<SpendingByAccountViewModel> SpendingByAccountCurrentMonth { get; set; }
     public List<SpendingByAccountViewModel> SpendingByAccountPreviousMonth { get; set; }
@@ -17,6 +18,7 @@ public class HomepageResponseViewModel
     public HighestSingleExpenseViewModel HighestSingleExpense { get; set; }
     public MostUsedAccountViewModel MostUsedAccount { get; set; }
     public DailyAverageViewModel DailyAverage { get; set; }
+    
 }
 
 public class MidMonthComparisonViewModel

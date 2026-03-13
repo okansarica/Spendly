@@ -482,6 +482,14 @@ export default function BanksAccountsListScreen() {
                     await dispatch(loadBanks()).unwrap();
                     setIsAddBankOptionsOpen(false);
                     setAddBankMode(undefined);
+                    
+                    // Show success message
+                    Toast.show({
+                        type: 'success',
+                        text1: translate('SuccessTitle'),
+                        text2: translate('BankDataProcessingMessage'),
+                        visibilityTime: 5000,
+                    });
                 } catch (err: any) {
                     console.log('Error when completing transaction', err);
                     showPlaidError(err);

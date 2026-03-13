@@ -1,5 +1,5 @@
 import React from 'react';
-import {TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, StyleProp} from 'react-native';
+import {TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, StyleProp, View} from 'react-native';
 import {useTheme} from '../theme/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
@@ -76,29 +76,54 @@ export default function Button({
     }
   };
 
+  const getMinHeight = () => {
+    switch (size) {
+      case 'small':
+        return 40;
+      case 'large':
+        return 56;
+      default:
+        return 48;
+    }
+  };
+
   const s = StyleSheet.create({
     btn: {
       borderRadius: size === 'small' ? radius.sm : radius.md,
       padding: getPadding(),
       alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       backgroundColor: getBackgroundColor(),
       shadowColor: colors.cardShadow,
       shadowOffset: {width: 0, height: 2},
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
-      minWidth: size === 'small' ? 72 : 88,
+      minWidth: size === 'small' ? 88 : 120,
+      minHeight: getMinHeight(),
+    },
+    btnContent: {
+      position: 'relative' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
     },
     btnText: {
       color: getTextColor(),
       fontSize: getFontSize(),
       fontWeight: fontWeights.semiBold,
+      opacity: isLoading ? 0 : 1,
+    },
+    loadingIndicator: {
+      position: 'absolute' as const,
     },
   });
 
   return (
     <TouchableOpacity style={[s.btn, style]} onPress={onPress} disabled={disabled || isLoading}>
-      {isLoading ? <ActivityIndicator color={getTextColor()} /> : <Text style={[s.btnText, textStyle]}>{text}</Text>}
+      <View style={s.btnContent}>
+        <Text style={[s.btnText, textStyle]}>{text}</Text>
+        {isLoading && <ActivityIndicator style={s.loadingIndicator} color={getTextColor()} />}
+      </View>
     </TouchableOpacity>
   );
 }

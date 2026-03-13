@@ -38,12 +38,13 @@ public class HomepageService(
 
 		var currentMonthTotal = currentMonthSummaries.Sum(x => x.TotalAmount);
 		var previousMonthTotal = previousMonthSummaries.Sum(x => x.TotalAmount);
+		var previousMonthSamePeriodTotal = previousMonthSummaries.Where(p=>p.Date<previousMonthSameDayEnd.AddDays(1)).Sum(x => x.TotalAmount);
 
 		var previousMonthSameDayTotal = previousMonthSummaries
 			.Where(x => x.Date.Date >= previousMonthStart && x.Date.Date <= previousMonthSameDayEnd)
 			.Sum(x => x.TotalAmount);
 
-		var midMonthComparison = BuildComparison(currentMonthTotal, previousMonthSameDayTotal);
+		var midMonthComparison = BuildComparison(currentMonthTotal, previousMonthSamePeriodTotal);
 
 		var accountIds = currentMonthSummaries.Select(x => x.AccountId)
 			.Concat(previousMonthSummaries.Select(x => x.AccountId))
@@ -85,6 +86,7 @@ public class HomepageService(
 			//Ust summary box
 			CurrentMonthTotalSpending = currentMonthTotal,
 			PreviousMonthTotalSpending = previousMonthTotal,
+			PreviousMonthSamePeriodTotalSpending = previousMonthSamePeriodTotal,
 			MidMonthComparison = midMonthComparison,
 
 			//Kucuk summary boxlar
