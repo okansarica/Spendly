@@ -353,8 +353,12 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         return await _entities.Find(filter).ToListAsync().ConfigureAwait(false);
     }
 
-    public async Task<Dictionary<ObjectId, T>> ListDictionaryAsync(IEnumerable<ObjectId> ids)
+    public async Task<Dictionary<ObjectId, T>> ListDictionaryAsync(List<ObjectId> ids)
     {
+        if (!ids.Any())
+        {
+            return  new Dictionary<ObjectId, T>();
+        }
         var filter = Builders<T>.Filter.In(p => p.Id, ids.Distinct());
         filter = ApplySoftDeleteFilter(filter);
 
