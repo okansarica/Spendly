@@ -1,5 +1,6 @@
 // CHANGED_BY_AI: 2026-03-03 - Implement user menu screen integration
 // CHANGED_BY_AI: 2026-03-13 - Redesign with modern card layout and improved logout placement
+// CHANGED_BY_AI: 2026-03-13 - Refactor to use MenuCard component
 import React, {useEffect, useState} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView} from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -9,6 +10,7 @@ import {loadUserProfile, setUserLanguage} from '../../store/userStore';
 import {useTheme} from '../../theme/ThemeContext';
 import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import Header from '../../components/Header';
+import MenuCard from '../../components/MenuCard';
 import {translate, setLanguage} from '../../utils/translations';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -65,61 +67,6 @@ export default function UserScreen() {
       padding: spacing.lg,
       paddingBottom: tabBarHeight + spacing.xl,
     },
-    card: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: radius.lg,
-      marginBottom: spacing.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderLeftWidth: 6,
-      borderLeftColor: colors.buttonPrimary,
-      shadowColor: colors.cardShadow,
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    cardContent: {
-      padding: spacing.lg,
-      minHeight: 140,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-    },
-    iconContainer: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.buttonPrimary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: spacing.md,
-    },
-    textContent: {
-      flex: 1,
-    },
-    title: {
-      color: colors.textPrimary,
-      fontSize: fontSizes.xl,
-      fontWeight: fontWeights.bold,
-      marginBottom: spacing.xs,
-    },
-    description: {
-      color: colors.textSecondary,
-      fontSize: fontSizes.sm,
-      lineHeight: 20,
-    },
-    arrowContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: colors.buttonPrimary + '15',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     languageCard: {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.lg,
@@ -140,6 +87,18 @@ export default function UserScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: spacing.md,
+    },
+    iconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.buttonPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    textContent: {
+      flex: 1,
     },
     languageTitle: {
       color: colors.textPrimary,
@@ -176,49 +135,6 @@ export default function UserScreen() {
       backgroundColor: colors.cardBackground,
       borderRadius: radius.md,
       borderColor: colors.borderSubtle,
-    },
-    logoutCard: {
-      backgroundColor: colors.cardBackground,
-      borderRadius: radius.lg,
-      marginBottom: spacing.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderLeftWidth: 6,
-      borderLeftColor: colors.danger,
-      shadowColor: colors.cardShadow,
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    logoutContent: {
-      padding: spacing.lg,
-      minHeight: 100,
-    },
-    logoutHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    logoutIconContainer: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.danger,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: spacing.md,
-    },
-    logoutText: {
-      color: colors.textPrimary,
-      fontSize: fontSizes.xl,
-      fontWeight: fontWeights.bold,
-      marginBottom: spacing.xs,
-    },
-    logoutDescription: {
-      color: colors.textSecondary,
-      fontSize: fontSizes.sm,
-      lineHeight: 20,
     },
     versionText: {
       color: colors.textSecondary,
@@ -285,64 +201,32 @@ export default function UserScreen() {
         </View>
 
         {/* Profile Card */}
-        <TouchableOpacity
-          style={s.card}
+        <MenuCard
+          title={translate('ProfileTitle')}
+          description={translate('ProfileDescription')}
+          icon="person"
           onPress={() => navigation.navigate('Profile')}
-          activeOpacity={0.7}>
-          <View style={s.cardContent}>
-            <View style={s.cardHeader}>
-              <View style={s.iconContainer}>
-                <Icon name="person" size={28} color={colors.buttonPrimaryText} />
-              </View>
-              <View style={s.textContent}>
-                <Text style={s.title}>{translate('ProfileTitle')}</Text>
-              </View>
-              <View style={s.arrowContainer}>
-                <Icon name="arrow-forward" size={20} color={colors.buttonPrimary} />
-              </View>
-            </View>
-            <Text style={s.description}>{translate('ProfileDescription')}</Text>
-          </View>
-        </TouchableOpacity>
+        />
 
         {/* Change Password Card */}
-        <TouchableOpacity
-          style={s.card}
+        <MenuCard
+          title={translate('ChangePasswordTitle')}
+          description={translate('ChangePasswordDescription')}
+          icon="lock"
           onPress={() => navigation.navigate('ChangePassword')}
-          activeOpacity={0.7}>
-          <View style={s.cardContent}>
-            <View style={s.cardHeader}>
-              <View style={s.iconContainer}>
-                <Icon name="lock" size={28} color={colors.buttonPrimaryText} />
-              </View>
-              <View style={s.textContent}>
-                <Text style={s.title}>{translate('ChangePasswordTitle')}</Text>
-              </View>
-              <View style={s.arrowContainer}>
-                <Icon name="arrow-forward" size={20} color={colors.buttonPrimary} />
-              </View>
-            </View>
-            <Text style={s.description}>{translate('ChangePasswordDescription')}</Text>
-          </View>
-        </TouchableOpacity>
+        />
 
         {/* Logout Card */}
-        <TouchableOpacity
-          style={s.logoutCard}
+        <MenuCard
+          title={translate('LogoutTitle')}
+          description={translate('LogoutDescription')}
+          icon="logout"
           onPress={confirmLogout}
-          activeOpacity={0.7}>
-          <View style={s.logoutContent}>
-            <View style={s.logoutHeader}>
-              <View style={s.logoutIconContainer}>
-                <Icon name="logout" size={28} color={colors.dangerText} />
-              </View>
-              <View style={s.textContent}>
-                <Text style={s.logoutText}>{translate('LogoutTitle')}</Text>
-                <Text style={s.logoutDescription}>{translate('LogoutDescription')}</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
+          leftBorderColor={colors.danger}
+          iconBackgroundColor={colors.danger}
+          showArrow={false}
+          minHeight={100}
+        />
 
         <Text style={s.versionText}>v{APP_CONFIG.version}</Text>
       </ScrollView>
