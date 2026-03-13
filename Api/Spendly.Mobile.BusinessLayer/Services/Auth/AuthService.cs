@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Support paid registration selection and post-verification payment redirect
 // CHANGED_BY_AI: 2026-03-03 - Add logout integration and register defaults
 namespace Spendly.Mobile.BusinessLayer.Services.Auth;
 
@@ -7,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
+using Spendly.Mobile.BusinessLayer.Services.User;
 using Shared.Entities.Subscription;
 using Shared.Entities.TransactionManagement;
 using Shared.Entities.UserManagement;
@@ -22,6 +24,7 @@ using Spendly.Shared.ViewModels.Settings;
 public class AuthService(
 	IRepository<User> userRepository,
 	IRepository<UserSubscription> userSubscriptionRepository,
+	IRepository<UserSubscriptionPaymentUrl> userSubscriptionPaymentUrlRepository,
 	IRepository<UserRefreshToken> refreshTokenRepository,
 	IRepository<FirebaseToken> firebaseTokenRepository,
 	IRepository<Category> categoryRepository,
@@ -30,7 +33,8 @@ public class AuthService(
 	IRepository<UserMerchant> userMerchantRepository,
 	JwtSettings jwtSettings,
 	IHttpClientFactory httpClientFactory,
-	RequestContextViewModel requestContextViewModel)
+	RequestContextViewModel requestContextViewModel,
+	UserSubscriptionService userSubscriptionService)
 {
 	private const int MaxVerificationAttempts = 5;
 	private const int VerificationCodeExpiryHours = 24;
@@ -82,7 +86,7 @@ public class AuthService(
 
 		var activeSubscription =
 			userSubscriptions.SingleOrDefault(p =>
-				p.SubscriptionType == SubscriptionType.Paid&&
+				p.SubscriptionType == SubscriptionType.Paid &&
 				p.StartDateTime.HasValue &&
 				p.StartDateTime.Value >= DateTime.UtcNow &&
 				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
@@ -96,8 +100,8 @@ public class AuthService(
 			{
 				return FunctionResponse.Failure<AuthResponseViewModel>(MessageCodes.NoActiveSubscription);
 			}
-			
-			subscriptionEndDate = trialSubscriptions.EndDateTime??trialSubscriptions.ExpectedEndDateTime;
+
+			subscriptionEndDate = trialSubscriptions.EndDateTime ?? trialSubscriptions.ExpectedEndDateTime;
 		}
 
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
@@ -112,7 +116,8 @@ public class AuthService(
 				};
 				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
 			}
-			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			else if (!firebaseToken.UserId.HasValue ||
+			         firebaseToken.UserId.Value != user.Id)
 			{
 				firebaseToken.UserId = user.Id;
 				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
@@ -176,7 +181,7 @@ public class AuthService(
 
 		var (accessToken, accessTokenExpiry, refreshToken, refreshTokenExpiry) = GenerateTokens(user);
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
-		
+
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
 		{
 			var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.Token == request.FirebaseToken);
@@ -189,7 +194,8 @@ public class AuthService(
 				};
 				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
 			}
-			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			else if (!firebaseToken.UserId.HasValue ||
+			         firebaseToken.UserId.Value != user.Id)
 			{
 				firebaseToken.UserId = user.Id;
 				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
@@ -272,7 +278,8 @@ public class AuthService(
 		await userSubscriptionRepository.InsertAsync(userSubscription).ConfigureAwait(false);
 
 		DateTime? subscriptionEndDate = userSubscription.EndDateTime ?? userSubscription.ExpectedEndDateTime;
-		
+		string? paymentUrl = null;
+
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
 		{
 			var firebaseToken = await firebaseTokenRepository.GetAsync(p => p.Token == request.FirebaseToken);
@@ -285,15 +292,15 @@ public class AuthService(
 				};
 				await firebaseTokenRepository.InsertAsync(firebaseToken).ConfigureAwait(false);
 			}
-			else if (!firebaseToken.UserId.HasValue || firebaseToken.UserId.Value != user.Id)
+			else if (!firebaseToken.UserId.HasValue ||
+			         firebaseToken.UserId.Value != user.Id)
 			{
 				firebaseToken.UserId = user.Id;
 				await firebaseTokenRepository.UpdateAsync(firebaseToken).ConfigureAwait(false);
 			}
 		}
-		
+
 		var allCategories = await categoryRepository.ListAsync(filter: null).ConfigureAwait(false);
-		var otherCategory = allCategories.Single(p => p.IsOther);
 
 		UserCategory? otherUserCategory = null;
 		foreach (var category in allCategories)
@@ -313,7 +320,7 @@ public class AuthService(
 				otherUserCategory = userCategory;
 			}
 		}
-		
+
 		var otherMerchant = await merchantRepository.GetRequiredAsync(p => p.IsOther);
 		var otherUserMerchant = new UserMerchant
 		{
@@ -325,14 +332,24 @@ public class AuthService(
 			UserId = user.Id,
 		};
 		await userMerchantRepository.InsertAsync(otherUserMerchant).ConfigureAwait(false);
-		
+
+		if (request.SelectedPlanType != UserSubscriptionDurationType.Trial)
+		{
+			var paymentUrlResponse = await userSubscriptionService.CreatePaymentUrlAsync(user.Id, request.SelectedPlanType).ConfigureAwait(false);
+			if (paymentUrlResponse.IsSuccess)
+			{
+				paymentUrl = paymentUrlResponse.Data!.PaymentUrl;
+			}
+		}
+
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
 			Id = user.Id.ToString(),
 			Email = user.Email,
 			EmailVerificationRequired = true,
 			LanguageCode = user.LanguageCode,
-			SubscriptionEndDateTime = subscriptionEndDate
+			SubscriptionEndDateTime = subscriptionEndDate,
+			PaymentUrl = paymentUrl
 		});
 	}
 
@@ -445,6 +462,26 @@ public class AuthService(
 
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
+		var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == user.Id).ConfigureAwait(false);
+		var trialSubscription = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
+
+		var subscriptionEndDate = trialSubscription.EndDateTime ?? trialSubscription.ExpectedEndDateTime;
+
+		var pendingPaidSubscription = userSubscriptions
+			.Where(p => p.SubscriptionType == SubscriptionType.Paid && p.State == UserSubscriptionStateType.Waiting)
+			.OrderByDescending(p => p.CreatedAt)
+			.FirstOrDefault();
+
+		string? paymentUrl = null;
+		if (pendingPaidSubscription != null)
+		{
+			var pendingPaymentUrl = await userSubscriptionPaymentUrlRepository
+				.GetAsync(x => x.UserSubscriptionId == pendingPaidSubscription.Id && x.Payment.PaymentStatus == UserSubscriptionPaymentStatusType.Waiting)
+				.ConfigureAwait(false);
+
+			paymentUrl = pendingPaymentUrl?.PaymentUrl;
+		}
+
 		return FunctionResponse.Success(new AuthResponseViewModel
 		{
 			Id = user.Id.ToString(),
@@ -454,7 +491,9 @@ public class AuthService(
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
 			EmailVerificationRequired = false,
-			LanguageCode = user.LanguageCode
+			LanguageCode = user.LanguageCode,
+			SubscriptionEndDateTime = subscriptionEndDate,
+			PaymentUrl = paymentUrl
 		});
 	}
 
@@ -487,7 +526,7 @@ public class AuthService(
 		user.EmailVerification.VerificationAttemptCount = 0;
 		user.UpdatedAt = DateTime.UtcNow;
 		await userRepository.UpdateAsync(user);
-		
+
 		//TODO send e mail
 
 		return FunctionResponse.Success();

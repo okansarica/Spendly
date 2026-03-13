@@ -1,7 +1,10 @@
+// CHANGED_BY_AI: 2026-03-12 - Add registration plan selection and payment redirect response fields
 // CHANGED_BY_AI: 2026-03-03 - Add logout API call
 // CHANGED_BY_AI: 2026-03-05 - Add Firebase token to auth requests
 import apiClient from './apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
+
+export type RegisterPlanType = 'Trial' | 'Monthly' | 'Yearly';
 
 export type LoginRequest = {
   email: string;
@@ -24,6 +27,7 @@ export type RegisterRequest = {
   surname: string;
   email: string;
   password: string;
+  selectedPlanType: RegisterPlanType;
   firebaseToken?: string;
 };
 
@@ -42,6 +46,7 @@ export type AuthResponse = {
   emailVerificationRequired: boolean;
   languageCode: string;
   subscriptionEndDateTime?: string;
+  paymentUrl?: string;
 };
 
 export const authService = {

@@ -1,6 +1,7 @@
+// CHANGED_BY_AI: 2026-03-12 - Add registration subscription selection modal flow
 // CHANGED_BY_AI: 2026-03-12 - Use theme linkColor token for auth link readability
 // CHANGED_BY_AI: 2026-03-02 - Add shared header usage
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   Text,
   TextInput,
@@ -18,41 +19,61 @@ import {register, socialLogin} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
 import Header from '../../components/Header';
+import SubscriptionPlansModal from '../../components/SubscriptionPlansModal';
 import {translate} from '../../utils/translations';
 
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
+import type {RegisterPlanType} from '../../services/authService';
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+
+// DEV: Set to true to auto-fill registration form for testing
+const DEV_AUTO_FILL = true;
+
+const getDevEmail = () => {
+  const now = new Date();
+  const datetime = now.toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '');
+  return `okansarica+${datetime}@gmail.com`;
+};
 
 export default function RegisterScreen() {
   const navigation = useNavigation<RegisterNavProp>();
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
-  const emailVerificationRequired = useAppSelector(s => s.auth.emailVerificationRequired);
   const {colors, spacing, radius, fontSizes, fontWeights, linkColor} = useTheme();
-  const [name, setName] = useState('');
-  const [surname, setSurname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState(DEV_AUTO_FILL ? 'Test' : '');
+  const [surname, setSurname] = useState(DEV_AUTO_FILL ? 'User' : '');
+  const [email, setEmail] = useState(DEV_AUTO_FILL ? getDevEmail() : '');
+  const [password, setPassword] = useState(DEV_AUTO_FILL ? '123' : '');
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const isValid = name.length > 0 && surname.length > 0 && email.length > 0 && password.length > 0;
 
-  useEffect(() => {
-    if (emailVerificationRequired) {
-      navigation.navigate('Verification');
+  const handleRegister = () => {
+    if (!isValid || isLoading) {
+      return;
     }
-  }, [emailVerificationRequired, navigation]);
 
+    setShowSubscriptionModal(true);
+  };
 
-  const handleRegister = async () => {
-    const result = await dispatch(register({name, surname, email, password}));
+  const handlePlanSelection = async (selectedPlanType: 'Trial' | 'Monthly' | 'Yearly') => {
+    const result = await dispatch(register({name, surname, email, password, selectedPlanType: selectedPlanType as RegisterPlanType}));
     if (register.rejected.match(result)) {
       Toast.show({
         type: 'error',
         text1: translate('RegistrationFailed'),
         text2: result.payload as string,
       });
+      return;
+    }
+
+    setShowSubscriptionModal(false);
+    
+    // Navigate to verification screen if email verification is required
+    if (register.fulfilled.match(result) && result.payload.emailVerificationRequired) {
+      navigation.navigate('Verification');
     }
   };
 
@@ -165,6 +186,13 @@ export default function RegisterScreen() {
           <Text style={s.link}>{translate('AlreadyHaveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
+      <SubscriptionPlansModal
+        visible={showSubscriptionModal}
+        dismissible
+        includeTrialOption
+        onClose={() => setShowSubscriptionModal(false)}
+        onPlanSelected={handlePlanSelection}
+      />
     </KeyboardAvoidingView>
   );
 }

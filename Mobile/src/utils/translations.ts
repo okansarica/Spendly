@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Add registration plan selection translations
 // CHANGED_BY_AI: 2026-03-12 - Add CTA wording to expiring trial warning banner
 // CHANGED_BY_AI: 2026-03-12 - Add upgrade-focused subscription modal translations for dismissible state
 // CHANGED_BY_AI: 2026-03-02 - Add merchant edit localization keys
@@ -209,6 +210,11 @@ const translations: Record<string, Record<string, string>> = {
     SubscriptionUpgradeMessage: 'Your trial is still active. Upgrade now to unlock the full experience and stay in control of your spending.',
     SubscriptionUpgradeAction: 'Upgrade Now',
     RenewSubscription: 'Renew Subscription',
+    TrialPlanName: 'Trial Plan',
+    TrialPlanDescription: 'Start with the current free trial flow. No payment is collected right now.',
+    PlanLabel: '{planType} Plan',
+    BestValue: 'Best Value',
+    SavePercentage: 'Save {percentage}%',
     ReselectAccounts:"Reselect Accounts",
     ForceUpdateTitle: 'Update Required',
     ForceUpdateMessage: 'Please update the app to continue using Spendly.',

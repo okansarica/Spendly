@@ -20,6 +20,7 @@ import APP_CONFIG from './src/config/appConfig';
 import {getCurrentLanguage, translate} from './src/utils/translations';
 import VersionUpdateScreen from './src/components/VersionUpdateScreen';
 import {refreshHomepage} from './src/store/homepageStore';
+import {activatePendingAuth} from './src/store/authStore';
 import type {RootStackParamList} from './src/navigation/RootNavigator';
 
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -103,6 +104,9 @@ export default function App() {
           }
 
           if (status === 'success') {
+            // Activate pending tokens (from registration payment flow)
+            await store.dispatch(activatePendingAuth());
+            
             await subscriptionService.fetchSubscriptionEndDate();
             await delay(300);
             await redirectToDashboardAndRefresh();

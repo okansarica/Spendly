@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Reuse payment url creation during registration flow
 // CHANGED_BY_AI: 2026-03-04 - Add subscription and Stripe payment service
 namespace Spendly.Mobile.BusinessLayer.Services.User;
 
@@ -44,23 +45,18 @@ public class UserSubscriptionService(
 	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(CreatePaymentUrlRequestViewModel request)
 	{
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var amount = request.SelectedPlanType == UserSubscriptionDurationType.Monthly ? MonthlyPrice : YearlyPrice;
+		return await CreatePaymentUrlAsync(userId, request.SelectedPlanType);
+	}
 
-//		var userSubscription = await userSubscriptionRepository.GetRequiredAsync(p => p.UserId == userId);
-		var paidUserSubscription = new UserSubscription
-		{
-			SubscriptionType = SubscriptionType.Paid,
-			UserId = userId,
-			State = UserSubscriptionStateType.Waiting,
-			Duration = request.SelectedPlanType
-		};
-		await userSubscriptionRepository.InsertAsync(paidUserSubscription);
+	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(ObjectId userId, UserSubscriptionDurationType selectedPlanType)
+	{
+		var amount = selectedPlanType == UserSubscriptionDurationType.Monthly ? MonthlyPrice : YearlyPrice;
 
 		var clientReferenceId = ObjectId.GenerateNewId().ToString();
 
 		StripeConfiguration.ApiKey = stripeSettings.ApiKey;
 
-		var subscriptionName = request.SelectedPlanType == UserSubscriptionDurationType.Monthly ? "Monthly" : "Yearly";
+		var subscriptionName = selectedPlanType == UserSubscriptionDurationType.Monthly ? "Monthly" : "Yearly";
 
 		var options = new SessionCreateOptions
 		{
@@ -109,12 +105,21 @@ public class UserSubscriptionService(
 			logger.LogError(ex,
 				"Stripe payment session creation failed. UserId: {UserId}, PlanType: {PlanType}, ClientReferenceId: {ClientReferenceId}",
 				userId,
-				request.SelectedPlanType,
+				selectedPlanType,
 				clientReferenceId);
 			return FunctionResponse<CreatePaymentUrlResponseViewModel>.Failure("STRIPE_ERROR");
 		}
 
 		var responsePayload = System.Text.Json.JsonSerializer.Serialize(session);
+
+		var paidUserSubscription = new UserSubscription
+		{
+			SubscriptionType = SubscriptionType.Paid,
+			UserId = userId,
+			State = UserSubscriptionStateType.Waiting,
+			Duration = selectedPlanType
+		};
+		await userSubscriptionRepository.InsertAsync(paidUserSubscription);
 
 		await stripeCommunicationLogRepository.InsertAsync(new StripeCommunicationLog
 		{
@@ -231,12 +236,12 @@ public class UserSubscriptionService(
 				logger.LogWarning("Payment URL not found for ClientReferenceId: {ClientReferenceId}", clientReferenceId);
 				return FunctionResponse.Failure("WEBHOOK_PAYMENT_URL_NOT_FOUND");
 			}
-			
+
 			if (userSubscriptionPaymentUrl.Payment.PaymentStatus == UserSubscriptionPaymentStatusType.Paid)
 			{
 				return FunctionResponse.Success();
 			}
-			
+
 			userSubscriptionPaymentUrl.Payment.PaymentCompletionDateTime = DateTime.UtcNow;
 			userSubscriptionPaymentUrl.Payment.PaymentStatus = UserSubscriptionPaymentStatusType.Paid;
 			await userSubscriptionPaymentUrlRepository.UpdateAsync(userSubscriptionPaymentUrl);

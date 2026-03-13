@@ -64,5 +64,57 @@ export const tokenService = {
     const creds = await Keychain.getGenericPassword({service: 'accessToken'});
     return !!creds;
   },
+
+  // Pending tokens for paid subscriptions waiting for payment completion
+  async savePendingTokens(
+    accessToken: string,
+    refreshToken: string,
+    accessTokenExpire?: string,
+    refreshTokenExpire?: string
+  ): Promise<void> {
+    await Keychain.setGenericPassword('token', accessToken, {service: 'pendingAccessToken'});
+    await Keychain.setGenericPassword('token', refreshToken, {service: 'pendingRefreshToken'});
+    
+    if (accessTokenExpire) {
+      await AsyncStorage.setItem('pendingAccessTokenExpire', accessTokenExpire);
+    }
+    if (refreshTokenExpire) {
+      await AsyncStorage.setItem('pendingRefreshTokenExpire', refreshTokenExpire);
+    }
+  },
+
+  async getPendingAccessToken(): Promise<string | undefined> {
+    const creds = await Keychain.getGenericPassword({service: 'pendingAccessToken'});
+    return creds ? creds.password : undefined;
+  },
+
+  async getPendingRefreshToken(): Promise<string | null> {
+    const creds = await Keychain.getGenericPassword({service: 'pendingRefreshToken'});
+    return creds ? creds.password : null;
+  },
+
+  async activatePendingTokens(): Promise<void> {
+    const accessToken = await this.getPendingAccessToken();
+    const refreshToken = await this.getPendingRefreshToken();
+    const accessTokenExpire = await AsyncStorage.getItem('pendingAccessTokenExpire');
+    const refreshTokenExpire = await AsyncStorage.getItem('pendingRefreshTokenExpire');
+
+    if (accessToken && refreshToken) {
+      await this.saveTokens(accessToken, refreshToken, accessTokenExpire || undefined, refreshTokenExpire || undefined);
+      await this.clearPendingTokens();
+    }
+  },
+
+  async clearPendingTokens(): Promise<void> {
+    await Keychain.resetGenericPassword({service: 'pendingAccessToken'});
+    await Keychain.resetGenericPassword({service: 'pendingRefreshToken'});
+    await AsyncStorage.removeItem('pendingAccessTokenExpire');
+    await AsyncStorage.removeItem('pendingRefreshTokenExpire');
+  },
+
+  async hasPendingTokens(): Promise<boolean> {
+    const creds = await Keychain.getGenericPassword({service: 'pendingAccessToken'});
+    return !!creds;
+  },
 };
 

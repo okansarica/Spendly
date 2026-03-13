@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Add optional payment url for post-verification paid registration flow
 namespace Spendly.Mobile.ViewModels.Auth;
 
 public class AuthResponseViewModel
@@ -11,5 +12,6 @@ public class AuthResponseViewModel
     public bool EmailVerificationRequired { get; set; }
     public string LanguageCode { get; set; }
     public DateTime? SubscriptionEndDateTime { get; set; }
+    public string? PaymentUrl { get; set; }
 }
 

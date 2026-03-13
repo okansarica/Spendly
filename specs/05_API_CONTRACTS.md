@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Document registration subscription selection and payment redirect fields
 // CHANGED_BY_AI: 2026-03-02 - Add merchant nickname endpoint
 // CHANGED_BY_AI: 2026-03-02 - Add merchants delete endpoint
 // CHANGED_BY_AI: 2026-03-02 - Remove merchant transaction fields from contracts
@@ -184,14 +185,25 @@ Cache-Control: no-cache, no-store, must-revalidate
 ### Authentication Endpoints (v1)
 
 **POST /api/v1/auth/register**
-- Request: `{ email, password }`
-- Response: `{ id, email, token }`
+- Request: `{ name, surname, email, password, selectedPlanType, firebaseToken? }`
+- Notes:
+  - `selectedPlanType` supports `Trial`, `Monthly`, `Yearly`
+  - `Trial` keeps the existing verification-first registration flow
+  - `Monthly` / `Yearly` also create an inactive paid subscription and its payment URL during registration
+- Response: `{ id, email, emailVerificationRequired, languageCode, subscriptionEndDateTime?, paymentUrl? }`
 - Errors: 400 (validation), 409 (duplicate email)
 
 **POST /api/v1/auth/login**
 - Request: `{ email, password }`
-- Response: `{ id, email, token }`
+- Response: `{ id, email, accessToken?, accessTokenExpire?, refreshToken?, refreshTokenExpire?, emailVerificationRequired, languageCode, subscriptionEndDateTime? }`
 - Errors: 401 (invalid credentials)
+
+**POST /api/v1/auth/verify-email**
+- Request: `{ userId, code }`
+- Response: `{ id, email, accessToken, accessTokenExpire, refreshToken, refreshTokenExpire, emailVerificationRequired, languageCode, subscriptionEndDateTime?, paymentUrl? }`
+- Notes:
+  - `paymentUrl` is returned when registration selected a paid plan and a waiting payment still exists
+  - Mobile opens the in-app browser with this URL after successful verification
 
 **POST /api/v1/auth/logout**
 - Auth: Required (Bearer token)

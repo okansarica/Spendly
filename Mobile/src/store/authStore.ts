@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-12 - Respect backend register auth response for direct login flow
 // CHANGED_BY_AI: 2026-03-03 - Integrate backend logout in auth store
 // CHANGED_BY_AI: 2026-03-05 - Add Firebase token to auth flows
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
@@ -127,7 +128,19 @@ export const register = createAsyncThunk(
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
     }
-    return response.data!;
+    const auth = response.data!;
+    if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
+      await tokenService.saveTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire,
+      );
+    }
+    if (auth.subscriptionEndDateTime) {
+      await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
+    }
+    return auth;
   },
 );
 
@@ -139,7 +152,17 @@ export const verifyEmail = createAsyncThunk(
       return rejectWithValue(response.errorMessage);
     }
     const auth = response.data!;
-    if (auth.accessToken && auth.refreshToken) {
+    
+    // If paymentUrl exists, save tokens as pending (waiting for payment)
+    if (auth.paymentUrl && auth.accessToken && auth.refreshToken) {
+      await tokenService.savePendingTokens(
+        auth.accessToken,
+        auth.refreshToken,
+        auth.accessTokenExpire,
+        auth.refreshTokenExpire
+      );
+    } else if (auth.accessToken && auth.refreshToken) {
+      // No payment needed (Trial), save tokens normally
       await tokenService.saveTokens(
         auth.accessToken,
         auth.refreshToken,
@@ -147,6 +170,7 @@ export const verifyEmail = createAsyncThunk(
         auth.refreshTokenExpire
       );
     }
+    
     if (auth.subscriptionEndDateTime) {
       await subscriptionService.saveSubscriptionEndDate(auth.subscriptionEndDateTime);
     }
@@ -161,6 +185,15 @@ export const resendCode = createAsyncThunk(
     if (!response.isSuccess) {
       return rejectWithValue(response.errorMessage);
     }
+  },
+);
+
+export const activatePendingAuth = createAsyncThunk(
+  'auth/activatePendingAuth',
+  async () => {
+    await tokenService.activatePendingTokens();
+    const hasToken = await tokenService.hasAccessToken();
+    return hasToken;
   },
 );
 
@@ -251,9 +284,17 @@ const authSlice = createSlice({
         if (action.payload.languageCode) {
           setLanguage(action.payload.languageCode);
         }
-        state.emailVerificationRequired = true;
-        state.userId = action.payload.id;
-        state.email = action.payload.email;
+        if (action.payload.emailVerificationRequired) {
+          state.emailVerificationRequired = true;
+          state.userId = action.payload.id;
+          state.email = action.payload.email;
+          state.isAuthenticated = false;
+        } else {
+          state.userId = action.payload.id;
+          state.email = action.payload.email;
+          state.isAuthenticated = true;
+          state.emailVerificationRequired = false;
+        }
       })
       .addCase(register.rejected, state => {
         state.isLoading = false;
@@ -268,8 +309,15 @@ const authSlice = createSlice({
         }
         state.userId = action.payload.id;
         state.email = action.payload.email;
-        state.isAuthenticated = true;
         state.emailVerificationRequired = false;
+        
+        // If paymentUrl exists, don't authenticate yet (waiting for payment)
+        if (action.payload.paymentUrl) {
+          state.isAuthenticated = false;
+        } else {
+          // No payment needed (Trial), authenticate immediately
+          state.isAuthenticated = true;
+        }
       })
       .addCase(verifyEmail.rejected, state => {
         state.isLoading = false;
@@ -282,6 +330,11 @@ const authSlice = createSlice({
       })
       .addCase(resendCode.rejected, state => {
         state.isLoading = false;
+      })
+      .addCase(activatePendingAuth.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.isAuthenticated = true;
+        }
       });
   },
 });

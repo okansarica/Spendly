@@ -1,4 +1,7 @@
+// CHANGED_BY_AI: 2026-03-12 - Add selected subscription plan to register request
 namespace Spendly.Mobile.ViewModels.Auth;
+
+using Spendly.Shared.Enums;
 
 public class RegisterRequestViewModel
 {
@@ -6,6 +9,7 @@ public class RegisterRequestViewModel
     public string Surname { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
+    public UserSubscriptionDurationType SelectedPlanType { get; set; }
     public string FirebaseToken { get; set; } = null!;
 }
 

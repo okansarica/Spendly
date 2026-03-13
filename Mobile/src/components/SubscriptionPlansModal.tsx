@@ -1,3 +1,5 @@
+// CHANGED_BY_AI: 2026-03-12 - Ensure registration modal always shows all 3 plan options
+// CHANGED_BY_AI: 2026-03-12 - Add reusable trial selection mode for registration flow
 // CHANGED_BY_AI: 2026-03-12 - Harmonize plan selection colors in dark mode
 // CHANGED_BY_AI: 2026-03-12 - Improve diamond icon background visibility in dark mode
 // CHANGED_BY_AI: 2026-03-12 - Improve modal close button visibility in light mode
@@ -11,39 +13,53 @@ import {useAppDispatch, useAppSelector} from '../store/hooks';
 import {fetchSubscriptionPlans, createPaymentUrl} from '../store/subscriptionStore';
 import Toast from 'react-native-toast-message';
 
-type PlanType = 'Monthly' | 'Yearly';
+type PlanType = 'Trial' | 'Monthly' | 'Yearly';
+type PaidPlan = {planType: 'Monthly' | 'Yearly'; price: number};
 
 type SubscriptionPlansModalProps = {
   visible: boolean;
   dismissible?: boolean;
   onClose?: () => void;
+  includeTrialOption?: boolean;
+  onPlanSelected?: (planType: PlanType) => Promise<void> | void;
 };
 
 export default function SubscriptionPlansModal({
   visible,
   dismissible = true,
   onClose,
+  includeTrialOption = false,
+  onPlanSelected,
 }: SubscriptionPlansModalProps) {
   const {colors, spacing, fontSizes, fontWeights, mode} = useTheme();
   const dispatch = useAppDispatch();
   const {plans, isLoading, isProcessing, error} = useAppSelector(state => state.subscription);
+  const publicFallbackPlans: PaidPlan[] = [
+    {planType: 'Monthly', price: 6.99},
+    {planType: 'Yearly', price: 69.99},
+  ];
+  const displayedPlans: PaidPlan[] = plans.length > 0 ? plans : includeTrialOption ? publicFallbackPlans : [];
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
+  const [isSubmittingSelection, setIsSubmittingSelection] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      dispatch(fetchSubscriptionPlans());
+      if (!includeTrialOption) {
+        dispatch(fetchSubscriptionPlans());
+      }
+      setSelectedPlan('Yearly');
     }
-  }, [visible, dispatch]);
+  }, [visible, dispatch, includeTrialOption]);
 
   useEffect(() => {
-    if (error) {
+    if (error && !includeTrialOption) {
       Toast.show({
         type: 'error',
         text1: translate('Error'),
         text2: error,
       });
     }
-  }, [error]);
+  }, [error, includeTrialOption]);
 
   const closeModal = () => {
     if (!dismissible) {
@@ -54,9 +70,26 @@ export default function SubscriptionPlansModal({
 
   const titleKey = dismissible ? 'SubscriptionUpgradeTitle' : 'SubscriptionExpiredTitle';
   const messageKey = dismissible ? 'SubscriptionUpgradeMessage' : 'SubscriptionExpiredMessage';
-  const buttonKey = dismissible ? 'SubscriptionUpgradeAction' : 'RenewSubscription';
+  const defaultButtonKey = dismissible ? 'SubscriptionUpgradeAction' : 'RenewSubscription';
+  const buttonKey = includeTrialOption && selectedPlan === 'Trial' ? 'Continue' : defaultButtonKey;
+  const isBusy = isProcessing || isSubmittingSelection;
+  const isActionDisabled = selectedPlan === 'Trial' ? isSubmittingSelection : isBusy || (!includeTrialOption && isLoading);
 
   const handleRenewPress = async () => {
+    if (onPlanSelected) {
+      try {
+        setIsSubmittingSelection(true);
+        await onPlanSelected(selectedPlan);
+      } finally {
+        setIsSubmittingSelection(false);
+      }
+      return;
+    }
+
+    if (selectedPlan === 'Trial') {
+      return;
+    }
+
     const result = await dispatch(createPaymentUrl(selectedPlan));
     if (createPaymentUrl.fulfilled.match(result)) {
       const paymentUrl = result.payload;
@@ -236,6 +269,12 @@ export default function SubscriptionPlansModal({
       fontWeight: fontWeights.semiBold,
       marginTop: spacing.xs,
     },
+    trialDescription: {
+      fontSize: fontSizes.sm,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+      lineHeight: fontSizes.sm * 1.5,
+    },
     checkIcon: {
       position: 'absolute',
       top: spacing.md,
@@ -291,10 +330,10 @@ export default function SubscriptionPlansModal({
         activeOpacity={1}
         style={s.overlay}
         onPress={closeModal}
-        disabled={!dismissible || isProcessing}>
+        disabled={!dismissible || isBusy}>
         <TouchableOpacity activeOpacity={1} style={s.container} onPress={() => undefined}>
           {dismissible && (
-            <TouchableOpacity style={s.closeButton} onPress={closeModal} disabled={isProcessing}>
+            <TouchableOpacity style={s.closeButton} onPress={closeModal} disabled={isBusy}>
               <Text style={s.closeText}>×</Text>
             </TouchableOpacity>
           )}
@@ -305,58 +344,76 @@ export default function SubscriptionPlansModal({
           <Text style={s.title}>{translate(titleKey)}</Text>
           <Text style={s.subtitle}>{translate(messageKey)}</Text>
 
-          {isLoading ? (
-            <ActivityIndicator size="large" color={colors.buttonPrimary} style={s.loader} />
-          ) : (
-            <>
-              <View style={s.plansContainer}>
-                {plans.map(plan => {
-                  const isYearly = plan.planType === 'Yearly';
-                  const isSelected = selectedPlan === plan.planType;
-                  const monthlyCost = isYearly ? (plan.price / 12).toFixed(2) : plan.price.toFixed(2);
-                  const savings = isYearly ? ((3.99 * 12 - plan.price) / (3.99 * 12) * 100).toFixed(0) : null;
-
-                  return (
-                    <TouchableOpacity
-                      key={plan.planType}
-                      style={[s.planCard, isSelected && s.planCardSelected]}
-                      onPress={() => setSelectedPlan(plan.planType)}
-                      activeOpacity={0.7}>
-                      {isYearly && (
-                        <View style={s.badge}>
-                          <Text style={s.badgeText}>Best Value</Text>
-                        </View>
-                      )}
-                      {isSelected && (
-                        <View style={s.checkIcon}>
-                          <Text style={s.checkIconText}>✓</Text>
-                        </View>
-                      )}
-                      <View style={s.planHeader}>
-                        <View style={s.planLeft}>
-                          <Text style={s.planName}>{plan.planType} Plan</Text>
-                          <Text style={s.planPrice}>£{plan.price.toFixed(2)}</Text>
-                          <Text style={s.planPeriod}>£{monthlyCost}/month</Text>
-                          {savings && <Text style={s.savingsText}>Save {savings}%</Text>}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
+          <View style={s.plansContainer}>
+            {includeTrialOption && (
               <TouchableOpacity
-                style={[s.button, (isProcessing || isLoading) && s.buttonDisabled]}
-                onPress={handleRenewPress}
-                disabled={isProcessing || isLoading}>
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color={colors.buttonPrimaryText} />
-                ) : (
-                  <Text style={s.buttonText}>{translate(buttonKey)}</Text>
+                style={[s.planCard, selectedPlan === 'Trial' && s.planCardSelected]}
+                onPress={() => setSelectedPlan('Trial')}
+                activeOpacity={0.7}>
+                {selectedPlan === 'Trial' && (
+                  <View style={s.checkIcon}>
+                    <Text style={s.checkIconText}>✓</Text>
+                  </View>
                 )}
+                <View style={s.planHeader}>
+                  <View style={s.planLeft}>
+                    <Text style={s.planName}>{translate('TrialPlanName')}</Text>
+                    <Text style={s.planPrice}>£0.00</Text>
+                    <Text style={s.trialDescription}>{translate('TrialPlanDescription')}</Text>
+                  </View>
+                </View>
               </TouchableOpacity>
-            </>
-          )}
+            )}
+
+            {!includeTrialOption && isLoading ? (
+              <ActivityIndicator size="large" color={colors.buttonPrimary} style={s.loader} />
+            ) : (
+              displayedPlans.map(plan => {
+                const isYearly = plan.planType === 'Yearly';
+                const isSelected = selectedPlan === plan.planType;
+                const monthlyCost = isYearly ? (plan.price / 12).toFixed(2) : plan.price.toFixed(2);
+                const savings = isYearly ? ((3.99 * 12 - plan.price) / (3.99 * 12) * 100).toFixed(0) : null;
+
+                return (
+                  <TouchableOpacity
+                    key={plan.planType}
+                    style={[s.planCard, isSelected && s.planCardSelected]}
+                    onPress={() => setSelectedPlan(plan.planType)}
+                    activeOpacity={0.7}>
+                    {isYearly && (
+                      <View style={s.badge}>
+                        <Text style={s.badgeText}>{translate('BestValue')}</Text>
+                      </View>
+                    )}
+                    {isSelected && (
+                      <View style={s.checkIcon}>
+                        <Text style={s.checkIconText}>✓</Text>
+                      </View>
+                    )}
+                    <View style={s.planHeader}>
+                      <View style={s.planLeft}>
+                        <Text style={s.planName}>{translate('PlanLabel').replace('{planType}', plan.planType)}</Text>
+                        <Text style={s.planPrice}>£{plan.price.toFixed(2)}</Text>
+                        <Text style={s.planPeriod}>£{monthlyCost}/month</Text>
+                        {savings && <Text style={s.savingsText}>{translate('SavePercentage').replace('{percentage}', savings)}</Text>}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[s.button, isActionDisabled && s.buttonDisabled]}
+            onPress={handleRenewPress}
+            disabled={isActionDisabled}>
+            {isBusy ? (
+              <ActivityIndicator size="small" color={colors.buttonPrimaryText} />
+            ) : (
+              <Text style={s.buttonText}>{translate(buttonKey)}</Text>
+            )}
+          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
