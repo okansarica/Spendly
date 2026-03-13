@@ -26,9 +26,9 @@ public class RequestContextViewModel
 		return _userId;
 	}
 
-	public void SetUserId(string? sellerId)
+	public void SetUserId(string? userId)
 	{
-		_userId = sellerId;
+		_userId = userId;
 	}
 
 	public Guid SessionId { get; set; }

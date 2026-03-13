@@ -17,7 +17,7 @@ public class BaseEntity
 
 public class BaseReportEntity : BaseEntity
 {
-	public ObjectId SellerId { get; set; }
+	public ObjectId UserId { get; set; }
 }
 
 //Local mongodb queue icin kullaniliyor

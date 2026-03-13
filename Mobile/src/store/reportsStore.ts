@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-13 - Add merchant reports store
 // CHANGED_BY_AI: 2026-03-02 - Add reports store
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import {apiCall} from '../services/apiClient';
@@ -7,10 +8,14 @@ import {
   ReportCategoryDetailResponse,
   AccountsOverviewResponse,
   AccountDetailResponse,
+  MerchantsReportOverviewResponse,
+  MerchantDetailResponse,
   ReportsOverviewParams,
   ReportsCategoryParams,
   AccountsOverviewParams,
   AccountDetailParams,
+  MerchantsReportOverviewParams,
+  MerchantDetailParams,
 } from '../services/reportsService';
 
 type ReportsState = {
@@ -18,10 +23,14 @@ type ReportsState = {
   categoryDetail: ReportCategoryDetailResponse | undefined;
   accountsOverview: AccountsOverviewResponse | undefined;
   accountDetail: AccountDetailResponse | undefined;
+  merchantsOverview: MerchantsReportOverviewResponse | undefined;
+  merchantDetail: MerchantDetailResponse | undefined;
   isLoadingOverview: boolean;
   isLoadingCategoryDetail: boolean;
   isLoadingAccountsOverview: boolean;
   isLoadingAccountDetail: boolean;
+  isLoadingMerchantsOverview: boolean;
+  isLoadingMerchantDetail: boolean;
   error: string | undefined;
 };
 
@@ -30,10 +39,14 @@ const initialState: ReportsState = {
   categoryDetail: undefined,
   accountsOverview: undefined,
   accountDetail: undefined,
+  merchantsOverview: undefined,
+  merchantDetail: undefined,
   isLoadingOverview: false,
   isLoadingCategoryDetail: false,
   isLoadingAccountsOverview: false,
   isLoadingAccountDetail: false,
+  isLoadingMerchantsOverview: false,
+  isLoadingMerchantDetail: false,
   error: undefined,
 };
 
@@ -81,6 +94,31 @@ export const loadAccountDetail = createAsyncThunk(
       return rejectWithValue(response.errorMessage);
     }
     return response.data as AccountDetailResponse;
+  }
+);
+
+export const loadMerchantsOverview = createAsyncThunk(
+  'reports/loadMerchantsOverview',
+  async (params: MerchantsReportOverviewParams | undefined, {rejectWithValue}) => {
+    const response = await apiCall(() => reportsService.getMerchantsOverview(params));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    return response.data as MerchantsReportOverviewResponse;
+  }
+);
+
+export const loadMerchantDetail = createAsyncThunk(
+  'reports/loadMerchantDetail',
+  async (
+    payload: {merchantId: string; params?: MerchantDetailParams},
+    {rejectWithValue}
+  ) => {
+    const response = await apiCall(() => reportsService.getMerchantDetail(payload.merchantId, payload.params));
+    if (!response.isSuccess) {
+      return rejectWithValue(response.errorMessage);
+    }
+    return response.data as MerchantDetailResponse;
   }
 );
 
@@ -136,6 +174,30 @@ const reportsSlice = createSlice({
       })
       .addCase(loadAccountDetail.rejected, (state, action) => {
         state.isLoadingAccountDetail = false;
+        state.error = action.payload as string;
+      })
+      .addCase(loadMerchantsOverview.pending, state => {
+        state.isLoadingMerchantsOverview = true;
+        state.error = undefined;
+      })
+      .addCase(loadMerchantsOverview.fulfilled, (state, action) => {
+        state.isLoadingMerchantsOverview = false;
+        state.merchantsOverview = action.payload;
+      })
+      .addCase(loadMerchantsOverview.rejected, (state, action) => {
+        state.isLoadingMerchantsOverview = false;
+        state.error = action.payload as string;
+      })
+      .addCase(loadMerchantDetail.pending, state => {
+        state.isLoadingMerchantDetail = true;
+        state.error = undefined;
+      })
+      .addCase(loadMerchantDetail.fulfilled, (state, action) => {
+        state.isLoadingMerchantDetail = false;
+        state.merchantDetail = action.payload;
+      })
+      .addCase(loadMerchantDetail.rejected, (state, action) => {
+        state.isLoadingMerchantDetail = false;
         state.error = action.payload as string;
       });
   },

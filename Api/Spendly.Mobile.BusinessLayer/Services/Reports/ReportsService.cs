@@ -3,6 +3,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Reports;
 
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Shared.Core.Extensions;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Reports;
 using Spendly.Shared.Core;
@@ -333,6 +334,338 @@ public class ReportsService(
 		return FunctionResponse.Success(response);
 	}
 
+	public async Task<FunctionResponse<MerchantsReportOverviewResponseViewModel>> GetMerchantsOverviewAsync(MerchantsReportOverviewRequestViewModel request)
+	{
+		if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
+		{
+			return FunctionResponse.Failure<MerchantsReportOverviewResponseViewModel>(MessageCodes.InvalidTimezone);
+		}
+
+		var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
+		var (startLocal, endLocal) = ResolveRange(request.StartDate, request.EndDate, nowLocal);
+		var (prevStartLocal, prevEndLocal) = GetPreviousMonthSamePeriod(startLocal, endLocal);
+
+		var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
+		var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
+
+		var userId = requestContextViewModel.UserId.ToObjectId();
+		
+		var currentTransactions = await GetMerchantTransactionTotalsAsync(userId, startUtc, endUtc);
+		var previousTransactions = await GetMerchantTransactionTotalsAsync(userId, prevStartUtc, prevEndUtc);
+
+		var currentMerchantTotals = currentTransactions
+			.GroupBy(x => x.MerchantId)
+			.ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+		var previousMerchantTotals = previousTransactions
+			.GroupBy(x => x.MerchantId)
+			.ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+		var allMerchantIds = currentMerchantTotals.Keys
+			.Where(id => currentMerchantTotals[id] > 0)
+			.Concat(previousMerchantTotals.Keys)
+			.Distinct()
+			.ToList();
+
+		var merchantLookup = await GetMerchantLookupAsync(allMerchantIds);
+		var allMerchants = await merchantRepository.ListAsync(allMerchantIds);
+		
+		// Get all category IDs (from UserMerchant or Merchant)
+		var categoryIds = new List<ObjectId>();
+		foreach (var merchantId in allMerchantIds)
+		{
+			var userMerchant = merchantLookup.GetValueOrDefault(merchantId);
+			if (userMerchant?.UserCategoryId != null)
+			{
+				categoryIds.Add(userMerchant.UserCategoryId.Value);
+			}
+			else
+			{
+				var merchant = allMerchants.FirstOrDefault(m => m.Id == merchantId);
+				if (merchant != null)
+				{
+					categoryIds.Add(merchant.CategoryId);
+				}
+			}
+		}
+		var categoryLookup = await GetCategoryLookupAsync(categoryIds.Distinct().ToList());
+
+		var currentTotal = currentMerchantTotals.Where(x => x.Value > 0).Sum(x => x.Value);
+		var previousTotal = previousMerchantTotals.Values.Sum();
+
+		var summary = BuildSummary(currentTotal, previousTotal);
+
+		var merchantChanges = allMerchantIds
+			.Where(id => currentMerchantTotals.GetValueOrDefault(id) > 0)
+			.Select(id => BuildMerchantListItem(id, currentMerchantTotals, previousMerchantTotals, merchantLookup, allMerchants, categoryLookup))
+			.OrderBy(x => GetMerchantDisplayName(x.MerchantId, x.MerchantName, merchantLookup, allMerchants))
+			.ToList();
+
+		// Top 9 merchants + "Other" for pie chart
+		var top9Merchants = currentMerchantTotals
+			.Where(x => x.Value > 0)
+			.OrderByDescending(x => x.Value)
+			.Take(Constants.Reports.TopMerchantsForDistribution)
+			.ToList();
+
+		var top9Total = top9Merchants.Sum(x => x.Value);
+		var otherTotal = currentTotal - top9Total;
+
+		var distribution = new List<ReportMerchantDistributionViewModel>();
+		foreach (var kvp in top9Merchants)
+		{
+			var merchant = allMerchants.Single(x => x.Id == kvp.Key);
+			var userMerchant = merchantLookup.GetValueOrDefault(kvp.Key);
+			var displayName = !string.IsNullOrEmpty(userMerchant?.Nickname) ? userMerchant.Nickname : merchant.Name;
+
+			distribution.Add(new ReportMerchantDistributionViewModel
+			{
+				MerchantId = kvp.Key.ToString(),
+				MerchantName = displayName,
+				CurrentMonthToDateTotal = kvp.Value,
+				PercentageOfTotal = currentTotal > 0 ? Math.Round(kvp.Value / currentTotal * 100, 1) : 0
+			});
+		}
+
+		if (otherTotal > 0)
+		{
+			distribution.Add(new ReportMerchantDistributionViewModel
+			{
+				MerchantId = "other",
+				MerchantName = "Other",
+				CurrentMonthToDateTotal = otherTotal,
+				PercentageOfTotal = currentTotal > 0 ? Math.Round(otherTotal / currentTotal * 100, 1) : 0
+			});
+		}
+
+		var response = new MerchantsReportOverviewResponseViewModel
+		{
+			Summary = summary,
+			MerchantDistribution = distribution,
+			Merchants = merchantChanges
+		};
+
+		return FunctionResponse.Success(response);
+	}
+
+	public async Task<FunctionResponse<MerchantDetailResponseViewModel>> GetMerchantDetailAsync(string merchantId, MerchantDetailRequestViewModel request)
+	{
+		var merchantObjectId = merchantId.ToObjectIdOrNull();
+		if (merchantObjectId == null)
+		{
+			return FunctionResponse.Failure<MerchantDetailResponseViewModel>(MessageCodes.InvalidMerchantId);
+		}
+
+		if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
+		{
+			return FunctionResponse.Failure<MerchantDetailResponseViewModel>(MessageCodes.InvalidTimezone);
+		}
+
+		var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
+		var (startLocal, endLocal) = ResolveRange(request.StartDate, request.EndDate, nowLocal);
+		var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
+
+		var accountId = request.AccountId?.ToObjectIdOrNull();
+
+		var userId = requestContextViewModel.UserId.ToObjectId();
+		
+		// Get transactions for this merchant
+		var page = request.Page ?? 1;
+		var pageSize = request.PageSize ?? Constants.Reports.DefaultPageSize;
+
+		var (transactions, total) = await GetMerchantTransactionsAsync(
+			userId,
+			merchantObjectId.Value,
+			accountId,
+			startUtc,
+			endUtc,
+			page,
+			pageSize);
+
+		var totalAmount = transactions.Sum(x => x.Amount);
+
+		var merchant = await merchantRepository.GetRequiredAsync(merchantObjectId.Value);
+		var userMerchantFilter = Builders<UserMerchant>.Filter.And(
+			Builders<UserMerchant>.Filter.Eq(x => x.UserId, userId),
+			Builders<UserMerchant>.Filter.Eq(x => x.MerchantId, merchantObjectId.Value)
+		);
+		var userMerchant = (await userMerchantRepository.ListAsync(userMerchantFilter)).FirstOrDefault();
+		var merchantName = !string.IsNullOrEmpty(userMerchant?.Nickname) ? userMerchant.Nickname : merchant.Name;
+
+		var accountLookup = await GetAccountLookupAsync(transactions.Select(x => x.AccountId).Distinct().ToList());
+
+		var items = transactions.Select(transaction => new TransactionItemViewModel
+		{
+			TransactionId = transaction.Id.ToString(),
+			Date = transaction.DateTime.ToString("yyyy-MM-dd"),
+			MerchantName = merchantName,
+			AccountName = accountLookup[transaction.AccountId].NickName ?? accountLookup[transaction.AccountId].Name,
+			Amount = transaction.Amount,
+			TransactionName = transaction.TransactionName
+		}).ToList();
+
+		var totalPages = pageSize > 0 ? (int) Math.Ceiling((double) total / pageSize) : 1;
+
+		// Build comparison if current month range
+		MerchantComparisonViewModel? comparison = null;
+		var isCurrentMonthRange = startLocal == new DateTime(nowLocal.Year, nowLocal.Month, 1) && endLocal == nowLocal.Date;
+		if (isCurrentMonthRange)
+		{
+			var (prevStartLocal, prevEndLocal) = GetPreviousMonthSamePeriod(startLocal, endLocal);
+			var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
+			
+			var (prevTransactions, _) = await GetMerchantTransactionsAsync(
+				userId,
+				merchantObjectId.Value,
+				accountId,
+				prevStartUtc,
+				prevEndUtc,
+				1,
+				int.MaxValue);
+
+			var previousTotal = prevTransactions.Sum(x => x.Amount);
+			var comparisonSummary = BuildSummary(totalAmount, previousTotal);
+
+			comparison = new MerchantComparisonViewModel
+			{
+				PreviousMonthSamePeriodTotal = comparisonSummary.PreviousMonthSamePeriodTotal,
+				DifferenceAmount = comparisonSummary.DifferenceAmount,
+				PercentageChange = comparisonSummary.PercentageChange,
+				Trend = comparisonSummary.Trend,
+				IsNewSpending = comparisonSummary.IsNewSpending
+			};
+		}
+
+		var response = new MerchantDetailResponseViewModel
+		{
+			MerchantSummary = new MerchantSummaryViewModel
+			{
+				MerchantId = merchantObjectId.Value.ToString(),
+				MerchantName = merchantName,
+				StartDate = startLocal.ToString("yyyy-MM-dd"),
+				EndDate = endLocal.ToString("yyyy-MM-dd"),
+				TotalAmount = totalAmount,
+				Comparison = comparison
+			},
+			Transactions = new TransactionListViewModel
+			{
+				Items = items,
+				Total = (int) total,
+				PageNumber = page,
+				PageSize = pageSize,
+				TotalPages = totalPages
+			}
+		};
+
+		return FunctionResponse.Success(response);
+	}
+
+	private async Task<List<NormalizedTransaction>> GetMerchantTransactionTotalsAsync(ObjectId userId, DateTime startUtc, DateTime endUtc)
+	{
+		var filter = Builders<NormalizedTransaction>.Filter.And(
+			Builders<NormalizedTransaction>.Filter.Eq(x => x.UserId, userId),
+			Builders<NormalizedTransaction>.Filter.Gte(x => x.DateTime, startUtc),
+			Builders<NormalizedTransaction>.Filter.Lte(x => x.DateTime, endUtc)
+		);
+
+		return await transactionRepository.ListAsync(filter);
+	}
+
+	private async Task<(List<NormalizedTransaction> Transactions, long Total)> GetMerchantTransactionsAsync(
+		ObjectId userId,
+		ObjectId merchantId,
+		ObjectId? accountId,
+		DateTime startUtc,
+		DateTime endUtc,
+		int page,
+		int pageSize)
+	{
+		var filters = new List<FilterDefinition<NormalizedTransaction>>
+		{
+			Builders<NormalizedTransaction>.Filter.Eq(x => x.UserId, userId),
+			Builders<NormalizedTransaction>.Filter.Eq(x => x.MerchantId, merchantId),
+			Builders<NormalizedTransaction>.Filter.Gte(x => x.DateTime, startUtc),
+			Builders<NormalizedTransaction>.Filter.Lte(x => x.DateTime, endUtc)
+		};
+
+		if (accountId.HasValue)
+		{
+			filters.Add(Builders<NormalizedTransaction>.Filter.Eq(x => x.AccountId, accountId.Value));
+		}
+
+		var filter = Builders<NormalizedTransaction>.Filter.And(filters);
+		var total = await transactionRepository.CountAsync(filter);
+
+		var allTransactions = await transactionRepository.ListAsync(filter);
+		var sortedTransactions = allTransactions.OrderBy(x => x.TransactionName).ToList();
+		
+		var paging = new PagingParameter
+		{
+			PageNo = Math.Max(page - 1, 0),
+			PageSize = pageSize
+		};
+
+		var transactions = sortedTransactions.Skip(paging.PageNo * paging.PageSize).Take(paging.PageSize).ToList();
+		return (transactions, total);
+	}
+
+	private static ReportMerchantListItemViewModel BuildMerchantListItem(
+		ObjectId merchantId,
+		Dictionary<ObjectId, decimal> currentTotals,
+		Dictionary<ObjectId, decimal> previousTotals,
+		Dictionary<ObjectId, UserMerchant> userMerchantLookup,
+		List<Merchant> allMerchants,
+		Dictionary<ObjectId, UserCategory> categoryLookup)
+	{
+		currentTotals.TryGetValue(merchantId, out var current);
+		previousTotals.TryGetValue(merchantId, out var previous);
+		var difference = current - previous;
+		var percentage = previous > 0 ? Math.Round(difference / previous * 100, 1) : 0;
+
+		var merchant = allMerchants.Single(x => x.Id == merchantId);
+		var userMerchant = userMerchantLookup.GetValueOrDefault(merchantId);
+		var displayName = !string.IsNullOrEmpty(userMerchant?.Nickname) ? userMerchant.Nickname : merchant.Name;
+		
+		// Get category - prioritize UserMerchant's category, fallback to Merchant's category
+		string categoryName = string.Empty;
+		if (userMerchant?.UserCategoryId != null && categoryLookup.ContainsKey(userMerchant.UserCategoryId.Value))
+		{
+			categoryName = categoryLookup[userMerchant.UserCategoryId.Value].Name;
+		}
+		else if (categoryLookup.ContainsKey(merchant.CategoryId))
+		{
+			categoryName = categoryLookup[merchant.CategoryId].Name;
+		}
+
+		return new ReportMerchantListItemViewModel
+		{
+			MerchantId = merchantId.ToString(),
+			MerchantName = displayName,
+			CategoryName = categoryName,
+			CurrentMonthToDateTotal = current,
+			PreviousMonthSamePeriodTotal = previous,
+			DifferenceAmount = difference,
+			PercentageChange = percentage
+		};
+	}
+
+	private static string GetMerchantDisplayName(
+		string merchantId,
+		string merchantName,
+		Dictionary<ObjectId, UserMerchant> userMerchantLookup,
+		List<Merchant> allMerchants)
+	{
+		var id = merchantId.ToObjectId();
+		var userMerchant = userMerchantLookup.GetValueOrDefault(id);
+		if (!string.IsNullOrEmpty(userMerchant?.Nickname))
+		{
+			return userMerchant.Nickname;
+		}
+		
+		var merchant = allMerchants.FirstOrDefault(x => x.Id == id);
+		return merchant?.Name ?? merchantName;
+	}
+
 	private async Task<AccountComparisonViewModel> BuildAccountComparison(DateTime startLocal,
 		DateTime endLocal,
 		DateTime nowLocal,
@@ -384,8 +717,8 @@ public class ReportsService(
 		var filters = new List<FilterDefinition<DailyCategoryAccountExpense>>
 		{
 			Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.UserId, userId),
-			Builders<DailyCategoryAccountExpense>.Filter.Gte(x => x.Date, startUtc),
-			Builders<DailyCategoryAccountExpense>.Filter.Lte(x => x.Date, endUtc)
+			Builders<DailyCategoryAccountExpense>.Filter.Gte(x => x.Date, startUtc.ToDateOnly()),
+			Builders<DailyCategoryAccountExpense>.Filter.Lte(x => x.Date, endUtc.ToDateOnly())
 		};
 
 		if (categoryId.HasValue)
@@ -566,6 +899,12 @@ public class ReportsService(
 			return false;
 		}
 
-		return TimeZoneInfo.TryFindSystemTimeZoneById(timezone, out tz);
+		if (!TimeZoneInfo.TryFindSystemTimeZoneById(timezone, out var tzInfo))
+		{
+			tz = TimeZoneInfo.Utc;
+			return false;
+		}
+		tz = tzInfo;
+		return true;
 	}
 }

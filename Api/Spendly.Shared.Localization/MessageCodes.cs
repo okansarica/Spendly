@@ -29,6 +29,7 @@ public class MessageCodes
 	public const string InvalidPageSize = "InvalidPageSize";
 	public const string InvalidCategoryId = "InvalidCategoryId";
 	public const string InvalidAccountId = "InvalidAccountId";
+	public const string InvalidMerchantId = "InvalidMerchantId";
 	public const string CategoryNotFound = "CategoryNotFound";
 	public const string DuplicateCategoryName = "DuplicateCategoryName";
 	public const string CategoryNameRequired = "CategoryNameRequired";

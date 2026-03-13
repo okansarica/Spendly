@@ -11,6 +11,7 @@ using MongoDB.Bson;
 using Shared.BusinessLayer;
 using Shared.BusinessLayer.Notification;
 using Shared.Core;
+using Shared.Core.Extensions;
 using Shared.Entities.UserManagement;
 using Spendly.Mobile.ViewModels.User;
 using Spendly.Shared.DataLayer;

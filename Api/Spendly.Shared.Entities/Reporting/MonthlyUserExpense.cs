@@ -5,9 +5,9 @@ using MongoDB.Bson;
 
 public class MonthlyUserExpense : BaseReportEntity
 {
-    public ObjectId UserId { get; set; }
-    public int Year { get; set; }
-    public int Month { get; set; }
-    public decimal TotalAmount { get; set; }
+    public required int Year { get; set; }
+    public required int Month { get; set; }
+    public required decimal TotalAmount { get; set; }
+    public required decimal TotalCount { get; set; }
 }
 

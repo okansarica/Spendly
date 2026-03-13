@@ -82,7 +82,7 @@ public class HighestSingleExpenseViewModel
 {
     public string MerchantName { get; set; }
     public decimal Amount { get; set; }
-    public DateTime Date { get; set; }
+    public DateTime DateTime { get; set; }
 }
 
 public class MostUsedAccountViewModel

@@ -4,6 +4,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Plaid;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
+using Shared.Core.Extensions;
 using Shared.Localization;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Plaid;

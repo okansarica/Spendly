@@ -15,6 +15,7 @@ public static class Constants
     public static class Reports
     {
         public const int TopChangingCategories = 4;
+        public const int TopMerchantsForDistribution = 9;
         public const int DefaultPageSize = 10;
         public const string TrendIncrease = "increase";
         public const string TrendDecrease = "decrease";

@@ -120,6 +120,69 @@ export type AccountDetailParams = {
   endDate?: string;
 };
 
+export type MerchantsReportOverviewResponse = {
+  summary: ReportSummary;
+  merchantDistribution: {
+    merchantId: string;
+    merchantName: string;
+    currentMonthToDateTotal: number;
+    percentageOfTotal: number;
+  }[];
+  merchants: {
+    merchantId: string;
+    merchantName: string;
+    categoryName: string;
+    currentMonthToDateTotal: number;
+    previousMonthSamePeriodTotal: number;
+    differenceAmount: number;
+    percentageChange: number;
+  }[];
+};
+
+export type MerchantDetailResponse = {
+  merchantSummary: {
+    merchantId: string;
+    merchantName: string;
+    startDate: string;
+    endDate: string;
+    totalAmount: number;
+    comparison?: {
+      previousMonthSamePeriodTotal: number;
+      differenceAmount: number;
+      percentageChange: number;
+      trend: string;
+      isNewSpending: boolean;
+    };
+  };
+  transactions: {
+    items: {
+      transactionId: string;
+      transactionName: string;
+      date: string;
+      merchantName: string;
+      accountName: string;
+      amount: number;
+    }[];
+    total: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+export type MerchantsReportOverviewParams = {
+  startDate?: string;
+  endDate?: string;
+};
+
+export type MerchantDetailParams = {
+  startDate?: string;
+  endDate?: string;
+  accountId?: string;
+  page?: number;
+  pageSize?: number;
+};
+
 export const reportsService = {
   getOverview: (params?: ReportsOverviewParams) => apiClient.get<ReportsOverviewResponse>(ApiEndpoints.Reports.Overview, {params}),
   getCategoryDetail: (categoryId: string, params?: ReportsCategoryParams) =>
@@ -128,4 +191,8 @@ export const reportsService = {
     apiClient.get<AccountsOverviewResponse>(ApiEndpoints.Reports.AccountsOverview, {params}),
   getAccountDetail: (accountId: string, params?: AccountDetailParams) =>
     apiClient.get<AccountDetailResponse>(ApiEndpoints.Reports.AccountDetail(accountId), {params}),
+  getMerchantsOverview: (params?: MerchantsReportOverviewParams) =>
+    apiClient.get<MerchantsReportOverviewResponse>(ApiEndpoints.Reports.MerchantsOverview, {params}),
+  getMerchantDetail: (merchantId: string, params?: MerchantDetailParams) =>
+    apiClient.get<MerchantDetailResponse>(ApiEndpoints.Reports.MerchantDetail(merchantId), {params}),
 };

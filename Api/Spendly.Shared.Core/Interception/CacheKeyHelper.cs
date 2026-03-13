@@ -7,7 +7,7 @@ public static class CacheKeyHelper
 {
 	public static string BuildKey(CacheableAttribute attr, MethodInfo method, RequestContextViewModel? ctx)
 	{
-		return BuildCore( method.DeclaringType?.FullName, method.Name, ctx, attr.IncludeSellerIdInKey);
+		return BuildCore( method.DeclaringType?.FullName, method.Name, ctx, attr.IncludeUserIdInKey);
 	}
 	public static string BuildFor<TService>(string methodName, RequestContextViewModel? requestContextViewModel, bool includeSeller = true)
 	{
@@ -18,10 +18,10 @@ public static class CacheKeyHelper
 		var key = $"{typeFullName}.{methodName}";
 		if (includeSeller && ctx != null)
 		{
-			var sellerId = ctx.TryToGetUserId();
-			if (!string.IsNullOrWhiteSpace(sellerId))
+			var userId = ctx.TryToGetUserId();
+			if (!string.IsNullOrWhiteSpace(userId))
 			{
-				key += $":seller:{sellerId}";
+				key += $":user:{userId}";
 			}
 		}
 		return key;

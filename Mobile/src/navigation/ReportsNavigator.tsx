@@ -1,14 +1,17 @@
+// CHANGED_BY_AI: 2026-03-13 - Add merchant report screens
 // CHANGED_BY_AI: 2026-03-02 - Use shared header component
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import CategoryDetailScreen from '../screens/reports/CategoryDetailScreen';
 import AccountDetailScreen from '../screens/reports/AccountDetailScreen';
+import MerchantDetailScreen from '../screens/reports/MerchantDetailScreen';
 import ReportsMenuScreen from '../screens/reports/ReportsMenuScreen';
 import {useTheme} from '../theme/ThemeContext';
 import {translate} from '../utils/translations';
 import CategoryReportScreen from "../screens/reports/CategoryReportScreen.tsx";
 import AccountReportScreen from "../screens/reports/AccountReportScreen.tsx";
+import MerchantReportScreen from "../screens/reports/MerchantReportScreen.tsx";
 
 export type ReportsStackParamList = {
   ReportsMenu: undefined;
@@ -16,6 +19,8 @@ export type ReportsStackParamList = {
   CategoryDetail: {categoryId: string; categoryName: string; startDate?: string; endDate?: string; accountId?: string};
   AccountsOverview: undefined;
   AccountDetail: {accountId: string; accountName: string; startDate?: string; endDate?: string};
+  MerchantsOverview: undefined;
+  MerchantDetail: {merchantId: string; merchantName: string; startDate?: string; endDate?: string; accountId?: string};
 };
 
 const Stack = createNativeStackNavigator<ReportsStackParamList>();
@@ -36,6 +41,8 @@ export default function ReportsNavigator() {
       <Stack.Screen name="CategoryDetail" component={CategoryDetailScreen} options={{title: translate('CategoryTitle')}} />
       <Stack.Screen name="AccountsOverview" component={AccountReportScreen} options={{title: translate('AccountsTitle')}} />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{title: translate('AccountTitle')}} />
+      <Stack.Screen name="MerchantsOverview" component={MerchantReportScreen} options={{title: translate('MerchantReport')}} />
+      <Stack.Screen name="MerchantDetail" component={MerchantDetailScreen} options={{title: translate('MerchantDetail')}} />
     </Stack.Navigator>
   );
 }

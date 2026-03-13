@@ -1,4 +1,4 @@
-namespace Spendly.Shared.Core;
+namespace Spendly.Shared.Core.Extensions;
 
 using MongoDB.Bson;
 

@@ -8,10 +8,10 @@ namespace Spendly.Mobile.Api.Infrastructure
         public async Task InvokeAsync(HttpContext context)
         {
             // SellerId alma
-            string? sellerId = null;
+            string? userId = null;
             if (context.RequestServices.GetService(typeof(RequestContextViewModel)) is RequestContextViewModel requestContext)
             {
-                sellerId = requestContext.TryToGetUserId();
+                userId = requestContext.TryToGetUserId();
             }
 
             // IP alma
@@ -32,7 +32,7 @@ namespace Spendly.Mobile.Api.Infrastructure
             var routeData = context.GetRouteData();
             var routeTemplate = routeData?.Values != null ? string.Join('/', routeData.Values.Select(kv => $"{kv.Key}:{kv.Value}")) : null;
 
-            using (LogContext.PushProperty("SellerId", sellerId ?? "Unknown"))
+            using (LogContext.PushProperty("UserId", userId ?? "Unknown"))
             using (LogContext.PushProperty("IpAddress", ip ?? "Unknown"))
             using (LogContext.PushProperty("Path", path))
             using (LogContext.PushProperty("HttpMethod", method))

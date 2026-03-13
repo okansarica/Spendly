@@ -4,6 +4,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Homepage;
 
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Shared.Core.Extensions;
 using Shared.Entities.Reporting;
 using Shared.Entities.TransactionManagement;
 using Shared.Entities.UserManagement;
@@ -27,13 +28,13 @@ public class HomepageService(
 	public async virtual Task<FunctionResponse<HomepageResponseViewModel>> GetHomepageAsync()
 	{
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var now = DateTime.UtcNow.Date;
-		var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+		var today = DateTime.UtcNow.ToDateOnly();
+		var currentMonthStart = new DateTime(today.Year, today.Month, 1).ToDateOnly();
 		var previousMonthStart = currentMonthStart.AddMonths(-1);
 		var previousMonthEnd = previousMonthStart.AddMonths(1).AddDays(-1);
-		var previousMonthSameDayEnd = new DateTime(previousMonthStart.Year, previousMonthStart.Month, Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month)));
+		var previousMonthSameDayEnd = new DateTime(previousMonthStart.Year, previousMonthStart.Month, Math.Min(today.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month))).ToDateOnly();
 
-		var currentMonthSummaries = await GetDailySummariesAsync(userId, currentMonthStart, now);
+		var currentMonthSummaries = await GetDailySummariesAsync(userId, currentMonthStart, today);
 		var previousMonthSummaries = await GetDailySummariesAsync(userId, previousMonthStart, previousMonthEnd);
 
 		var currentMonthTotal = currentMonthSummaries.Sum(x => x.TotalAmount);
@@ -41,7 +42,7 @@ public class HomepageService(
 		var previousMonthSamePeriodTotal = previousMonthSummaries.Where(p=>p.Date<previousMonthSameDayEnd.AddDays(1)).Sum(x => x.TotalAmount);
 
 		var previousMonthSameDayTotal = previousMonthSummaries
-			.Where(x => x.Date.Date >= previousMonthStart && x.Date.Date <= previousMonthSameDayEnd)
+			.Where(x => x.Date >= previousMonthStart && x.Date <= previousMonthSameDayEnd)
 			.Sum(x => x.TotalAmount);
 
 		var midMonthComparison = BuildComparison(currentMonthTotal, previousMonthSamePeriodTotal);
@@ -70,15 +71,15 @@ public class HomepageService(
 		var spendingByCategoryCurrent = BuildCategoryDistribution(currentMonthSummaries, categoryLookup, currentMonthTotal);
 		var spendingByCategoryPrevious = BuildCategoryDistribution(previousMonthSummaries, categoryLookup, previousMonthTotal);
 
-		var sixMonthTrend = await GetSixMonthTrendAsync(userId, now);
+		var sixMonthTrend = await GetSixMonthTrendAsync(userId, today);
 		var latestExpenses = await GetLatestExpensesAsync(userId);
-		var weeklySnapshot = await GetWeeklySnapshotAsync(userId, now);
+		var weeklySnapshot = await GetWeeklySnapshotAsync(userId, today);
 		var topSpendingCategory = BuildTopCategory(currentMonthSummaries, categoryLookup, currentMonthTotal);
 		var mostUsedAccount = BuildMostUsedAccount(currentMonthSummaries, accountLookup, currentMonthTotal);
-		var highestSingleExpense = await GetHighestSingleExpenseAsync(userId, currentMonthStart, now);
+		var highestSingleExpense = await GetHighestSingleExpenseAsync(userId, currentMonthStart, today);
 		var dailyAverage = BuildDailyAverage(currentMonthTotal,
 			previousMonthSameDayTotal,
-			now,
+			today,
 			previousMonthStart);
 
 		var response = new HomepageResponseViewModel
@@ -112,7 +113,7 @@ public class HomepageService(
 		return FunctionResponse.Success(response);
 	}
 
-	private async Task<List<DailyCategoryAccountExpense>> GetDailySummariesAsync(ObjectId userId, DateTime start, DateTime end)
+	private async Task<List<DailyCategoryAccountExpense>> GetDailySummariesAsync(ObjectId userId, DateOnly start, DateOnly end)
 	{
 		var filter = Builders<DailyCategoryAccountExpense>.Filter.And(
 			Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.UserId, userId),
@@ -209,14 +210,14 @@ public class HomepageService(
 		return results;
 	}
 
-	private async Task<List<MonthlySpendingTrendViewModel>> GetSixMonthTrendAsync(ObjectId userId, DateTime now)
+	private async Task<List<MonthlySpendingTrendViewModel>> GetSixMonthTrendAsync(ObjectId userId, DateOnly now)
 	{
-		var start = new DateTime(now.Year, now.Month, 1).AddMonths(-(Constants.Homepage.TrendMonths - 1));
+		var start = new DateTime(now.Year, now.Month, 1).AddMonths(-(Constants.Homepage.TrendMonths - 1)).ToDateOnly();
 		var summaries = await GetDailySummariesAsync(userId, start, now);
 
 		var totals = summaries
 			.GroupBy(x => new {x.Date.Year, x.Date.Month})
-			.ToDictionary(g => new DateTime(g.Key.Year, g.Key.Month, 1), g => g.Sum(x => x.TotalAmount));
+			.ToDictionary(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToDateOnly(), g => g.Sum(x => x.TotalAmount));
 
 		var results = new List<MonthlySpendingTrendViewModel>();
 
@@ -297,11 +298,11 @@ public class HomepageService(
 		return result;
 	}
 
-	private async Task<WeeklySnapshotViewModel> GetWeeklySnapshotAsync(ObjectId userId, DateTime now)
+	private async Task<WeeklySnapshotViewModel> GetWeeklySnapshotAsync(ObjectId userId, DateOnly today)
 	{
-		var weekStart = GetWeekStart(now);
-		var dayCount = (now - weekStart).Days;
-		var weekEnd = now;
+		var weekStart = GetWeekStart(today);
+		var dayCount = today.DayNumber - weekStart.DayNumber;
+		var weekEnd = today;
 		var previousWeekStart = weekStart.AddDays(-7);
 		var previousWeekEnd = previousWeekStart.AddDays(dayCount);
 
@@ -320,10 +321,10 @@ public class HomepageService(
 		};
 	}
 
-	private static DateTime GetWeekStart(DateTime date)
+	private static DateOnly GetWeekStart(DateOnly date)
 	{
 		var diff = (7 + (int) date.DayOfWeek - (int) DayOfWeek.Monday) % 7;
-		return date.AddDays(-diff).Date;
+		return date.AddDays(-diff);
 	}
 
 	private static TopSpendingCategoryViewModel BuildTopCategory(List<DailyCategoryAccountExpense> summaries,
@@ -382,10 +383,11 @@ public class HomepageService(
 		};
 	}
 
-	private async Task<HighestSingleExpenseViewModel> GetHighestSingleExpenseAsync(ObjectId userId, DateTime start, DateTime end)
+	private async Task<HighestSingleExpenseViewModel> GetHighestSingleExpenseAsync(ObjectId userId, DateOnly start, DateOnly end)
 	{
+		//TODO buna cozum dusun tehlikeli !!!
 		var sort = Builders<NormalizedTransaction>.Sort.Descending(x => x.Amount).Descending(x => x.DateTime);
-		var transaction = (await transactionRepository.ListAsync(p => p.UserId == userId && p.DateTime >= start && p.DateTime <= end, sort, 1)).FirstOrDefault();
+		var transaction = (await transactionRepository.ListAsync(p => p.UserId == userId && p.DateTime >= start.ToDateTime() && p.DateTime <= end.ToDateTime(), sort, 1)).FirstOrDefault();
 
 		if (transaction == null)
 		{
@@ -393,7 +395,7 @@ public class HomepageService(
 			{
 				MerchantName = string.Empty,
 				Amount = 0,
-				Date = start
+				DateTime = start.ToDateTime(),
 			};
 		}
 
@@ -415,17 +417,17 @@ public class HomepageService(
 		{
 			MerchantName = merchantName,
 			Amount = transaction.Amount,
-			Date = transaction.DateTime
+			DateTime = transaction.DateTime
 		};
 	}
 
 	private static DailyAverageViewModel BuildDailyAverage(decimal currentTotal,
 		decimal previousTotal,
-		DateTime now,
-		DateTime previousMonthStart)
+		DateOnly today,
+		DateOnly previousMonthStart)
 	{
-		var currentDays = now.Day;
-		var previousDays = Math.Min(now.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month));
+		var currentDays = today.Day;
+		var previousDays = Math.Min(today.Day, DateTime.DaysInMonth(previousMonthStart.Year, previousMonthStart.Month));
 
 		var currentAverage = currentDays > 0 ? currentTotal / currentDays : 0;
 		var previousAverage = previousDays > 0 ? previousTotal / previousDays : 0;

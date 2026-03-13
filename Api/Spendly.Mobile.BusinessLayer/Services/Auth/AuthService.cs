@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Core.Extensions;
 using Spendly.Mobile.BusinessLayer.Services.User;
 using Shared.Entities.Subscription;
 using Shared.Entities.TransactionManagement;

@@ -32,3 +32,20 @@ public class AccountDetailRequestViewModel
     public string? Timezone { get; set; }
 }
 
+public class MerchantsReportOverviewRequestViewModel
+{
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? Timezone { get; set; }
+}
+
+public class MerchantDetailRequestViewModel
+{
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? AccountId { get; set; }
+    public int? Page { get; set; }
+    public int? PageSize { get; set; }
+    public string? Timezone { get; set; }
+}
+

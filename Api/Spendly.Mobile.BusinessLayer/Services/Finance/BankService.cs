@@ -3,6 +3,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Finance;
 
 using Microsoft.AspNetCore.DataProtection;
 using MongoDB.Bson;
+using Shared.Core.Extensions;
 using Shared.Entities.Banking;
 using Spendly.Mobile.BusinessLayer.Services.Plaid;
 using Spendly.Mobile.ViewModels.Finance;

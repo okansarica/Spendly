@@ -22,6 +22,8 @@ export const ApiEndpoints = {
     CategoryDetail: (categoryId: string) => `/api/v1/reports/category/${categoryId}`,
     AccountsOverview: '/api/v1/reports/accounts/overview',
     AccountDetail: (accountId: string) => `/api/v1/reports/accounts/${accountId}`,
+    MerchantsOverview: '/api/v1/reports/merchants/overview',
+    MerchantDetail: (merchantId: string) => `/api/v1/reports/merchants/${merchantId}`,
   },
   Categories: {
     Base: '/api/v1/user-categories',

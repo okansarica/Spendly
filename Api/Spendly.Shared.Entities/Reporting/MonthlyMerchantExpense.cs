@@ -5,10 +5,10 @@ using MongoDB.Bson;
 
 public class MerchantMonthlyExpense : BaseReportEntity
 {
-    public ObjectId MerchantId { get; set; }
-    public int TransactionCount { get; set; }
-    public decimal TransactionAmount { get; set; }
-    public int Year { get; set; }
-    public int Month { get; set; }
+    public required ObjectId MerchantId { get; set; }
+    public required int Year { get; set; }
+    public required int Month { get; set; }
+    public decimal TotalAmount { get; set; }
+    public required decimal TotalCount { get; set; }
 }
 

@@ -5,10 +5,10 @@ using MongoDB.Bson;
 
 public class DailyAccountExpense : BaseReportEntity
 {
-    public ObjectId UserId { get; set; }
-    public DateTime DateTime { get; set; }
-    public ObjectId BankId { get; set; }
-    public ObjectId AccountId { get; set; }
-    public decimal TotalAmount { get; set; }
+    public required DateOnly Date { get; set; }
+    public required ObjectId BankId { get; set; }
+    public required ObjectId AccountId { get; set; }
+    public required decimal TotalAmount { get; set; }
+    public required decimal TotalCount { get; set; }
 }
 

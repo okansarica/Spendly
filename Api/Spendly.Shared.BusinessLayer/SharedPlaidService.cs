@@ -1,20 +1,18 @@
 // CHANGED_BY_AI: 2026-03-10 - Scope Plaid transaction ingestion to new account ids for update mode
 namespace Spendly.Shared.BusinessLayer;
 
-using Core;
+using Core.Extensions;
 using DataLayer;
 using Entities.Banking;
 using Entities.Reporting;
 using Entities.TransactionManagement;
 using Entities.UserManagement;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ViewModels.Plaid;
 using ViewModels.Settings;
-using Entities.UserManagement;
 using Notification;
 
 public class SharedPlaidService(
@@ -29,11 +27,14 @@ public class SharedPlaidService(
 	IRepository<UserCategory> userCategoryRepository,
 	IRepository<RawTransaction> rawTransactionRepository,
 	IRepository<DailyUserExpense> dailyUserExpenseRepository,
+	IRepository<DailyMerchantExpense> dailyMerchantExpenseRepository,
 	IRepository<DailyAccountExpense> dailyAccountExpenseRepository,
 	IRepository<DailyCategoryExpense> dailyCategoryExpenseRepository,
 	IRepository<DailyCategoryAccountExpense> dailyCategoryAccountExpenseRepository,
 	IRepository<Category> categoryRepository,
 	IRepository<MonthlyUserExpense> monthlyUserExpenseRepository,
+	IRepository<MonthlyAccountExpense> monthlyAccountExpenseRepository,
+	IRepository<MonthlyCategoryAccountExpense> monthlyCategoryAccountExpenseRepository,
 	IRepository<CategoryMonthlyExpense> categoryMonthlyExpenseRepository,
 	IRepository<PredefinedMerchant> predefinedMerchantRepository,
 	IRepository<AccountNormalizationState> accountNormalizationStateRepository,
@@ -100,34 +101,19 @@ public class SharedPlaidService(
 		var accounts = await accountRepository.ListAsync(p => accountIds.Contains(p.Id));
 		var accountIdToBankIdMap = accounts.ToDictionary(p => p.Id, p => p.BankId);
 
-		await CreateDailyUserExpenses(normalizedTransactions, userId);
-		await CreateDailyAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap);
-		await CreateDailyCategoryExpenses(normalizedTransactions, userId);
-		await CreateDailyCategoryAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap);
-
-		await CreateMonthlyUserExpenses(normalizedTransactions, userId);
-		await CreateMonthlyCategoryExpenses(normalizedTransactions);
-		await CreateMonthlyMerchantExpenses(normalizedTransactions);
+		await CreateDailyAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap).ConfigureAwait(false);
+		await CreateDailyCategoryAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateDailyCategoryExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateDailyMerchantExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateDailyUserExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		
+		await CreateMonthlyAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateMonthlyCategoryAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateMonthlyCategoryExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateMonthlyMerchantExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateMonthlyUserExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 	}
-
-	private async Task CreateDailyUserExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
-	{
-		var groupedData = normalizedTransactions
-			.GroupBy(p => p.DateTime.Date)
-			.Select(g => new DailyUserExpense
-			{
-				UserId = userId,
-				DateTime = g.Key,
-				TotalAmount = g.Sum(t => t.Amount)
-			})
-			.ToList();
-
-		if (groupedData.Any())
-		{
-			await dailyUserExpenseRepository.InsertManyAsync(groupedData);
-		}
-	}
-
+	
 	private async Task CreateDailyAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId, Dictionary<ObjectId, ObjectId> accountIdToBankIdMap)
 	{
 		var groupedData = normalizedTransactions
@@ -135,10 +121,11 @@ public class SharedPlaidService(
 			.Select(g => new DailyAccountExpense
 			{
 				UserId = userId,
-				DateTime = g.Key.Date,
+				Date = g.Key.Date.ToDateOnly(),
 				BankId = accountIdToBankIdMap[g.Key.AccountId],
 				AccountId = g.Key.AccountId,
-				TotalAmount = g.Sum(t => t.Amount)
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
 			})
 			.ToList();
 
@@ -148,6 +135,27 @@ public class SharedPlaidService(
 		}
 	}
 
+	private async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => new {p.UserCategoryId, p.AccountId, Date = p.DateTime.Date})
+			.Select(g => new DailyCategoryAccountExpense
+			{
+				UserId = userId,
+				Date = g.Key.Date.ToDateOnly(),
+				CategoryId = g.Key.UserCategoryId,
+				AccountId = g.Key.AccountId,
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await dailyCategoryAccountExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
 	private async Task CreateDailyCategoryExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
 	{
 		var groupedData = normalizedTransactions
@@ -156,8 +164,9 @@ public class SharedPlaidService(
 			{
 				UserId = userId,
 				CategoryId = g.Key.UserCategoryId,
-				DateTime = g.Key.Date,
-				TotalAmount = g.Sum(t => t.Amount)
+				Date = g.Key.Date.ToDateOnly(),
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
 			})
 			.ToList();
 
@@ -166,25 +175,128 @@ public class SharedPlaidService(
 			await dailyCategoryExpenseRepository.InsertManyAsync(groupedData);
 		}
 	}
-
-	private async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId, Dictionary<ObjectId, ObjectId> accountIdToBankIdMap)
+	
+	private async Task CreateDailyMerchantExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
 	{
 		var groupedData = normalizedTransactions
-			.GroupBy(p => new {p.UserCategoryId, p.AccountId, Date = p.DateTime.Date})
-			.Select(g => new DailyCategoryAccountExpense
+			.GroupBy(p => new {p.MerchantId, Date = p.DateTime.Date})
+			.Select(g => new DailyMerchantExpense
 			{
 				UserId = userId,
-				Date = g.Key.Date,
-				BankId = accountIdToBankIdMap[g.Key.AccountId],
-				CategoryId = g.Key.UserCategoryId,
+				MerchantId = g.Key.MerchantId,
+				Date = g.Key.Date.ToDateOnly(),
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await dailyMerchantExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
+	private async Task CreateDailyUserExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => p.DateTime.Date)
+			.Select(g => new DailyUserExpense
+			{
+				UserId = userId,
+				Date = g.Key.ToDateOnly(),
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await dailyUserExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
+	private async Task CreateMonthlyAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => new {p.DateTime.Year, p.DateTime.Month, p.AccountId})
+			.Select(g => new MonthlyAccountExpense
+			{
 				AccountId = g.Key.AccountId,
+				UserId = userId,
+				Year = g.Key.Year,
+				Month = g.Key.Month,
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await monthlyAccountExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
+	private async Task CreateMonthlyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => new {p.DateTime.Year, p.DateTime.Month, p.AccountId, p.UserCategoryId})
+			.Select(g => new MonthlyCategoryAccountExpense
+			{
+				AccountId = g.Key.AccountId,
+				CategoryId =  g.Key.UserCategoryId,
+				UserId = userId,
+				Year = g.Key.Year,
+				Month = g.Key.Month,
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await monthlyCategoryAccountExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
+	private async Task CreateMonthlyCategoryExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => new {p.UserCategoryId, p.DateTime.Year, p.DateTime.Month})
+			.Select(g => new CategoryMonthlyExpense
+			{
+				UserId = userId,
+				CategoryId = g.Key.UserCategoryId,
+				Year = g.Key.Year,
+				Month = g.Key.Month,
+				TotalCount = g.Count(),
 				TotalAmount = g.Sum(t => t.Amount)
 			})
 			.ToList();
 
 		if (groupedData.Any())
 		{
-			await dailyCategoryAccountExpenseRepository.InsertManyAsync(groupedData);
+			await categoryMonthlyExpenseRepository.InsertManyAsync(groupedData);
+		}
+	}
+	
+	private async Task CreateMonthlyMerchantExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	{
+		var groupedData = normalizedTransactions
+			.GroupBy(p => new {p.MerchantId, p.DateTime.Year, p.DateTime.Month})
+			.Select(g => new MerchantMonthlyExpense
+			{
+				UserId = userId,
+				MerchantId = g.Key.MerchantId,
+				Year = g.Key.Year,
+				Month = g.Key.Month,
+				TotalCount = g.Count(),
+				TotalAmount = g.Sum(t => t.Amount)
+			})
+			.ToList();
+
+		if (groupedData.Any())
+		{
+			await merchantMonthlyExpenseRepository.InsertManyAsync(groupedData);
 		}
 	}
 
@@ -197,53 +309,14 @@ public class SharedPlaidService(
 				UserId = userId,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
-				TotalAmount = g.Sum(t => t.Amount)
+				TotalAmount = g.Sum(t => t.Amount),
+				TotalCount = g.Count()
 			})
 			.ToList();
 
 		if (groupedData.Any())
 		{
 			await monthlyUserExpenseRepository.InsertManyAsync(groupedData);
-		}
-	}
-
-	private async Task CreateMonthlyCategoryExpenses(List<NormalizedTransaction> normalizedTransactions)
-	{
-		var groupedData = normalizedTransactions
-			.GroupBy(p => new {p.UserCategoryId, p.DateTime.Year, p.DateTime.Month})
-			.Select(g => new CategoryMonthlyExpense
-			{
-				CategoryId = g.Key.UserCategoryId,
-				Year = g.Key.Year,
-				Month = g.Key.Month,
-				TransactionCount = g.Count(),
-				TransactionAmount = g.Sum(t => t.Amount)
-			})
-			.ToList();
-
-		if (groupedData.Any())
-		{
-			await categoryMonthlyExpenseRepository.InsertManyAsync(groupedData);
-		}
-	}
-
-	private async Task CreateMonthlyMerchantExpenses(List<NormalizedTransaction> normalizedTransactions)
-	{
-		var groupedData = normalizedTransactions
-			.GroupBy(p => new {p.MerchantId, p.DateTime.Year, p.DateTime.Month})
-			.Select(g => new MerchantMonthlyExpense
-			{
-				MerchantId = g.Key.MerchantId,
-				Year = g.Key.Year,
-				Month = g.Key.Month,
-				TransactionCount = g.Count(),
-				TransactionAmount = g.Sum(t => t.Amount)
-			})
-			.ToList();
-
-		if (groupedData.Any())
-		{
-			await merchantMonthlyExpenseRepository.InsertManyAsync(groupedData);
 		}
 	}
 

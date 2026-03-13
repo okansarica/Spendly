@@ -57,4 +57,26 @@ public class ReportsController(ReportsService reportsService) : ControllerBase
         }
         return Ok(response.Data);
     }
+
+    [HttpGet("merchants/overview")]
+    public async Task<IActionResult> GetMerchantsOverview([FromQuery] MerchantsReportOverviewRequestViewModel request)
+    {
+        var response = await reportsService.GetMerchantsOverviewAsync(request);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+        return Ok(response.Data);
+    }
+
+    [HttpGet("merchants/{merchantId}")]
+    public async Task<IActionResult> GetMerchantDetail(string merchantId, [FromQuery] MerchantDetailRequestViewModel request)
+    {
+        var response = await reportsService.GetMerchantDetailAsync(merchantId, request);
+        if (!response.IsSuccess)
+        {
+            return this.BadRequestFrom(response);
+        }
+        return Ok(response.Data);
+    }
 }

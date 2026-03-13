@@ -11,5 +11,5 @@ public sealed class CacheableAttribute : Attribute
     /// <summary>
     /// If true, and RequestContext is available, include SellerId in cache key. Default true.
     /// </summary>
-    public bool IncludeSellerIdInKey { get; init; } = true;
+    public bool IncludeUserIdInKey { get; init; } = true;
 }

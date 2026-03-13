@@ -5,6 +5,7 @@ namespace Spendly.Mobile.BusinessLayer.Services.Finance;
 
 using MongoDB.Bson;
 using Shared.Core;
+using Shared.Core.Extensions;
 using Spendly.Mobile.BusinessLayer.Constants;
 using Spendly.Mobile.ViewModels.Finance;
 using Spendly.Shared.DataLayer;

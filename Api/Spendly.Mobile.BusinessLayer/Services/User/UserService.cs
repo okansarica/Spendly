@@ -2,6 +2,7 @@
 namespace Spendly.Mobile.BusinessLayer.Services.User;
 
 using Shared.BusinessLayer;
+using Shared.Core.Extensions;
 using Shared.Enums;
 using Spendly.Shared.Core.Interception;
 using Spendly.Mobile.ViewModels.User;
