@@ -18,12 +18,12 @@ public class ReportsService(
 	IRepository<DailyCategoryAccountExpense> dailySummaryRepository,
 	IRepository<NormalizedTransaction> transactionRepository,
 	IRepository<Account> accountRepository,
-	IRepository<UserCategory> categoryRepository,
 	IRepository<UserMerchant> userMerchantRepository,
 	IRepository<Merchant> merchantRepository,
+	IRepository<UserCategory> userCategoryRepository,
 	RequestContextViewModel requestContextViewModel)
 {
-	public async Task<FunctionResponse<ReportsOverviewResponseViewModel>> GetOverviewAsync(ReportsOverviewRequestViewModel request)
+	public async Task<FunctionResponse<ReportsOverviewResponseViewModel>> GetCategoriesReportAsync(ReportsOverviewRequestViewModel request)
 	{
 		if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
 		{
@@ -38,49 +38,49 @@ public class ReportsService(
 		var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
 
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var currentSummaries = await GetDailySummariesAsync(userId, startUtc, endUtc);
-		var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc);
+		var currentMonthDailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId, startUtc, endUtc);
+		var previousMonthDailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId, prevStartUtc, prevEndUtc);
 
-		var currentTotals = currentSummaries
-			.GroupBy(x => x.CategoryId)
+		var currentMonthCategoryTotals = currentMonthDailyCategoryAccountExpenses
+			.GroupBy(x => x.UserCategoryId)
 			.ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
 
-		var previousTotals = previousSummaries
-			.GroupBy(x => x.CategoryId)
+		var previousMonthCategoryTotals = previousMonthDailyCategoryAccountExpenses
+			.GroupBy(x => x.UserCategoryId)
 			.ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
 
-		var allCategoryIds = currentTotals.Keys
-			.Concat(previousTotals.Keys)
+		var allUserCategoryIds = currentMonthCategoryTotals.Keys
+			.Concat(previousMonthCategoryTotals.Keys)
 			.Distinct()
 			.ToList();
 
-		var categoryLookup = await GetCategoryLookupAsync(allCategoryIds);
+		var allUserCategoriesLookup = await GetUserCategoryLookupAsync(allUserCategoryIds);
 
-		var currentTotal = currentTotals.Values.Sum();
-		var previousTotal = previousTotals.Values.Sum();
+		var currentMonthTotalAmount = currentMonthCategoryTotals.Values.Sum();
+		var previousMonthTotalAmount = previousMonthCategoryTotals.Values.Sum();
 
-		var summary = BuildSummary(currentTotal, previousTotal);
+		var summary = BuildSummary(currentMonthTotalAmount, previousMonthTotalAmount);
 
-		var categoryChanges = allCategoryIds
+		var userCategoryChanges = allUserCategoryIds
 			.Select(id => BuildCategoryChange(id,
-				currentTotals,
-				previousTotals,
-				categoryLookup))
+				currentMonthCategoryTotals,
+				previousMonthCategoryTotals,
+				allUserCategoriesLookup))
 			.OrderByDescending(x => Math.Abs(x.DifferenceAmount))
 			.ToList();
 
-		var topChanging = categoryChanges
+		var topCategoryChangeViewModel = userCategoryChanges
 			.Take(Constants.Reports.TopChangingCategories)
 			.ToList();
 
-		var distribution = currentTotals
+		var userCategoryDistributionViewModels = currentMonthCategoryTotals
 			.Where(x => x.Value > 0)
 			.Select(kvp => new ReportCategoryDistributionViewModel
 			{
 				CategoryId = kvp.Key.ToString(),
-				CategoryName = categoryLookup[kvp.Key].Name,
+				CategoryName = allUserCategoriesLookup[kvp.Key].Name,
 				CurrentMonthToDateTotal = kvp.Value,
-				PercentageOfTotal = currentTotal > 0 ? Math.Round(kvp.Value / currentTotal * 100, 1) : 0
+				PercentageOfTotal = currentMonthTotalAmount > 0 ? Math.Round(kvp.Value / currentMonthTotalAmount * 100, 1) : 0
 			})
 			.OrderByDescending(x => x.CurrentMonthToDateTotal)
 			.ToList();
@@ -88,22 +88,18 @@ public class ReportsService(
 		var response = new ReportsOverviewResponseViewModel
 		{
 			Summary = summary,
-			TopChangingCategories = topChanging,
-			CategoryDistribution = distribution,
-			Categories = categoryChanges.OrderByDescending(x => x.CurrentMonthToDateTotal).ToList()
+			TopChangingCategories = topCategoryChangeViewModel,
+			CategoryDistribution = userCategoryDistributionViewModels,
+			Categories = userCategoryChanges.OrderByDescending(x => x.CurrentMonthToDateTotal).ToList()
 		};
 
 		return FunctionResponse.Success(response);
 	}
 
-	public async Task<FunctionResponse<ReportCategoryDetailResponseViewModel>> GetCategoryDetailAsync(string categoryId,
+	public async Task<FunctionResponse<ReportCategoryDetailResponseViewModel>> GetCategoryDetailAsync(string userCategoryId,
 		ReportsCategoryRequestViewModel request)
 	{
-		var categoryObjectId = categoryId.ToObjectIdOrNull();
-		if (categoryObjectId == null)
-		{
-			return FunctionResponse.Failure<ReportCategoryDetailResponseViewModel>(MessageCodes.InvalidCategoryId);
-		}
+		var userCategoryObjectId = userCategoryId.ToObjectId();
 
 		if (!TryResolveTimezone(requestContextViewModel.Timezone, out var tz))
 		{
@@ -117,21 +113,21 @@ public class ReportsService(
 		var accountId = request.AccountId?.ToObjectIdOrNull();
 
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var categoryTotals = await GetDailySummariesAsync(userId,
+		var dailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId,
 			startUtc,
 			endUtc,
-			categoryObjectId,
+			userCategoryObjectId,
 			accountId);
-		var totalAmount = categoryTotals.Sum(x => x.TotalAmount);
+		var totalAmount = dailyCategoryAccountExpenses.Sum(x => x.TotalAmount);
 
-		var categoryName = await GetCategoryNameAsync(categoryObjectId.Value);
+		var userCategoryName = (await userCategoryRepository.GetRequiredAsync(userCategoryObjectId)).Name;
 
 		var page = request.Page ?? 1;
 		var pageSize = request.PageSize ?? Constants.Reports.DefaultPageSize;
 
 		var (transactions, total) = await GetCategoryTransactionsAsync(
 			userId,
-			categoryObjectId.Value,
+			userCategoryObjectId,
 			accountId,
 			startUtc,
 			endUtc,
@@ -162,7 +158,6 @@ public class ReportsService(
 				merchantName = merchant.Name;
 			}
 
-
 			items.Add(new ReportTransactionItemViewModel
 			{
 				TransactionId = transaction.Id.ToString(),
@@ -181,8 +176,8 @@ public class ReportsService(
 		{
 			CategorySummary = new ReportCategorySummaryViewModel
 			{
-				CategoryId = categoryObjectId.Value.ToString(),
-				CategoryName = categoryName,
+				CategoryId = userCategoryObjectId.ToString(),
+				CategoryName = userCategoryName,
 				TotalAmount = totalAmount
 			},
 			Transactions = new ReportTransactionPageViewModel
@@ -213,38 +208,38 @@ public class ReportsService(
 		var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
 
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var currentSummaries = await GetDailySummariesAsync(userId, startUtc, endUtc);
-		var previousSummaries = await GetDailySummariesAsync(userId, prevStartUtc, prevEndUtc);
+		var currentMonthDailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId, startUtc, endUtc);
+		var previousMonthDailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId, prevStartUtc, prevEndUtc);
 
-		var currentTotals = currentSummaries
+		var currentMonthTotalAmounts = currentMonthDailyCategoryAccountExpenses
 			.GroupBy(x => x.AccountId)
 			.ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
 
-		var previousTotals = previousSummaries
+		var previousMonthTotalAmounts = previousMonthDailyCategoryAccountExpenses
 			.GroupBy(x => x.AccountId)
 			.ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
 
-		var allAccountIds = currentTotals.Keys
-			.Concat(previousTotals.Keys)
+		var allAccountIds = currentMonthTotalAmounts.Keys
+			.Concat(previousMonthTotalAmounts.Keys)
 			.Distinct()
 			.ToList();
 
 		var accountLookup = await GetAccountLookupAsync(allAccountIds);
 
-		var currentTotal = currentTotals.Values.Sum();
-		var previousTotal = previousTotals.Values.Sum();
+		var currentTotal = currentMonthTotalAmounts.Values.Sum();
+		var previousTotal = previousMonthTotalAmounts.Values.Sum();
 
 		var summary = BuildSummary(currentTotal, previousTotal);
 
 		var accounts = allAccountIds
 			.Select(id => BuildAccountListItem(id,
-				currentTotals,
-				previousTotals,
+				currentMonthTotalAmounts,
+				previousMonthTotalAmounts,
 				accountLookup))
 			.OrderByDescending(x => x.CurrentMonthToDateTotal)
 			.ToList();
 
-		var distribution = currentTotals
+		var distribution = currentMonthTotalAmounts
 			.Where(x => x.Value > 0)
 			.Select(kvp => new AccountDistributionViewModel
 			{
@@ -283,25 +278,25 @@ public class ReportsService(
 		var (startUtc, endUtc) = ToUtcRange(startLocal, endLocal, tz);
 
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		var summaries = await GetDailySummariesAsync(userId,
+		var dailyCategoryAccountExpenses = await GetDailyCategoryAccountExpenses(userId,
 			startUtc,
 			endUtc,
 			null,
 			accountObjectId);
-		var totalAmount = summaries.Sum(x => x.TotalAmount);
+		var categoryTotalAmount = dailyCategoryAccountExpenses.Sum(x => x.TotalAmount);
 
-		var categories = summaries
-			.GroupBy(x => x.CategoryId)
-			.Select(g => new {CategoryId = g.Key, Total = g.Sum(x => x.TotalAmount)})
+		var userCategoryTotalAmounts = dailyCategoryAccountExpenses
+			.GroupBy(x => x.UserCategoryId)
+			.Select(g => new {UserCategoryId = g.Key, Total = g.Sum(x => x.TotalAmount)})
 			.OrderByDescending(x => x.Total)
 			.ToList();
 
-		var categoryLookup = await GetCategoryLookupAsync(categories.Select(x => x.CategoryId).ToList());
+		var userCategoryLookup = await GetUserCategoryLookupAsync(userCategoryTotalAmounts.Select(x => x.UserCategoryId).ToList());
 
-		var categoryTotals = categories.Select(x => new AccountCategoryTotalViewModel
+		var accountCategoryTotalViewModels = userCategoryTotalAmounts.Select(x => new AccountCategoryTotalViewModel
 			{
-				CategoryId = x.CategoryId.ToString(),
-				CategoryName = categoryLookup[x.CategoryId].Name,
+				CategoryId = x.UserCategoryId.ToString(),
+				CategoryName = userCategoryLookup[x.UserCategoryId].Name,
 				TotalAmount = x.Total
 			})
 			.ToList();
@@ -313,9 +308,7 @@ public class ReportsService(
 			userId,
 			accountObjectId,
 			tz,
-			totalAmount);
-
-
+			categoryTotalAmount);
 
 		var response = new AccountDetailResponseViewModel
 		{
@@ -325,10 +318,10 @@ public class ReportsService(
 				AccountName = account.NickName ?? account.Name,
 				StartDate = startLocal,
 				EndDate = endLocal,
-				TotalAmount = totalAmount,
+				TotalAmount = categoryTotalAmount,
 				Comparison = comparisonResult
 			},
-			Categories = categoryTotals
+			Categories = accountCategoryTotalViewModels
 		};
 
 		return FunctionResponse.Success(response);
@@ -388,7 +381,7 @@ public class ReportsService(
 				}
 			}
 		}
-		var categoryLookup = await GetCategoryLookupAsync(categoryIds.Distinct().ToList());
+		var categoryLookup = await GetUserCategoryLookupAsync(categoryIds.Distinct().ToList());
 
 		var currentTotal = currentMerchantTotals.Where(x => x.Value > 0).Sum(x => x.Value);
 		var previousTotal = previousMerchantTotals.Values.Sum();
@@ -689,7 +682,7 @@ public class ReportsService(
 
 		var (prevStartLocal, prevEndLocal) = GetPreviousMonthSamePeriod(startLocal, endLocal);
 		var (prevStartUtc, prevEndUtc) = ToUtcRange(prevStartLocal, prevEndLocal, tz);
-		var previousSummaries = await GetDailySummariesAsync(userId,
+		var previousSummaries = await GetDailyCategoryAccountExpenses(userId,
 			prevStartUtc,
 			prevEndUtc,
 			null,
@@ -708,7 +701,7 @@ public class ReportsService(
 		};
 	}
 
-	private async Task<List<DailyCategoryAccountExpense>> GetDailySummariesAsync(ObjectId userId,
+	private async Task<List<DailyCategoryAccountExpense>> GetDailyCategoryAccountExpenses(ObjectId userId,
 		DateTime startUtc,
 		DateTime endUtc,
 		ObjectId? categoryId = null,
@@ -723,7 +716,7 @@ public class ReportsService(
 
 		if (categoryId.HasValue)
 		{
-			filters.Add(Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.CategoryId, categoryId.Value));
+			filters.Add(Builders<DailyCategoryAccountExpense>.Filter.Eq(x => x.UserCategoryId, categoryId.Value));
 		}
 
 		if (accountId.HasValue)
@@ -834,13 +827,13 @@ public class ReportsService(
 		};
 	}
 
-	private async Task<Dictionary<ObjectId, UserCategory>> GetCategoryLookupAsync(List<ObjectId> ids)
+	private async Task<Dictionary<ObjectId, UserCategory>> GetUserCategoryLookupAsync(List<ObjectId> ids)
 	{
 		if (ids.Count == 0)
 		{
 			return new Dictionary<ObjectId, UserCategory>();
 		}
-		return await categoryRepository.ListDictionaryAsync(ids);
+		return await userCategoryRepository.ListDictionaryAsync(ids);
 	}
 
 	private async Task<Dictionary<ObjectId, Account>> GetAccountLookupAsync(List<ObjectId> ids)
@@ -861,11 +854,6 @@ public class ReportsService(
 		return await userMerchantRepository.ListSingleDictionaryAsync(ids, p => p.MerchantId);
 	}
 
-	private async Task<string> GetCategoryNameAsync(ObjectId categoryId)
-	{
-		var category = await categoryRepository.GetRequiredAsync(categoryId);
-		return category.Name;
-	}
 
 
 	private static (DateTime StartLocal, DateTime EndLocal) ResolveRange(DateTime? start, DateTime? end, DateTime nowLocal)

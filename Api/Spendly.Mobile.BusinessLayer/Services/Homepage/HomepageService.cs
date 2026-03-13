@@ -51,8 +51,8 @@ public class HomepageService(
 			.Concat(previousMonthSummaries.Select(x => x.AccountId))
 			.Distinct()
 			.ToList();
-		var categoryIds = currentMonthSummaries.Select(x => x.CategoryId)
-			.Concat(previousMonthSummaries.Select(x => x.CategoryId))
+		var userCategoryIds = currentMonthSummaries.Select(x => x.UserCategoryId)
+			.Concat(previousMonthSummaries.Select(x => x.UserCategoryId))
 			.Distinct()
 			.ToList();
 
@@ -60,7 +60,7 @@ public class HomepageService(
 			Builders<Account>.Filter.In(x => x.Id, accountIds)
 		);
 		var categories = await userCategoryRepository.ListAsync(
-			Builders<UserCategory>.Filter.In(x => x.Id, categoryIds)
+			Builders<UserCategory>.Filter.In(x => x.Id, userCategoryIds)
 		);
 
 		var accountLookup = accounts.ToDictionary(x => x.Id);
@@ -189,7 +189,7 @@ public class HomepageService(
 		decimal total)
 	{
 		var grouped = summaries
-			.GroupBy(x => x.CategoryId)
+			.GroupBy(x => x.UserCategoryId)
 			.Select(g => new {CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
 			.OrderByDescending(x => x.Amount)
 			.ToList();
@@ -332,7 +332,7 @@ public class HomepageService(
 		decimal total)
 	{
 		var top = summaries
-			.GroupBy(x => x.CategoryId)
+			.GroupBy(x => x.UserCategoryId)
 			.Select(g => new {CategoryId = g.Key, Amount = g.Sum(x => x.TotalAmount)})
 			.OrderByDescending(x => x.Amount)
 			.FirstOrDefault();

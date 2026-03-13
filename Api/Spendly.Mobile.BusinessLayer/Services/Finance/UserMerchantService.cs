@@ -30,9 +30,9 @@ public class UserMerchantService(
             return FunctionResponse.Success(new List<MerchantListItemViewModel>());
         }
 
-        var allUserCategories = await userCategoryRepository.ListDictionaryAsync(userMerchants.Where(p=>p.UserCategoryId.HasValue).Select(p => p.UserCategoryId!.Value));
+        var allUserCategories = await userCategoryRepository.ListDictionaryAsync(userMerchants.Where(p=>p.UserCategoryId.HasValue).Select(p => p.UserCategoryId!.Value).ToList());
 
-        var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+        var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId).ToList());
 
         var items = userMerchants.Select(x => new MerchantListItemViewModel
         {

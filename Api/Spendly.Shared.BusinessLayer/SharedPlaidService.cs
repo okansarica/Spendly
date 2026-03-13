@@ -102,13 +102,13 @@ public class SharedPlaidService(
 		var accountIdToBankIdMap = accounts.ToDictionary(p => p.Id, p => p.BankId);
 
 		await CreateDailyAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap).ConfigureAwait(false);
-		await CreateDailyCategoryAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateDailyCategoryAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap).ConfigureAwait(false);
 		await CreateDailyCategoryExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 		await CreateDailyMerchantExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 		await CreateDailyUserExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 		
 		await CreateMonthlyAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
-		await CreateMonthlyCategoryAccountExpenses(normalizedTransactions, userId).ConfigureAwait(false);
+		await CreateMonthlyCategoryAccountExpenses(normalizedTransactions, userId, accountIdToBankIdMap).ConfigureAwait(false);
 		await CreateMonthlyCategoryExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 		await CreateMonthlyMerchantExpenses(normalizedTransactions, userId).ConfigureAwait(false);
 		await CreateMonthlyUserExpenses(normalizedTransactions, userId).ConfigureAwait(false);
@@ -135,7 +135,7 @@ public class SharedPlaidService(
 		}
 	}
 
-	private async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	private async Task CreateDailyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId, Dictionary<ObjectId, ObjectId> accountIdToBankIdMap)
 	{
 		var groupedData = normalizedTransactions
 			.GroupBy(p => new {p.UserCategoryId, p.AccountId, Date = p.DateTime.Date})
@@ -143,8 +143,9 @@ public class SharedPlaidService(
 			{
 				UserId = userId,
 				Date = g.Key.Date.ToDateOnly(),
-				CategoryId = g.Key.UserCategoryId,
+				UserCategoryId = g.Key.UserCategoryId,
 				AccountId = g.Key.AccountId,
+				BankId = accountIdToBankIdMap[g.Key.AccountId],
 				TotalAmount = g.Sum(t => t.Amount),
 				TotalCount = g.Count()
 			})
@@ -236,14 +237,15 @@ public class SharedPlaidService(
 		}
 	}
 	
-	private async Task CreateMonthlyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId)
+	private async Task CreateMonthlyCategoryAccountExpenses(List<NormalizedTransaction> normalizedTransactions, ObjectId userId, Dictionary<ObjectId, ObjectId> accountIdToBankIdMap)
 	{
 		var groupedData = normalizedTransactions
 			.GroupBy(p => new {p.DateTime.Year, p.DateTime.Month, p.AccountId, p.UserCategoryId})
 			.Select(g => new MonthlyCategoryAccountExpense
 			{
+				BankId = accountIdToBankIdMap[g.Key.AccountId],
 				AccountId = g.Key.AccountId,
-				CategoryId =  g.Key.UserCategoryId,
+				UserCategoryId =  g.Key.UserCategoryId,
 				UserId = userId,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
@@ -265,7 +267,7 @@ public class SharedPlaidService(
 			.Select(g => new CategoryMonthlyExpense
 			{
 				UserId = userId,
-				CategoryId = g.Key.UserCategoryId,
+				UserCategoryId = g.Key.UserCategoryId,
 				Year = g.Key.Year,
 				Month = g.Key.Month,
 				TotalCount = g.Count(),

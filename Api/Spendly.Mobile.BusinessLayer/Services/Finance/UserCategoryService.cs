@@ -257,7 +257,7 @@ public class UserCategoryService(
 			return FunctionResponse.Success(new List<CategoryMerchantItemViewModel>());
 		}
 
-		var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId));
+		var allMerchants = await merchantRepository.ListDictionaryAsync(userMerchants.Select(p => p.MerchantId).ToList());
 		var response = userMerchants.Select(x => new CategoryMerchantItemViewModel
 			{
 				Id = x.Id.ToString(),

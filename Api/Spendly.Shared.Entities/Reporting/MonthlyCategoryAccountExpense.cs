@@ -5,7 +5,8 @@ using MongoDB.Bson;
 
 public class MonthlyCategoryAccountExpense : BaseReportEntity
 {
-	public required ObjectId CategoryId { get; set; }
+	public required ObjectId BankId { get; set; }
+	public required ObjectId UserCategoryId { get; set; }
 	public required ObjectId AccountId { get; set; }
 	public required int Year { get; set; }
 	public required int Month { get; set; }

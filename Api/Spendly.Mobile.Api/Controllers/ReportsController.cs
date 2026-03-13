@@ -17,7 +17,7 @@ public class ReportsController(ReportsService reportsService) : ControllerBase
     [HttpGet("overview")]//category report
     public async Task<IActionResult> GetOverview([FromQuery] ReportsOverviewRequestViewModel request)
     {
-        var response = await reportsService.GetOverviewAsync(request);
+        var response = await reportsService.GetCategoriesReportAsync(request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);
@@ -25,10 +25,10 @@ public class ReportsController(ReportsService reportsService) : ControllerBase
         return Ok(response.Data);
     }
 
-    [HttpGet("category/{categoryId}")]
-    public async Task<IActionResult> GetCategoryDetail(string categoryId, [FromQuery] ReportsCategoryRequestViewModel request)
+    [HttpGet("category/{userCategoryId}")]
+    public async Task<IActionResult> GetCategoryDetail(string userCategoryId, [FromQuery] ReportsCategoryRequestViewModel request)
     {
-        var response = await reportsService.GetCategoryDetailAsync(categoryId, request);
+        var response = await reportsService.GetCategoryDetailAsync(userCategoryId, request);
         if (!response.IsSuccess)
         {
             return this.BadRequestFrom(response);

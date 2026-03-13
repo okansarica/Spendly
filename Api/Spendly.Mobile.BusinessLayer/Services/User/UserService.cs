@@ -134,7 +134,7 @@ public class UserService(
         }
 
         var categoryIds = categories.Select(x => x.Id).ToHashSet();
-        foreach (var categoryMonthlyExpense in await categoryMonthlyExpenseRepository.ListAsync(x => categoryIds.Contains(x.CategoryId)))
+        foreach (var categoryMonthlyExpense in await categoryMonthlyExpenseRepository.ListAsync(x => categoryIds.Contains(x.UserCategoryId)))
         {
             await categoryMonthlyExpenseRepository.DeleteAsync(categoryMonthlyExpense.Id);
         }
