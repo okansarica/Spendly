@@ -431,7 +431,7 @@ export default function DashboardScreen() {
                 </View>
               ) : null}
 
-              {data.highestSingleExpense.merchantName ? (
+              {data.highestSingleExpense.transactionName ? (
                 <View style={[s.listItem, !data.mostUsedAccount.accountName && s.listItemLast]}>
                   <View style={s.expenseLeft}>
                     <Text style={s.listItemLabel}>{translate('HighestExpense')}</Text>
@@ -440,7 +440,7 @@ export default function DashboardScreen() {
                     </Text>
                   </View>
                   <View style={{alignItems: 'flex-end'}}>
-                    <Text style={s.listItemValue}>{data.highestSingleExpense.merchantName}</Text>
+                    <Text style={s.listItemValue}>{data.highestSingleExpense.transactionName}</Text>
                     <Text style={s.expenseDetails}>{formatCurrency(data.highestSingleExpense.amount)}</Text>
                   </View>
                 </View>

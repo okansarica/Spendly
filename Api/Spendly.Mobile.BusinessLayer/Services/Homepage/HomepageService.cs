@@ -415,6 +415,7 @@ public class HomepageService(
 
 		return new HighestSingleExpenseViewModel
 		{
+			TransactionName =transaction.TransactionName,
 			MerchantName = merchantName,
 			Amount = transaction.Amount,
 			DateTime = transaction.DateTime

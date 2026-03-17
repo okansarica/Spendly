@@ -30,18 +30,6 @@ public class PlaidDataProcessorHostedService(
                     request
                 );
                 
-                // var plaidDataProcessingService = scope.ServiceProvider.GetRequiredService<PlaidDataProcessingService>();
-                // var plaidService = scope.ServiceProvider.GetRequiredService<PlaidService>();
-                // var transactionNormalizationService = scope.ServiceProvider.GetRequiredService<TransactionNormalizationService>();
-                //
-                // var savedRawTransactionIds = await plaidDataProcessingService.ProcessUserTransactionsAsync(
-                //     request.UserId, 
-                //     plaidService.GetTransactionsAsync);
-                
-                // logger.LogInformation("Starting normalization for user {UserId} with {Count} raw transactions", 
-                //     request.UserId, savedRawTransactionIds.Count);
-                //
-                // await transactionNormalizationService.NormalizeTransactionsAsync(savedRawTransactionIds);
                 
                 logger.LogInformation("Completed Plaid data processing for user {UserId}", request.UserId);
             }

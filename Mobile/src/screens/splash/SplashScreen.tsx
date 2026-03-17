@@ -17,7 +17,6 @@ export default function SplashScreen() {
 
   return (
     <View style={[styles.container, {backgroundColor: colors.backgroundPrimary}]}> 
-      <Header title={translate('AppTitle')} showBack={false} />
       <Text style={[styles.logo, {color: colors.buttonPrimary, fontSize: fontSizes.xxl, fontWeight: fontWeights.bold}]}>
         Spendly
       </Text>

@@ -60,6 +60,7 @@ export type HomepageResponse = {
     percentageOfTotal: number;
   };
   highestSingleExpense: {
+    transactionName: string;
     merchantName: string;
     amount: number;
     date: string;

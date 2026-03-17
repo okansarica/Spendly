@@ -83,6 +83,7 @@ public class HighestSingleExpenseViewModel
     public string MerchantName { get; set; }
     public decimal Amount { get; set; }
     public DateTime DateTime { get; set; }
+    public string TransactionName { get; set; }
 }
 
 public class MostUsedAccountViewModel
