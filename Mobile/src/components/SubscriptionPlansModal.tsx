@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-17 - Replace fontSizes.xxl+2 arithmetic with fontSizes.xxxl token; use colors.cardShadow
 // CHANGED_BY_AI: 2026-03-12 - Ensure registration modal always shows all 3 plan options
 // CHANGED_BY_AI: 2026-03-12 - Add reusable trial selection mode for registration flow
 // CHANGED_BY_AI: 2026-03-12 - Harmonize plan selection colors in dark mode
@@ -132,7 +133,7 @@ export default function SubscriptionPlansModal({
       padding: spacing.xl,
       width: '100%',
       maxWidth: 400,
-      shadowColor: '#000',
+      shadowColor: colors.cardShadow,
       shadowOffset: {width: 0, height: 12},
       shadowOpacity: 0.6,
       shadowRadius: 24,
@@ -181,7 +182,7 @@ export default function SubscriptionPlansModal({
       color: colors.buttonPrimary,
     },
     title: {
-      fontSize: fontSizes.xxl + 2,
+      fontSize: fontSizes.xxxl,
       fontWeight: fontWeights.bold,
       color: colors.textPrimary,
       marginBottom: spacing.sm,

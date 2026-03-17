@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-17 - Add accessibilityLabel to error icon
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -26,9 +27,14 @@ export default function ErrorDisplay({message}: ErrorDisplayProps) {
 
   return (
     <View style={s.container}>
-      <Icon name="error-outline" size={48} color={colors.danger} />
+      <Icon
+        name="error-outline"
+        size={48}
+        color={colors.danger}
+        accessibilityLabel="Error"
+        accessibilityRole="image"
+      />
       <Text style={s.text}>{message}</Text>
     </View>
   );
 }
-

@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-17 - Add warning token; fix dark buttonPrimaryDisabled contrast
 // CHANGED_BY_AI: 2026-03-02 - Add chart palette tokens
 export const lightColors = {
   backgroundPrimary: '#FFFFFF',
@@ -34,6 +35,9 @@ export const lightColors = {
   cardShadow: '#000000',
   overlay: 'rgba(0,0,0,0.4)',
 
+  warning: '#F59E0B',
+  warningText: '#FFFFFF',
+
   errorBackground: '#FEE2E2',
   errorText: '#DC2626',
   successBackground: '#DCFCE7',
@@ -51,7 +55,7 @@ export const darkColors: typeof lightColors = {
 
   buttonPrimary: '#1E40AF',
   buttonPrimaryText: '#FFFFFF',
-  buttonPrimaryDisabled: '#1E40AF',
+  buttonPrimaryDisabled: '#4E63C4',
 
   buttonSecondary: '#374151',
   buttonSecondaryText: '#D1D5DB',
@@ -75,6 +79,9 @@ export const darkColors: typeof lightColors = {
   cardBackground: '#263244',
   cardShadow: '#000000',
   overlay: 'rgba(0,0,0,0.4)',
+
+  warning: '#F59E0B',
+  warningText: '#FFFFFF',
 
   errorBackground: '#450A0A',
   errorText: '#FCA5A5',

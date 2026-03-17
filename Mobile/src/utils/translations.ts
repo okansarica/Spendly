@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-17 - Add register validation, dashboard, and a11y translation keys
 // CHANGED_BY_AI: 2026-03-12 - Add registration plan selection translations
 // CHANGED_BY_AI: 2026-03-12 - Add CTA wording to expiring trial warning banner
 // CHANGED_BY_AI: 2026-03-12 - Add upgrade-focused subscription modal translations for dismissible state
@@ -135,6 +136,12 @@ const translations: Record<string, Record<string, string>> = {
     Register: 'Register',
     AlreadyHaveAccount: 'Already have an account? Login',
     RegistrationFailed: 'Registration Failed',
+    ConfirmPassword: 'Confirm Password',
+    PasswordTooShort: 'Password must be at least 6 characters',
+    PasswordsMustMatch: 'Passwords do not match',
+    ConfirmPasswordRequired: 'Please confirm your password',
+    ShowPassword: 'Show password',
+    HidePassword: 'Hide password',
     SendResetLink: 'Send Reset Link',
     BackToLogin: 'Back to Login',
     PasswordResetEmailSent: 'If the email exists, a reset link has been sent.',
@@ -165,7 +172,6 @@ const translations: Record<string, Record<string, string>> = {
     SelectedMerchants: 'Merchants Selected',
     SearchCategories: 'Search categories',
     SearchBanksAccounts: 'Search banks or accounts',
-    SearchMerchants: 'Search merchants',
     NoCategories: 'No categories found',
     NoMerchants: 'No merchants found',
     NoMerchantsFilteredTitle: 'No merchants match your filters',
@@ -269,6 +275,17 @@ const translations: Record<string, Record<string, string>> = {
     SkipForNow: 'Skip',
     StoreLinkNotAvailable: 'Store link is not available.',
     BankDataProcessingMessage: 'We are currently processing your data. You will be notified when it is complete.',
+    ViewReports: 'View Reports',
+    SwipeToCompare: 'Swipe to compare months',
+    MonthOverMonthChange: 'Month-over-month % change',
+    GoToReports: 'Go to Reports',
+    BackButton: 'Go back',
+    ToggleLightMode: 'Switch to light mode',
+    ToggleDarkMode: 'Switch to dark mode',
+    ContinueWithGoogle: 'Continue with Google',
+    ContinueWithFacebook: 'Continue with Facebook',
+    SubscriptionWarningBannerLabel: 'Subscription expiring – tap to view plans',
+    TapToUpgrade: 'Tap to upgrade',
   },
 };
 

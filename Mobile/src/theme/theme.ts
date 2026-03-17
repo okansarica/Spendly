@@ -1,3 +1,4 @@
+// CHANGED_BY_AI: 2026-03-17 - Add fontSizes.xxxl and fontSizes.display tokens
 // CHANGED_BY_AI: 2026-03-12 - Add semantic linkColor token for theme-driven link readability
 import {lightColors, darkColors} from './colors';
 
@@ -22,6 +23,8 @@ export const fontSizes = {
   lg: 17,
   xl: 20,
   xxl: 26,
+  xxxl: 28,
+  display: 42,
 } as const;
 
 export const fontWeights = {
