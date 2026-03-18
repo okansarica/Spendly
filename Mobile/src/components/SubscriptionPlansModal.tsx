@@ -97,18 +97,33 @@ export default function SubscriptionPlansModal({
       if (InAppBrowser && (await InAppBrowser.isAvailable())) {        
         
         try {
-          await InAppBrowser.open(paymentUrl, {
-            dismissButtonStyle: 'close',
-            preferredBarTintColor: colors.backgroundPrimary,
-            preferredControlTintColor: colors.textPrimary,
-            readerMode: false,
-            animated: true,
-            modalPresentationStyle: 'pageSheet',
-            modalTransitionStyle: 'coverVertical',
-            modalEnabled: true,
-            enableBarCollapsing: false,
-          });
-        } catch {}
+          // await InAppBrowser.open(paymentUrl, {
+          //   dismissButtonStyle: 'close',
+          //   preferredBarTintColor: colors.backgroundPrimary,
+          //   preferredControlTintColor: colors.textPrimary,
+          //   readerMode: false,
+          //   animated: true,
+          //   modalPresentationStyle: 'pageSheet',
+          //   modalTransitionStyle: 'coverVertical',
+          //   modalEnabled: true,
+          //   enableBarCollapsing: false,
+          // });
+
+            await InAppBrowser.openAuth(paymentUrl, paymentUrl,{
+              dismissButtonStyle: 'close',
+              preferredBarTintColor: colors.backgroundPrimary,
+              preferredControlTintColor: colors.textPrimary,
+              readerMode: false,
+              animated: true,
+              modalPresentationStyle: 'pageSheet',
+              modalTransitionStyle: 'coverVertical',
+              modalEnabled: true,
+              enableBarCollapsing: false,
+            });
+            
+        } catch (error) {
+            console.log('Error navigating to Payment Url', error);
+        }
       }
     } else if (createPaymentUrl.rejected.match(result)) {
       Toast.show({

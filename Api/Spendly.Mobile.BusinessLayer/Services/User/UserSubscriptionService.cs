@@ -27,7 +27,7 @@ using System.Security.Claims;
 public class UserSubscriptionService(
 	IRepository<UserSubscription> userSubscriptionRepository,
 	IRepository<UserSubscriptionPaymentUrl> userSubscriptionPaymentUrlRepository,
-	IRepository<StripeCommunicationLog> stripeCommunicationLogRepository,
+	LogRepository<StripeCommunicationLog> stripeCommunicationLogRepository,
 	IRepository<FirebaseToken> firebaseTokenRepository,
 	RequestContextViewModel requestContextViewModel,
 	StripeSettings stripeSettings,
@@ -147,6 +147,7 @@ public class UserSubscriptionService(
 			RequestPayload = requestPayload,
 			ResponsePayload = responsePayload,
 			Headers = string.Empty,
+			UserId = requestContextViewModel.TryToGetUserId()
 		});
 
 		var paymentUrl = new UserSubscriptionPaymentUrl
@@ -178,6 +179,7 @@ public class UserSubscriptionService(
 			RequestPayload = payload,
 			ResponsePayload = string.Empty,
 			Headers = signature,
+			UserId = requestContextViewModel.TryToGetUserId()
 		};
 
 		await stripeCommunicationLogRepository.InsertAsync(log);

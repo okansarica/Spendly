@@ -47,6 +47,7 @@ var app = AppBootstrapper
 		services.AddMemoryCache();
 		services.AddHttpContextAccessor();
 		services.AddReportRepositories(config);
+		services.AddLogRepositories(config);
 		
 		services.AddSingleton<IAmazonSimpleEmailService>(sp =>
 		{

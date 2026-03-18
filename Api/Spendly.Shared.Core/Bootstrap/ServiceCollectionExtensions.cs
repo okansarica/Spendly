@@ -38,6 +38,18 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+    
+    public static IServiceCollection AddLogRepositories(this IServiceCollection services, IConfiguration configuration)
+    {
+        RegisterMongoConventions();
+
+        var logDbSettings = services.BuildServiceProvider().GetRequiredService<LogDbSettings>();
+        services.AddSingleton(logDbSettings);
+
+        RegisterRepositoriesForLogEntity(services, logDbSettings);
+
+        return services;
+    }
 
     private static void RegisterMongoConventions()
     {
@@ -86,6 +98,24 @@ public static class ServiceCollectionExtensions
 
             services.AddSingleton(interfaceType, _ => Activator.CreateInstance(repoType, reportDbSettings)!);
             services.AddSingleton(repoType, _ => Activator.CreateInstance(repoType, reportDbSettings)!);
+        }
+    }
+    
+    private static void RegisterRepositoriesForLogEntity(IServiceCollection services, LogDbSettings logDbSettings)
+    {
+        var assembly = Assembly.GetAssembly(typeof(BaseLogEntity)) 
+                       ?? throw new InvalidOperationException($"Assembly not found for {nameof(BaseLogEntity)}");
+
+        var entityTypes = assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(BaseLogEntity)) && !t.IsAbstract);
+
+        foreach (var type in entityTypes)
+        {
+            var repoType = typeof(LogRepository<>).MakeGenericType(type);
+            var interfaceType = typeof(IRepository<>).MakeGenericType(type);
+
+            services.AddSingleton(interfaceType, _ => Activator.CreateInstance(repoType, logDbSettings)!);
+            services.AddSingleton(repoType, _ => Activator.CreateInstance(repoType, logDbSettings)!);
         }
     }
     

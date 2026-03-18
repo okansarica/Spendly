@@ -30,7 +30,7 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
             Server = new MongoServerAddress(Environment.GetEnvironmentVariable("TEST_MONGO_HOST") ?? "localhost", port),
         };
 
-        if (!string.IsNullOrEmpty(dbSettings?.UserName))
+        if (!string.IsNullOrEmpty(dbSettings.UserName))
         {
             settings.Credential = MongoCredential.CreateCredential(
                 dbSettings.DatabaseName,

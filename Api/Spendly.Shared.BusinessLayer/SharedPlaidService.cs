@@ -22,7 +22,7 @@ public class SharedPlaidService(
 	IRepository<Account> accountRepository,
 	IRepository<Merchant> merchantRepository,
 	IRepository<UserMerchant> userMerchantRepository,
-	IRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
+	LogRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
 	IRepository<NormalizedTransaction> normalizedTransactionRepository,
 	IRepository<UserCategory> userCategoryRepository,
 	IRepository<RawTransaction> rawTransactionRepository,

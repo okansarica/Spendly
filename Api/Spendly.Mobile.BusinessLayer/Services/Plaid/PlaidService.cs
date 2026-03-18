@@ -25,7 +25,7 @@ public class PlaidService(
 	HttpClient httpClient,
 	IDataProtectionProvider dataProtectionProvider,
 	IRepository<UserPlaidToken> userPlaidTokenRepository,
-	IRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
+	LogRepository<PlaidCommunicationLog> plaidCommunicationLogRepository,
 	IRepository<Bank> bankRepository,
 	IRepository<Account> accountRepository,
 	PlaidSettings plaidSettings,

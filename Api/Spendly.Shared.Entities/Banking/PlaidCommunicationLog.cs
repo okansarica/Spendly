@@ -2,11 +2,11 @@ namespace Spendly.Shared.Entities.Banking;
 
 using Core;
 
-public class PlaidCommunicationLog:BaseEntity
+public class PlaidCommunicationLog : BaseLogEntity
 {
-	public string Content { get; set; }=string.Empty;
+	public string Content { get; set; } = string.Empty;
 	public PlaidCommunicationLogType Type { get; set; }
-	
+
 }
 
 public enum PlaidCommunicationLogType

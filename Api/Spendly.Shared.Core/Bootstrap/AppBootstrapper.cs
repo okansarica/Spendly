@@ -55,13 +55,13 @@ public class AppBootstrapper
 		_configureServices = configure;
 		return this;
 	}
-	
+
 	public AppBootstrapper ConfigureCors(Action<IServiceCollection, IConfiguration> configure)
 	{
 		_configureCors = configure;
 		return this;
 	}
-	
+
 	public AppBootstrapper WithServiceScanning(Assembly[] assemblies, Func<Type, bool>? filter = null)
 	{
 		_assembliesToScan = assemblies;
@@ -90,7 +90,7 @@ public class AppBootstrapper
 			var configuration = SetupConfigurationFiles();
 
 			ConfigureLogging(configuration, "Job");
-			
+
 			try
 			{
 				BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
@@ -147,159 +147,164 @@ public class AppBootstrapper
 	/// <summary>
 	/// Web API olarak yapılandır ve döndür
 	/// </summary>
-	 public WebApplication BuildWebApi(string logPrefix = "Api",bool useMvcViews = false,
-            Action<WebApplicationBuilder>? configureBuilder = null)
-        {
-            var builder = WebApplication.CreateBuilder(_args);
+	public WebApplication BuildWebApi(string logPrefix = "Api",
+		bool useMvcViews = false,
+		Action<WebApplicationBuilder>? configureBuilder = null)
+	{
+		var builder = WebApplication.CreateBuilder(_args);
 
-            // ---- CONFIG ----
-            var customConfig = SetupConfigurationFiles();
-            builder.Configuration.Sources.Clear();
-            builder.Configuration.AddConfiguration(customConfig);
-            
-            try
-            {
-                BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-            }
-            catch (MongoDB.Bson.BsonSerializationException)
-            {
-                // serializer already registered by another host in same process
-            }
-            
-            // ---- SERVICE SCANNING ----
-            if (_assembliesToScan != null)
-            {
-	            var filter = _serviceFilter ?? (t => t.Name.EndsWith("Service"));
+		// ---- CONFIG ----
+		var customConfig = SetupConfigurationFiles();
+		builder.Configuration.Sources.Clear();
+		builder.Configuration.AddConfiguration(customConfig);
 
-	            builder.Services.Scan(scan => scan
-		            .FromAssemblies(_assembliesToScan)
-		            .AddClasses(c => c.Where(filter))
-		            .AsSelf()
-		            .AsImplementedInterfaces()
-		            .WithScopedLifetime()
-	            );
-            }
+		try
+		{
+			BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+		}
+		catch (MongoDB.Bson.BsonSerializationException)
+		{
+			// serializer already registered by another host in same process
+		}
 
-            // ---- LOGGING ----
-            ConfigureLogging(builder.Configuration, logPrefix);
-            builder.Host.UseSerilog();
+		// ---- SERVICE SCANNING ----
+		if (_assembliesToScan != null)
+		{
+			var filter = _serviceFilter ?? (t => t.Name.EndsWith("Service"));
 
-	
-            // ---- KESTREL ----
-            builder.WebHost.ConfigureKestrel(k =>
-            {
-                k.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
-            });
+			builder.Services.Scan(scan => scan
+				.FromAssemblies(_assembliesToScan)
+				.AddClasses(c => c.Where(filter))
+				.AsSelf()
+				.AsImplementedInterfaces()
+				.WithScopedLifetime()
+			);
+		}
 
-            builder.Services.Configure<IISServerOptions>(opts =>
-            {
-                opts.MaxRequestBodySize = 10 * 1024 * 1024;
-            });
-
-            // ---- FORWARDED HEADERS ----
-            builder.Services.Configure<ForwardedHeadersOptions>(opts =>
-            {
-                opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                opts.KnownNetworks.Clear();
-                opts.KnownProxies.Clear();
-                opts.RequireHeaderSymmetry = false;
-                opts.ForwardLimit = 2;
-            });
-
-            // ---- RESPONSE COMPRESSION (2.6) ----
-            builder.Services.AddResponseCompression(options =>
-            {
-                options.Providers.Add<BrotliCompressionProvider>();
-                options.Providers.Add<GzipCompressionProvider>();
-            });
-            builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
-
-            // ---- CACHE SERVICES ----
-            builder.Services.AddResponseCaching();
-            builder.Services.AddOutputCache();
-
-            // ---- HEALTH CHECKS (2.13) ----
-            builder.Services.AddHealthChecks();
-
-            builder.Services.AddDataProtection();
-
-            // ---- SETTINGS & SHARED REPOS ----
-            builder.Services.AddSettingsConfiguration(builder.Configuration);
-            
-            var firebaseSettings = builder.Configuration.GetSection("FirebaseSettings").Get<FirebaseSettings>();
-            if (firebaseSettings != null && !string.IsNullOrEmpty(firebaseSettings.ServiceAccountKey))
-            {
-	            try
-	            {
-		            FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
-		            {
-			            Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(firebaseSettings.ServiceAccountKey)
-		            });
-	            }
-	            catch
-	            {
-	            }
-            }
-            
-            builder.Services.AddMongoRepositories(builder.Configuration);
-            builder.Services.AddLocalQueueRepositories(builder.Configuration);
-            
-            // ---- RATE LIMITER ----
-            builder.Services.AddRateLimiter(options =>
-            {
-	            // Example configuration: 10 requests per second globally
-	            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-		            RateLimitPartition.GetFixedWindowLimiter("GlobalLimiter", _ => new FixedWindowRateLimiterOptions
-		            {
-			            PermitLimit = 50,
-			            Window = TimeSpan.FromSeconds(1),
-			            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-			            QueueLimit = 2
-		            }));
-            });
-            
-            // ---- CONTROLLERS ----
-            if (useMvcViews)
-            {
-	            builder.Services.AddControllersWithViews().AddJsonOptions(options =>
-	            {
-		            options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-		            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(namingPolicy: null));
-	            });
-            }
-            else
-            {
-	            builder.Services.AddControllers().AddJsonOptions(options =>
-	            {
-		            options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-		            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(namingPolicy: null));
-	            });
-            }
+		// ---- LOGGING ----
+		ConfigureLogging(builder.Configuration, logPrefix);
+		builder.Host.UseSerilog();
 
 
-            // CUSTOM SERVICE CONFIG HOOK
-            _configureServices?.Invoke(builder.Services, builder.Configuration);
+		// ---- KESTREL ----
+		builder.WebHost.ConfigureKestrel(k =>
+		{
+			k.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+		});
 
-            configureBuilder?.Invoke(builder);
-            _configureCors?.Invoke(builder.Services, builder.Configuration);
+		builder.Services.Configure<IISServerOptions>(opts =>
+		{
+			opts.MaxRequestBodySize = 10 * 1024 * 1024;
+		});
 
-            // Build app and configure common middleware and endpoints
-            var app = builder.Build();
+		// ---- FORWARDED HEADERS ----
+		builder.Services.Configure<ForwardedHeadersOptions>(opts =>
+		{
+			opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+			opts.KnownNetworks.Clear();
+			opts.KnownProxies.Clear();
+			opts.RequireHeaderSymmetry = false;
+			opts.ForwardLimit = 2;
+		});
 
-            // ---- COMMON MIDDLEWARE MOVED FROM Program.cs ----
-            // Rate Limiter 
-            app.UseRateLimiter();
+		// ---- RESPONSE COMPRESSION (2.6) ----
+		builder.Services.AddResponseCompression(options =>
+		{
+			options.Providers.Add<BrotliCompressionProvider>();
+			options.Providers.Add<GzipCompressionProvider>();
+		});
+		builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
+		// ---- CACHE SERVICES ----
+		builder.Services.AddResponseCaching();
+		builder.Services.AddOutputCache();
+
+		// ---- HEALTH CHECKS (2.13) ----
+		builder.Services.AddHealthChecks();
+
+		builder.Services.AddDataProtection();
+
+		// ---- SETTINGS & SHARED REPOS ----
+		builder.Services.AddSettingsConfiguration(builder.Configuration);
+
+		var firebaseSettings = builder.Configuration.GetSection("FirebaseSettings").Get<FirebaseSettings>();
+		if (firebaseSettings != null &&
+		    !string.IsNullOrEmpty(firebaseSettings.ServiceAccountKey))
+		{
+			try
+			{
+				FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
+				{
+					Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromJson(firebaseSettings.ServiceAccountKey)
+				});
+			}
+			catch
+			{
+			}
+		}
+
+		builder.Services.AddMongoRepositories(builder.Configuration);
+		builder.Services.AddLocalQueueRepositories(builder.Configuration);
+
+		// ---- RATE LIMITER ----
+		builder.Services.AddRateLimiter(options =>
+		{
+			// Example configuration: 10 requests per second globally
+			options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+				RateLimitPartition.GetFixedWindowLimiter("GlobalLimiter",
+					_ => new FixedWindowRateLimiterOptions
+					{
+						PermitLimit = 50,
+						Window = TimeSpan.FromSeconds(1),
+						QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+						QueueLimit = 2
+					}));
+		});
+
+		// ---- CONTROLLERS ----
+		if (useMvcViews)
+		{
+			builder.Services.AddControllersWithViews()
+				.AddJsonOptions(options =>
+				{
+					options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+					options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(namingPolicy: null));
+				});
+		}
+		else
+		{
+			builder.Services.AddControllers()
+				.AddJsonOptions(options =>
+				{
+					options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+					options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(namingPolicy: null));
+				});
+		}
 
 
-            // HealthCheck endpoint
-            app.MapHealthChecks("/health");
+		// CUSTOM SERVICE CONFIG HOOK
+		_configureServices?.Invoke(builder.Services, builder.Configuration);
 
-            // Controllers & filters 
-            app.MapControllers();
-            
+		configureBuilder?.Invoke(builder);
+		_configureCors?.Invoke(builder.Services, builder.Configuration);
 
-            return app;
-        }
+		// Build app and configure common middleware and endpoints
+		var app = builder.Build();
+
+		// ---- COMMON MIDDLEWARE MOVED FROM Program.cs ----
+		// Rate Limiter 
+		app.UseRateLimiter();
+
+
+		// HealthCheck endpoint
+		app.MapHealthChecks("/health");
+
+		// Controllers & filters 
+		app.MapControllers();
+
+
+		return app;
+	}
 
 	// =======================================
 	// PRIVATE HELPER METHODS
@@ -326,6 +331,7 @@ public class AppBootstrapper
 				var parent = Directory.GetParent(cur);
 				if (parent == null)
 					break;
+
 				cur = parent.FullName;
 			}
 
@@ -348,7 +354,10 @@ public class AppBootstrapper
 			var sharedDir = Path.GetDirectoryName(localSharedPath)!;
 			var sharedFile = Path.GetFileName(localSharedPath);
 			// Use a physical provider so the shared DB settings file is read with change tracking support.
-			builder.AddJsonFile(new PhysicalFileProvider(sharedDir), sharedFile, optional: true, reloadOnChange: true);
+			builder.AddJsonFile(new PhysicalFileProvider(sharedDir),
+				sharedFile,
+				optional: true,
+				reloadOnChange: true);
 		}
 
 		builder.AddEnvironmentVariables();
@@ -357,11 +366,10 @@ public class AppBootstrapper
 	}
 
 
-
 	/// <summary>
 	/// Serilog'u MongoDB ile birlikte yapılandırır
 	/// </summary>
-	 private void ConfigureLogging(IConfiguration configuration, string prefix)
+	private void ConfigureLogging(IConfiguration configuration, string prefix)
 	{
 		var logDbSettings = configuration.GetSection("LogDbSettings").Get<LogDbSettings>();
 
@@ -369,14 +377,16 @@ public class AppBootstrapper
 			_appName,
 			loggerConfig =>
 			{
-				if (logDbSettings != null && !string.IsNullOrWhiteSpace(logDbSettings.DatabaseName))
+				if (logDbSettings != null &&
+				    !string.IsNullOrWhiteSpace(logDbSettings.DatabaseName))
 				{
 					var mongoDatabase = logDbSettings.DatabaseName;
 					var mongoCollection = $"{prefix}_{_appName.Replace(".", "_")}Log";
 
 					var connectionString = logDbSettings.ConnectionString.TrimEnd('/');
-					
-					if (!string.IsNullOrWhiteSpace(logDbSettings.UserName) && !string.IsNullOrWhiteSpace(logDbSettings.Password))
+
+					if (!string.IsNullOrWhiteSpace(logDbSettings.UserName) &&
+					    !string.IsNullOrWhiteSpace(logDbSettings.Password))
 					{
 						var uri = new Uri(connectionString);
 						connectionString = $"mongodb://{logDbSettings.UserName}:{logDbSettings.Password}@{uri.Host}:{uri.Port}";

@@ -68,7 +68,7 @@ public class UserSubscriptionPaymentUrl : BaseEntity
 	public UserSubscriptionPayment Payment { get; set; } = new ();
 }
 
-public class StripeCommunicationLog : BaseReportEntity
+public class StripeCommunicationLog : BaseLogEntity
 {
 	public string ClientReferenceId { get; set; } = string.Empty;
 	public string RequestPayload { get; set; } = string.Empty;
