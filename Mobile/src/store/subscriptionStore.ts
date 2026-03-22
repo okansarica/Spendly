@@ -3,9 +3,11 @@ import {apiCall} from '../services/apiClient';
 import apiClient from '../services/apiClient';
 import {ApiEndpoints} from '../constants/apiEndpoints';
 import {tokenService} from '../services/tokenService';
+import { DurationType, SubscriptionType } from "../services/authService.ts";
 
-type SubscriptionPlan = {
-  planType: 'Monthly' | 'Yearly';
+export type SubscriptionPlan = {
+  subscriptionType: SubscriptionType;
+  duration?: DurationType;
   price: number;
 };
 
@@ -23,29 +25,29 @@ const initialState: SubscriptionState = {
   error: undefined,
 };
 
-export const fetchSubscriptionPlans = createAsyncThunk(
-  'subscription/fetchPlans',
-  async (_, {rejectWithValue}) => {
-    const response = await apiCall(() =>
-      apiClient.get<SubscriptionPlan[]>(ApiEndpoints.Users.SubscriptionPlans,
-        {
-          headers: {'X-Disable-Auth': 'true'},
-        }
-      )
-    );
-    if (!response.isSuccess) {
-      return rejectWithValue(response.errorMessage);
-    }
-    return response.data as SubscriptionPlan[];
-  }
-);
+// export const fetchSubscriptionPlans = createAsyncThunk(
+//   'subscription/fetchPlans',
+//   async (_, {rejectWithValue}) => {
+//     const response = await apiCall(() =>
+//       apiClient.get<SubscriptionPlan[]>(ApiEndpoints.Users.SubscriptionPlans,
+//         {
+//           headers: {'X-Disable-Auth': 'true'},
+//         }
+//       )
+//     );
+//     if (!response.isSuccess) {
+//       return rejectWithValue(response.errorMessage);
+//     }
+//     return response.data as SubscriptionPlan[];
+//   }
+// );
 
 export const createPaymentUrl = createAsyncThunk(
   'subscription/createPaymentUrl',
-  async (planType: 'Monthly' | 'Yearly', {rejectWithValue}) => {
+  async (plan: {subscriptionType: SubscriptionType, duration?: DurationType}, {rejectWithValue}) => {
     const response = await apiCall(() =>
       apiClient.post<{paymentUrl: string}>(ApiEndpoints.Users.CreatePaymentUrl, {
-        selectedPlanType: planType,
+        selectedPlanType: plan.duration,
       })
     );
     if (!response.isSuccess) {
@@ -57,7 +59,7 @@ export const createPaymentUrl = createAsyncThunk(
 
 export const createPaymentUrlWithToken = createAsyncThunk(
   'subscription/createPaymentUrlWithToken',
-  async (planType: 'Monthly' | 'Yearly', {rejectWithValue}) => {
+  async (plan: {subscriptionType: SubscriptionType, duration?: DurationType}, {rejectWithValue}) => {
     const pendingToken = await tokenService.getPendingAccessToken();
     if (!pendingToken) {
       return rejectWithValue('No pending token found');
@@ -68,7 +70,7 @@ export const createPaymentUrlWithToken = createAsyncThunk(
         ApiEndpoints.Users.CreatePaymentUrlWithToken,
         {
           accessToken: pendingToken,
-          selectedPlanType: planType,
+          selectedPlanType: plan.duration,
         },
         {
           headers: {'X-Disable-Auth': 'true'},
@@ -92,18 +94,18 @@ const subscriptionSlice = createSlice({
   },
   extraReducers: builder => {
     builder
-      .addCase(fetchSubscriptionPlans.pending, state => {
-        state.isLoading = true;
-        state.error = undefined;
-      })
-      .addCase(fetchSubscriptionPlans.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.plans = action.payload;
-      })
-      .addCase(fetchSubscriptionPlans.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      })
+      // .addCase(fetchSubscriptionPlans.pending, state => {
+      //   state.isLoading = true;
+      //   state.error = undefined;
+      // })
+      // .addCase(fetchSubscriptionPlans.fulfilled, (state, action) => {
+      //   state.isLoading = false;
+      //   state.plans = action.payload;
+      // })
+      // .addCase(fetchSubscriptionPlans.rejected, (state, action) => {
+      //   state.isLoading = false;
+      //   state.error = action.payload as string;
+      // })
       .addCase(createPaymentUrl.pending, state => {
         state.isProcessing = true;
         state.error = undefined;

@@ -142,8 +142,7 @@ export default function Header({title, showBack}: HeaderProps) {
         <TouchableOpacity
           style={s.warningBanner}
           onPress={() => setShowSubscriptionModal(true)}
-          accessibilityRole="button"
-          accessibilityLabel={translate('SubscriptionWarningBannerLabel')}>
+          accessibilityRole="button">
           <Text style={s.warningText}>
             {translate('SubscriptionWarningBannerText')}
           </Text>

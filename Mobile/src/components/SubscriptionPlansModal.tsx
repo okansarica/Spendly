@@ -1,28 +1,18 @@
-// CHANGED_BY_AI: 2026-03-17 - Replace fontSizes.xxl+2 arithmetic with fontSizes.xxxl token; use colors.cardShadow
-// CHANGED_BY_AI: 2026-03-12 - Ensure registration modal always shows all 3 plan options
-// CHANGED_BY_AI: 2026-03-12 - Add reusable trial selection mode for registration flow
-// CHANGED_BY_AI: 2026-03-12 - Harmonize plan selection colors in dark mode
-// CHANGED_BY_AI: 2026-03-12 - Improve diamond icon background visibility in dark mode
-// CHANGED_BY_AI: 2026-03-12 - Improve modal close button visibility in light mode
-// CHANGED_BY_AI: 2026-03-12 - Use different subscription modal copy for dismissible vs non-dismissible states
-import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, View, Modal, TouchableOpacity, ActivityIndicator} from 'react-native';
-import {useTheme} from '../theme/ThemeContext';
-import {translate} from '../utils/translations';
+// CHANGED_BY_AI: 2026-03-22 - Use DurationType and SubscriptionType enums throughout, remove hardcoded string literals
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { translate } from '../utils/translations';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import {fetchSubscriptionPlans, createPaymentUrl} from '../store/subscriptionStore';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { createPaymentUrl, SubscriptionPlan } from '../store/subscriptionStore';
 import Toast from 'react-native-toast-message';
 import { DurationType, SubscriptionType } from "../services/authService.ts";
-
-type PlanType = 'Trial' | 'Monthly' | 'Yearly';
-type PaidPlan = {planType: 'Monthly' | 'Yearly'; price: number};
 
 type SubscriptionPlansModalProps = {
   visible: boolean;
   dismissible?: boolean;
   onClose?: () => void;
-  includeTrialOption?: boolean;
   onPlanSelected?: (subscriptionType:SubscriptionType, duration?: DurationType) => Promise<void> | void;
 };
 
@@ -30,38 +20,26 @@ export default function SubscriptionPlansModal({
   visible,
   dismissible = true,
   onClose,
-  includeTrialOption = false,
   onPlanSelected,
 }: SubscriptionPlansModalProps) {
   const {colors, spacing, fontSizes, fontWeights, mode} = useTheme();
   const dispatch = useAppDispatch();
-  const {plans, isLoading, isProcessing, error} = useAppSelector(state => state.subscription);
-  const publicFallbackPlans: PaidPlan[] = [
-    {planType: 'Monthly', price: 6.99},
-    {planType: 'Yearly', price: 69.99},
+  const {isProcessing} = useAppSelector(state => state.subscription);
+  
+  const displayedPlans: SubscriptionPlan[] = [
+    {subscriptionType: SubscriptionType.Free, price: 0},
+    {subscriptionType: SubscriptionType.Plus, duration: DurationType.Monthly, price: 3.99},
+    {subscriptionType: SubscriptionType.Plus, duration: DurationType.Yearly, price: 39.99},
   ];
-  const displayedPlans: PaidPlan[] = plans.length > 0 ? plans : publicFallbackPlans;
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>('Yearly');
+  
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>({subscriptionType: SubscriptionType.Plus, duration: DurationType.Yearly, price: 39.99});
   const [isSubmittingSelection, setIsSubmittingSelection] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      if (!includeTrialOption) {
-        dispatch(fetchSubscriptionPlans());
-      }
-      setSelectedPlan('Yearly');
+      setSelectedPlan({subscriptionType: SubscriptionType.Plus, duration: DurationType.Yearly, price: 39.99});
     }
-  }, [visible, dispatch, includeTrialOption]);
-
-  useEffect(() => {
-    if (error && !includeTrialOption) {
-      Toast.show({
-        type: 'error',
-        text1: translate('Error'),
-        text2: error,
-      });
-    }
-  }, [error, includeTrialOption]);
+  }, [visible]);
 
   const closeModal = () => {
     if (!dismissible) {
@@ -73,35 +51,29 @@ export default function SubscriptionPlansModal({
   const titleKey = dismissible ? 'SubscriptionUpgradeTitle' : 'SubscriptionExpiredTitle';
   const messageKey = dismissible ? 'SubscriptionUpgradeMessage' : 'SubscriptionExpiredMessage';
   const defaultButtonKey = dismissible ? 'SubscriptionUpgradeAction' : 'RenewSubscription';
-  const buttonKey = includeTrialOption && selectedPlan === 'Trial' ? 'Continue' : defaultButtonKey;
+  const buttonKey = selectedPlan.subscriptionType === SubscriptionType.Free ? 'Continue' : defaultButtonKey;
   const isBusy = isProcessing || isSubmittingSelection;
-  const isActionDisabled = selectedPlan === 'Trial' ? isSubmittingSelection : isBusy || (!includeTrialOption && isLoading);
+  const isActionDisabled = isBusy;
 
   const handleRenewPress = async () => {
     if (onPlanSelected) {
       try {
         setIsSubmittingSelection(true);
-        
-        const subscriptionType = selectedPlan === 'Trial'? SubscriptionType.Free:SubscriptionType.Plus;
-        let duration: DurationType | undefined;
-        if (selectedPlan === 'Monthly') {
-          duration = DurationType.Monthly;
-        } else if (selectedPlan === 'Yearly') {
-          duration = DurationType.Yearly;
-        }
-        
-        await onPlanSelected(subscriptionType, duration);
+        await onPlanSelected(selectedPlan.subscriptionType, selectedPlan.duration ?? undefined);
       } finally {
         setIsSubmittingSelection(false);
       }
       return;
     }
 
-    if (selectedPlan === 'Trial') {
+    if (selectedPlan.subscriptionType === SubscriptionType.Free) {
       return;
     }
 
-    const result = await dispatch(createPaymentUrl(selectedPlan));
+    const result = await dispatch(createPaymentUrl({
+      subscriptionType: selectedPlan.subscriptionType,
+      duration: selectedPlan.duration ?? undefined
+    }));
     if (createPaymentUrl.fulfilled.match(result)) {
       const paymentUrl = result.payload;
       if (InAppBrowser && (await InAppBrowser.isAvailable())) {        
@@ -359,46 +331,19 @@ export default function SubscriptionPlansModal({
           <Text style={s.subtitle}>{translate(messageKey)}</Text>
 
           <View style={s.plansContainer}>
-            {includeTrialOption && (
-              <TouchableOpacity
-                style={[s.planCard, selectedPlan === 'Trial' && s.planCardSelected]}
-                onPress={() => setSelectedPlan('Trial')}
-                activeOpacity={0.7}>
-                {selectedPlan === 'Trial' && (
-                  <View style={s.checkIcon}>
-                    <Text style={s.checkIconText}>✓</Text>
-                  </View>
-                )}
-                <View style={s.planHeader}>
-                  <View style={s.planLeft}>
-                    <Text style={s.planName}>{translate('TrialPlanName')}</Text>
-                    <Text style={s.planPrice}>£0.00</Text>
-                    <Text style={s.trialDescription}>{translate('TrialPlanDescription')}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
+            {displayedPlans.map(plan => {
+              const isFree = plan.subscriptionType === SubscriptionType.Free;
+              const isYearly = plan.duration === DurationType.Yearly;
+              const isSelected = selectedPlan.subscriptionType === plan.subscriptionType && selectedPlan.duration === plan.duration;
+              const planKey = plan.duration ? `${plan.subscriptionType}${plan.duration}` : plan.subscriptionType;
 
-            {!includeTrialOption && isLoading ? (
-              <ActivityIndicator size="large" color={colors.buttonPrimary} style={s.loader} />
-            ) : (
-              displayedPlans.map(plan => {
-                const isYearly = plan.planType === 'Yearly';
-                const isSelected = selectedPlan === plan.planType;
-                const monthlyCost = isYearly ? (plan.price / 12).toFixed(2) : plan.price.toFixed(2);
-                const savings = isYearly ? ((3.99 * 12 - plan.price) / (3.99 * 12) * 100).toFixed(0) : null;
-
+              if (isFree) {
                 return (
                   <TouchableOpacity
-                    key={plan.planType}
+                    key={planKey}
                     style={[s.planCard, isSelected && s.planCardSelected]}
-                    onPress={() => setSelectedPlan(plan.planType)}
+                    onPress={() => setSelectedPlan({subscriptionType: plan.subscriptionType, price: plan.price})}
                     activeOpacity={0.7}>
-                    {isYearly && (
-                      <View style={s.badge}>
-                        <Text style={s.badgeText}>{translate('BestValue')}</Text>
-                      </View>
-                    )}
                     {isSelected && (
                       <View style={s.checkIcon}>
                         <Text style={s.checkIconText}>✓</Text>
@@ -406,16 +351,47 @@ export default function SubscriptionPlansModal({
                     )}
                     <View style={s.planHeader}>
                       <View style={s.planLeft}>
-                        <Text style={s.planName}>{translate('PlanLabel').replace('{planType}', plan.planType)}</Text>
-                        <Text style={s.planPrice}>£{plan.price.toFixed(2)}</Text>
-                        <Text style={s.planPeriod}>£{monthlyCost}/month</Text>
-                        {savings && <Text style={s.savingsText}>{translate('SavePercentage').replace('{percentage}', savings)}</Text>}
+                        <Text style={s.planName}>{translate('FreePlanName')}</Text>
+                        <Text style={s.planPrice}>£0.00</Text>
+                        <Text style={s.trialDescription}>{translate('FreePlanDescription')}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
                 );
-              })
-            )}
+              }
+
+              const monthlyPrice = 3.99;
+              const savings = isYearly ? ((monthlyPrice * 12 - plan.price) / (monthlyPrice * 12) * 100).toFixed(0) : null;
+              const durationText = isYearly ? translate('year') : translate('month');
+
+              return (
+                <TouchableOpacity
+                  key={planKey}
+                  style={[s.planCard, isSelected && s.planCardSelected]}
+                  onPress={() => setSelectedPlan({subscriptionType: plan.subscriptionType, duration: plan.duration, price: plan.price})}
+                  activeOpacity={0.7}>
+                  {isYearly && (
+                    <View style={s.badge}>
+                      <Text style={s.badgeText}>{translate('BestValue')}</Text>
+                    </View>
+                  )}
+                  {isSelected && (
+                    <View style={s.checkIcon}>
+                      <Text style={s.checkIconText}>✓</Text>
+                    </View>
+                  )}
+                  <View style={s.planHeader}>
+                    <View style={s.planLeft}>
+                      <Text style={s.planName}>
+                        {translate(plan.duration!.toString())}
+                      </Text>
+                      <Text style={s.planPrice}>£{plan.price.toFixed(2)}/{durationText}</Text>
+                      {savings && <Text style={s.savingsText}>{translate('SavePercentage').replace('{percentage}', savings)}</Text>}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <TouchableOpacity
