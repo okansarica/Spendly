@@ -55,9 +55,7 @@ export type AuthResponse = {
     refreshTokenExpire?: string;
     emailVerificationRequired: boolean;
     languageCode: string;
-    //subscriptionEndDateTime?: string;
     paymentUrl?: string;
-    //subscriptionExpired?: boolean;
     subscriptionType: SubscriptionType
 };
 

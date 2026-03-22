@@ -1,13 +1,14 @@
 // CHANGED_BY_AI: 2026-03-12 - Respect backend register auth response for direct login flow
 // CHANGED_BY_AI: 2026-03-03 - Integrate backend logout in auth store
 // CHANGED_BY_AI: 2026-03-05 - Add Firebase token to auth flows
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { apiCall } from '../services/apiClient';
 import {
     authService,
     LoginRequest,
-    SocialLoginRequest,
     RegisterRequest,
+    SocialLoginRequest,
+    SubscriptionType,
     VerifyEmailRequest
 } from '../services/authService';
 import { tokenService } from '../services/tokenService';
@@ -19,6 +20,7 @@ import { firebaseService } from '../services/firebaseService';
 type AuthState = {
     userId: string | undefined;
     email: string | undefined;
+    subscriptionType: SubscriptionType;
     isAuthenticated: boolean;
     isInitializing: boolean;
     isLoading: boolean;
@@ -28,6 +30,7 @@ type AuthState = {
 const initialState: AuthState = {
     userId: undefined,
     email: undefined,
+    subscriptionType: SubscriptionType.Free,
     isAuthenticated: false,
     isInitializing: true,
     isLoading: false,
@@ -48,19 +51,18 @@ export const login = createAsyncThunk(
         if (!response.isSuccess) {
             return rejectWithValue(response.errorMessage);
         }
-        const auth = response.data!;
-        if (!auth.emailVerificationRequired && auth.accessToken && auth.refreshToken) {
+        if (!response.data!.emailVerificationRequired && response.data!.accessToken && response.data!.refreshToken) {
             await tokenService.saveTokens(
-                auth.accessToken,
-                auth.refreshToken,
-                auth.accessTokenExpire,
-                auth.refreshTokenExpire
+                response.data!.accessToken,
+                response.data!.refreshToken,
+                response.data!.accessTokenExpire,
+                response.data!.refreshTokenExpire
             );
         }
         else {
-            console.log('Unexpected token verification', auth);
+            console.log('Unexpected token verification', response.data!);
         }
-        return auth;
+        return response.data!;
     },
 );
 
@@ -210,6 +212,7 @@ const authSlice = createSlice({
                 if (action.payload.languageCode) {
                     setLanguage(action.payload.languageCode);
                 }
+                state.subscriptionType = action.payload.subscriptionType;
                 if (action.payload.emailVerificationRequired) {
                     state.emailVerificationRequired = true;
                     state.userId = action.payload.id;
@@ -242,6 +245,7 @@ const authSlice = createSlice({
                 }
                 state.userId = action.payload.id;
                 state.email = action.payload.email;
+                state.subscriptionType = action.payload.subscriptionType;
                 state.isAuthenticated = true;
             })
             .addCase(socialLogin.rejected, state => {
@@ -263,6 +267,7 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.userId = undefined;
                 state.email = undefined;
+                state.subscriptionType = SubscriptionType.Free;
                 state.isAuthenticated = false;
                 state.emailVerificationRequired = false;
             })
@@ -270,12 +275,14 @@ const authSlice = createSlice({
                 state.isLoading = false;
                 state.userId = undefined;
                 state.email = undefined;
+                state.subscriptionType = SubscriptionType.Free;
                 state.isAuthenticated = false;
                 state.emailVerificationRequired = false;
             })
             .addCase(logoutLocal.fulfilled, state => {
                 state.userId = undefined;
                 state.email = undefined;
+                state.subscriptionType = SubscriptionType.Free;
                 state.isAuthenticated = false;
                 state.emailVerificationRequired = false;
             })
@@ -287,6 +294,7 @@ const authSlice = createSlice({
                 if (action.payload.languageCode) {
                     setLanguage(action.payload.languageCode);
                 }
+                state.subscriptionType = action.payload.subscriptionType;
                 if (action.payload.emailVerificationRequired) {
                     state.emailVerificationRequired = true;
                     state.userId = action.payload.id;
@@ -313,6 +321,7 @@ const authSlice = createSlice({
                 }
                 state.userId = action.payload.id;
                 state.email = action.payload.email;
+                state.subscriptionType = action.payload.subscriptionType;
                 state.emailVerificationRequired = false;
 
                 // If paymentUrl exists, don't authenticate yet (waiting for payment)

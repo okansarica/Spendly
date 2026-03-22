@@ -1,6 +1,6 @@
 // CHANGED_BY_AI: 2026-03-17 - useMemo for styles; fix warning color token; add a11y labels; add tap affordance to warning banner
 // CHANGED_BY_AI: 2026-03-05 - Add header right light/dark mode buttons
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {SafeAreaView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
@@ -8,6 +8,8 @@ import {useTheme} from '../theme/ThemeContext';
 import {HeaderConstants} from '../constants/headerConstants';
 import {translate} from '../utils/translations';
 import SubscriptionPlansModal from './SubscriptionPlansModal';
+import {useAppSelector} from '../store/hooks';
+import {SubscriptionType} from '../services/authService';
 
 type HeaderProps = {
   title?: string;
@@ -22,8 +24,14 @@ export default function Header({title, showBack}: HeaderProps) {
   const navigation = useNavigation();
   const canGoBack = navigation.canGoBack();
   const shouldShowBack = showBack ?? canGoBack;
+  const subscriptionType = useAppSelector(s => s.auth.subscriptionType);
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
   const [showWarning, setShowWarning] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  useEffect(() => {
+    setShowWarning(isAuthenticated && subscriptionType === SubscriptionType.Free);
+  }, [isAuthenticated, subscriptionType]);
 
   
   const s = useMemo(
