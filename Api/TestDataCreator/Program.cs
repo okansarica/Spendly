@@ -259,7 +259,7 @@ class Program
 				StartDateTime = start,
 				ExpectedEndDateTime = expectedEnd,
 				EndDateTime = null,
-				SubscriptionType = SubscriptionType.Trial,
+				SubscriptionType = SubscriptionType.Free,
 				CreatedAt = DateTime.UtcNow,
 				State =  UserSubscriptionStateType.Active,
 			

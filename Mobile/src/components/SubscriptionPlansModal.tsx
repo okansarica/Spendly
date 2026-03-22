@@ -13,6 +13,7 @@ import InAppBrowser from 'react-native-inappbrowser-reborn';
 import {useAppDispatch, useAppSelector} from '../store/hooks';
 import {fetchSubscriptionPlans, createPaymentUrl} from '../store/subscriptionStore';
 import Toast from 'react-native-toast-message';
+import { DurationType, SubscriptionType } from "../services/authService.ts";
 
 type PlanType = 'Trial' | 'Monthly' | 'Yearly';
 type PaidPlan = {planType: 'Monthly' | 'Yearly'; price: number};
@@ -22,7 +23,7 @@ type SubscriptionPlansModalProps = {
   dismissible?: boolean;
   onClose?: () => void;
   includeTrialOption?: boolean;
-  onPlanSelected?: (planType: PlanType) => Promise<void> | void;
+  onPlanSelected?: (subscriptionType:SubscriptionType, duration?: DurationType) => Promise<void> | void;
 };
 
 export default function SubscriptionPlansModal({
@@ -80,7 +81,16 @@ export default function SubscriptionPlansModal({
     if (onPlanSelected) {
       try {
         setIsSubmittingSelection(true);
-        await onPlanSelected(selectedPlan);
+        
+        const subscriptionType = selectedPlan === 'Trial'? SubscriptionType.Free:SubscriptionType.Plus;
+        let duration: DurationType | undefined;
+        if (selectedPlan === 'Monthly') {
+          duration = DurationType.Monthly;
+        } else if (selectedPlan === 'Yearly') {
+          duration = DurationType.Yearly;
+        }
+        
+        await onPlanSelected(subscriptionType, duration);
       } finally {
         setIsSubmittingSelection(false);
       }
@@ -97,18 +107,6 @@ export default function SubscriptionPlansModal({
       if (InAppBrowser && (await InAppBrowser.isAvailable())) {        
         
         try {
-          // await InAppBrowser.open(paymentUrl, {
-          //   dismissButtonStyle: 'close',
-          //   preferredBarTintColor: colors.backgroundPrimary,
-          //   preferredControlTintColor: colors.textPrimary,
-          //   readerMode: false,
-          //   animated: true,
-          //   modalPresentationStyle: 'pageSheet',
-          //   modalTransitionStyle: 'coverVertical',
-          //   modalEnabled: true,
-          //   enableBarCollapsing: false,
-          // });
-
             await InAppBrowser.openAuth(paymentUrl, paymentUrl,{
               dismissButtonStyle: 'close',
               preferredBarTintColor: colors.backgroundPrimary,

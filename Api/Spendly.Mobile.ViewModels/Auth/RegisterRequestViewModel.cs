@@ -9,7 +9,8 @@ public class RegisterRequestViewModel
     public string Surname { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
-    public UserSubscriptionDurationType SelectedPlanType { get; set; }
+    public SubscriptionType SubscriptionType { get; set; }
+    public UserSubscriptionDurationType? Duration { get; set; }
     public string FirebaseToken { get; set; } = null!;
 }
 

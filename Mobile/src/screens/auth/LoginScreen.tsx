@@ -14,15 +14,12 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {login, socialLogin, activatePendingAuth} from '../../store/authStore';
+import {login, socialLogin} from '../../store/authStore';
 import {useTheme} from '../../theme/ThemeContext';
 import Button from '../../components/Button';
 import SocialLoginButtons from '../../components/SocialLoginButtons';
 import Header from '../../components/Header';
-import SubscriptionPlansModal from '../../components/SubscriptionPlansModal';
 import {translate} from '../../utils/translations';
-import InAppBrowser from 'react-native-inappbrowser-reborn';
-import {createPaymentUrlWithToken} from '../../store/subscriptionStore';
 
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '../../navigation/AuthNavigator';
@@ -37,8 +34,7 @@ export default function LoginScreen() {
   const {colors, spacing, radius, fontSizes, fontWeights, linkColor} = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [isOpeningBrowser, setIsOpeningBrowser] = useState(false);
+  
 
   const isValid = email.length > 0 && password.length > 0;
 
@@ -65,74 +61,8 @@ export default function LoginScreen() {
       });
       return;
     }
-
-    // Check if subscription expired - show payment modal
-    if (login.fulfilled.match(result) && result.payload.subscriptionExpired) {
-      setShowSubscriptionModal(true);
-    }
   };
 
-  const handlePlanSelection = async (selectedPlanType: 'Trial' | 'Monthly' | 'Yearly') => {
-    if (selectedPlanType === 'Trial') {
-      // This should not happen as includeTrialOption=false, but handle it just in case
-      return;
-    }
-    
-    setIsOpeningBrowser(true);
-    
-    const result = await dispatch(createPaymentUrlWithToken(selectedPlanType));
-    if (createPaymentUrlWithToken.rejected.match(result)) {
-      Toast.show({
-        type: 'error',
-        text1: translate('Error'),
-        text2: result.payload as string,
-      });
-      setIsOpeningBrowser(false);
-      return;
-    }
-
-    const paymentUrl = result.payload;
-    if (InAppBrowser && (await InAppBrowser.isAvailable())) {
-      // try {
-      //   // Close any existing browser instance first
-      //   await InAppBrowser.close();
-      // } catch (error) {
-      //   // Ignore error if no browser was open
-      // }
-
-      setTimeout(async () => {
-        try {
-          await InAppBrowser.open(paymentUrl, {
-            dismissButtonStyle: 'close',
-            preferredBarTintColor: colors.backgroundPrimary,
-            preferredControlTintColor: colors.textPrimary,
-            readerMode: false,
-            animated: true,
-            modalPresentationStyle: 'pageSheet',
-            modalTransitionStyle: 'coverVertical',
-            modalEnabled: true,
-            enableBarCollapsing: false,
-          });
-
-          // Browser closed - activate pending tokens and login
-          //await dispatch(activatePendingAuth());
-          //setShowSubscriptionModal(false);
-        } catch (error) {
-          console.log('Failed to open payment URL in browser', error);
-          // Even on error, try to activate pending tokens
-          //await dispatch(activatePendingAuth());
-          //setShowSubscriptionModal(false);
-            Toast.show({
-            type: 'error',
-            text1: translate('Error'),
-            text2: result.payload as string,
-          });
-        } finally {
-          //setIsOpeningBrowser(false);
-        }
-      }, 500);
-    }
-  };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook', token: string) => {
     const result = await dispatch(socialLogin({provider, token}));
@@ -239,13 +169,6 @@ export default function LoginScreen() {
           <Text style={s.link}>{translate('DontHaveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
-      <SubscriptionPlansModal
-        visible={showSubscriptionModal}
-        dismissible={true}
-        includeTrialOption={false}
-        onClose={() => setShowSubscriptionModal(false)}
-        onPlanSelected={handlePlanSelection}
-      />
     </KeyboardAvoidingView>
   );
 }

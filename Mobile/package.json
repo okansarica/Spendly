@@ -6,6 +6,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios --simulator=\"iPhone 17 Pro\"",
     "start": "react-native start",
+    "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "test": "jest",
     "build:android:debug": "cd android && ./gradlew assembleDebug",

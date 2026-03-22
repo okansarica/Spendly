@@ -11,14 +11,14 @@ public class UserSubscription:BaseEntity
 {
 	public ObjectId UserId { get; set; }
 	public DateTime? StartDateTime { get; set; }
-
+	
 	/// <summary>
-	/// Expected means calculated end datetime
+	/// Expected means calculated end datetime, null for free subscription
 	/// </summary>
-	public DateTime ExpectedEndDateTime { get; set; }
-
+	public DateTime? ExpectedEndDateTime { get; set; }
+	
 	/// <summary>
-	/// This will be populated in case ended before expected
+	/// Can be null in free subscription
 	/// </summary>
 	public DateTime? EndDateTime { get; set; }
 	public SubscriptionType SubscriptionType { get; set; }
@@ -27,7 +27,7 @@ public class UserSubscription:BaseEntity
 	{
 		get
 		{
-			if (SubscriptionType== SubscriptionType.Trial)
+			if (SubscriptionType== SubscriptionType.Free)
 			{
 				return UserSubscriptionStateType.Active;
 			}
@@ -35,19 +35,11 @@ public class UserSubscription:BaseEntity
 		}
 		set;
 	}
-
-	public UserSubscriptionDurationType Duration
-	{
-		get
-		{
-			if (SubscriptionType == SubscriptionType.Trial)
-			{
-				return UserSubscriptionDurationType.Trial;
-			}
-			return field;
-		}
-		set;
-	}
+	
+	/// <summary>
+	/// Can be null in free subscription
+	/// </summary>
+	public UserSubscriptionDurationType? Duration { get; set; }
 }
 
 public class UserSubscriptionPayment

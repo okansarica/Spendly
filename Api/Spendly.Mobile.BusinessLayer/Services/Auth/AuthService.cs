@@ -84,35 +84,15 @@ public class AuthService(
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == user.Id).ConfigureAwait(false);
-
+		
 		var activeSubscription =
 			userSubscriptions.SingleOrDefault(p =>
-				p.SubscriptionType == SubscriptionType.Paid &&
+				p.SubscriptionType != SubscriptionType.Free &&
 				p.StartDateTime.HasValue &&
 				p.StartDateTime.Value >= DateTime.UtcNow &&
 				((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow)));
 
-		DateTime? subscriptionEndDate = null;
-		bool subscriptionExpired = false;
-		
-		if (activeSubscription == null)
-		{
-			var trialSubscription = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
-			if ((trialSubscription.EndDateTime.HasValue && trialSubscription.EndDateTime.Value <= DateTime.UtcNow) ||
-			    trialSubscription.ExpectedEndDateTime <= DateTime.UtcNow)
-			{
-				// Trial expired - return token but mark subscription as expired
-				subscriptionExpired = true;
-			}
-			else
-			{
-				subscriptionEndDate = trialSubscription.EndDateTime ?? trialSubscription.ExpectedEndDateTime;
-			}
-		}
-		else
-		{
-			subscriptionEndDate = activeSubscription.EndDateTime ?? activeSubscription.ExpectedEndDateTime;
-		}
+		var subscriptionType = activeSubscription?.SubscriptionType?? SubscriptionType.Free;
 
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
 		{
@@ -144,8 +124,7 @@ public class AuthService(
 			RefreshTokenExpire = refreshTokenExpiry,
 			EmailVerificationRequired = false,
 			LanguageCode = user.LanguageCode,
-			SubscriptionEndDateTime = subscriptionEndDate,
-			SubscriptionExpired = subscriptionExpired
+			SubscriptionType = subscriptionType
 		});
 	}
 
@@ -222,7 +201,8 @@ public class AuthService(
 			RefreshToken = refreshToken,
 			RefreshTokenExpire = refreshTokenExpiry,
 			EmailVerificationRequired = false,
-			LanguageCode = user.LanguageCode
+			LanguageCode = user.LanguageCode,
+			SubscriptionType = SubscriptionType.Free //TODO bu durum icin ozel bir senaryo gerekiyor
 		});
 	}
 
@@ -279,16 +259,15 @@ public class AuthService(
 		};
 		await userRepository.InsertAsync(user).ConfigureAwait(false);
 
-		var userSubscription = new UserSubscription
+		var userFreeSubscription = new UserSubscription
 		{
-			ExpectedEndDateTime = DateTime.UtcNow.AddDays(Constants.Constants.User.TrialDurationInDays),
 			StartDateTime = DateTime.UtcNow,
-			SubscriptionType = SubscriptionType.Trial,
+			SubscriptionType = request.SubscriptionType,
 			UserId = user.Id,
 		};
-		await userSubscriptionRepository.InsertAsync(userSubscription).ConfigureAwait(false);
+		await userSubscriptionRepository.InsertAsync(userFreeSubscription).ConfigureAwait(false);
 
-		DateTime? subscriptionEndDate = userSubscription.EndDateTime ?? userSubscription.ExpectedEndDateTime;
+		//DateTime? subscriptionEndDate = userFreeSubscription.EndDateTime ?? userFreeSubscription.ExpectedEndDateTime;
 		string? paymentUrl = null;
 
 		if (!string.IsNullOrEmpty(request.FirebaseToken))
@@ -344,9 +323,9 @@ public class AuthService(
 		};
 		await userMerchantRepository.InsertAsync(otherUserMerchant).ConfigureAwait(false);
 
-		if (request.SelectedPlanType != UserSubscriptionDurationType.Trial)
+		if (request.Duration.HasValue)
 		{
-			var paymentUrlResponse = await userSubscriptionService.CreatePaymentUrlAsync(user.Id, request.SelectedPlanType).ConfigureAwait(false);
+			var paymentUrlResponse = await userSubscriptionService.CreatePaymentUrlAsync(user.Id, request.Duration.Value, request.SubscriptionType).ConfigureAwait(false);
 			if (paymentUrlResponse.IsSuccess)
 			{
 				paymentUrl = paymentUrlResponse.Data!.PaymentUrl;
@@ -359,8 +338,8 @@ public class AuthService(
 			Email = user.Email,
 			EmailVerificationRequired = true,
 			LanguageCode = user.LanguageCode,
-			SubscriptionEndDateTime = subscriptionEndDate,
-			PaymentUrl = paymentUrl
+			PaymentUrl = paymentUrl,
+			SubscriptionType = SubscriptionType.Free //TODO bu durum icin ozel bir senaryo gerekiyor
 		});
 	}
 
@@ -474,12 +453,9 @@ public class AuthService(
 		await SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiry);
 
 		var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == user.Id).ConfigureAwait(false);
-		var trialSubscription = userSubscriptions.Single(p => p.SubscriptionType == SubscriptionType.Trial);
-
-		var subscriptionEndDate = trialSubscription.EndDateTime ?? trialSubscription.ExpectedEndDateTime;
 
 		var pendingPaidSubscription = userSubscriptions
-			.Where(p => p.SubscriptionType == SubscriptionType.Paid && p.State == UserSubscriptionStateType.Waiting)
+			.Where(p => p.SubscriptionType != SubscriptionType.Free && p.State == UserSubscriptionStateType.Waiting)
 			.OrderByDescending(p => p.CreatedAt)
 			.FirstOrDefault();
 
@@ -503,7 +479,6 @@ public class AuthService(
 			RefreshTokenExpire = refreshTokenExpiry,
 			EmailVerificationRequired = false,
 			LanguageCode = user.LanguageCode,
-			SubscriptionEndDateTime = subscriptionEndDate,
 			PaymentUrl = paymentUrl
 		});
 	}

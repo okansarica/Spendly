@@ -24,10 +24,10 @@ import Button from '../../components/Button';
 import SubscriptionPlansModal from '../../components/SubscriptionPlansModal';
 import { translate } from '../../utils/translations';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
-import type { RegisterPlanType } from '../../services/authService';
+import { DurationType, RegisterRequest, SubscriptionType } from "../../services/authService.ts";
+
 
 type RegisterNavProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -109,14 +109,16 @@ export default function RegisterScreen() {
         setShowSubscriptionModal(true);
     };
 
-    const handlePlanSelection = async (selectedPlanType: 'Trial' | 'Monthly' | 'Yearly') => {
-        const result = await dispatch(register({
+    const handlePlanSelection = async (subscriptionType: SubscriptionType, duration?: DurationType) => {
+        const request: RegisterRequest = {
             name: name.trim(),
             surname: surname.trim(),
             email: email.trim(),
             password,
-            selectedPlanType: selectedPlanType as RegisterPlanType
-        }));
+            duration,
+            subscriptionType,
+        };
+        const result = await dispatch(register(request));
         if (register.rejected.match(result)) {
             Toast.show({
                 type: 'error',

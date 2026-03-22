@@ -80,7 +80,7 @@ public class UsersTests(TestFixture fixture) : IClassFixture<TestFixture>
 
         var usersClient = fixture.UsersClient;
 
-        var req = new CreatePaymentUrlRequestViewModel { SelectedPlanType = Spendly.Shared.Enums.UserSubscriptionDurationType.Monthly };
+        var req = new CreatePaymentUrlRequestViewModel { DurationType = Spendly.Shared.Enums.UserSubscriptionDurationType.Monthly };
         var resp = await usersClient.CreatePaymentUrlAsync(req);
         resp.Should().NotBeNull();
         resp.PaymentUrl.Should().NotBeNullOrEmpty();

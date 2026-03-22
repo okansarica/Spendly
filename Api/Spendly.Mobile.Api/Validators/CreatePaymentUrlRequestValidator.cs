@@ -7,7 +7,7 @@ public class CreatePaymentUrlRequestValidator : AbstractValidator<CreatePaymentU
 {
 	public CreatePaymentUrlRequestValidator()
 	{
-		RuleFor(x => x.SelectedPlanType).IsInEnum();
+		RuleFor(x => x.DurationType).IsInEnum();
 	}
 }
 

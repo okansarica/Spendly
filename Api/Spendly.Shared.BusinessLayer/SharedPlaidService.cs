@@ -431,6 +431,10 @@ public class SharedPlaidService(
 		}
 		if (merchant == null)
 		{
+			merchant = ctx.AllMerchants.SingleOrDefault(p=>p.Name.Trim() == plaidTransaction.MerchantName?.Trim());
+		}
+		if (merchant == null)
+		{
 			merchant = await CreateMerchantAsync(plaidTransaction, predefinedMerchant, ctx);
 		}
 

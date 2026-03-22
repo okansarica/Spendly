@@ -4,19 +4,22 @@ using Spendly.Shared.Enums;
 
 public class SubscriptionPlanResponseViewModel
 {
-	public UserSubscriptionDurationType PlanType { get; set; }
+	public SubscriptionType SubscriptionType { get; set; }
+	public UserSubscriptionDurationType? DurationType { get; set; }
 	public decimal Price { get; set; }
 }
 
 public class CreatePaymentUrlRequestViewModel
 {
-	public UserSubscriptionDurationType SelectedPlanType { get; set; }
+	public SubscriptionType SubscriptionType { get; set; }
+	public UserSubscriptionDurationType DurationType { get; set; }
 }
 
 public class CreatePaymentUrlWithTokenRequestViewModel
 {
+	public SubscriptionType SubscriptionType { get; set; }
 	public string AccessToken { get; set; } = string.Empty;
-	public UserSubscriptionDurationType SelectedPlanType { get; set; }
+	public UserSubscriptionDurationType DurationType { get; set; }
 }
 
 public class CreatePaymentUrlResponseViewModel

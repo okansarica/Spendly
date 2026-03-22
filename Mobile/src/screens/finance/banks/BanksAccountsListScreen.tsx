@@ -782,8 +782,9 @@ export default function BanksAccountsListScreen() {
                                 }}
                                 variant="secondary"
                                 size="small"
-                                style={s.actionButton}
+                                style={[s.actionButton, isPlaidLoading ? s.actionButtonDisabled : undefined]}
                                 textStyle={s.actionButtonText}
+                                disabled={isPlaidLoading}
                             />
 
                             <Button
@@ -802,6 +803,7 @@ export default function BanksAccountsListScreen() {
             </Modal>
             {isSaving ? <View/> : null}
         </View>
-    );
+    
+);
 }
 

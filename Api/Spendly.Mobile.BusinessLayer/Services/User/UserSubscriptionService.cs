@@ -10,7 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using Shared.BusinessLayer;
 using Shared.BusinessLayer.Notification;
-using Shared.Core;
 using Shared.Core.Extensions;
 using Shared.Entities.UserManagement;
 using Spendly.Mobile.ViewModels.User;
@@ -36,24 +35,23 @@ public class UserSubscriptionService(
 	EmailService emailService,
 	ILogger<UserSubscriptionService> logger)
 {
-	private const decimal MonthlyPrice = 6.99m;
-	private const decimal YearlyPrice = 69.99m;
 
 	public async Task<FunctionResponse<List<SubscriptionPlanResponseViewModel>>> GetSubscriptionPlansAsync()
 	{
 		var plans = new List<SubscriptionPlanResponseViewModel>
 		{
-			new() {PlanType = UserSubscriptionDurationType.Monthly, Price = MonthlyPrice},
-			new() {PlanType = UserSubscriptionDurationType.Yearly, Price = YearlyPrice}
+			new() {SubscriptionType = SubscriptionType.Free,DurationType = null, Price = 0},
+			new() {SubscriptionType = SubscriptionType.Plus,DurationType = UserSubscriptionDurationType.Monthly, Price = SubscriptionService.Get(SubscriptionType.Plus).MonthlyPrice},
+			new() {SubscriptionType = SubscriptionType.Plus,DurationType = UserSubscriptionDurationType.Yearly, Price = SubscriptionService.Get(SubscriptionType.Plus).YearlyPrice}
 		};
-
+		
 		return FunctionResponse.Success(plans);
 	}
 
 	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(CreatePaymentUrlRequestViewModel request)
 	{
 		var userId = requestContextViewModel.UserId.ToObjectId();
-		return await CreatePaymentUrlAsync(userId, request.SelectedPlanType);
+		return await CreatePaymentUrlAsync(userId, request.DurationType, request.SubscriptionType);
 	}
 
 	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlWithTokenAsync(CreatePaymentUrlWithTokenRequestViewModel request)
@@ -65,18 +63,18 @@ public class UserSubscriptionService(
 			return FunctionResponse<CreatePaymentUrlResponseViewModel>.Failure(MessageCodes.InvalidToken);
 		}
 
-		return await CreatePaymentUrlAsync(tokenValidation.userId.Value, request.SelectedPlanType);
+		return await CreatePaymentUrlAsync(tokenValidation.userId.Value, request.DurationType, request.SubscriptionType);
 	}
 
-	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(ObjectId userId, UserSubscriptionDurationType selectedPlanType)
+	public async Task<FunctionResponse<CreatePaymentUrlResponseViewModel>> CreatePaymentUrlAsync(ObjectId userId, UserSubscriptionDurationType durationType, SubscriptionType subscriptionType)
 	{
-		var amount = selectedPlanType == UserSubscriptionDurationType.Monthly ? MonthlyPrice : YearlyPrice;
+		var amount = durationType == UserSubscriptionDurationType.Monthly ? SubscriptionService.Get(subscriptionType).MonthlyPrice : SubscriptionService.Get(subscriptionType).YearlyPrice;
 
 		var clientReferenceId = ObjectId.GenerateNewId().ToString();
 
 		StripeConfiguration.ApiKey = stripeSettings.ApiKey;
 
-		var subscriptionName = selectedPlanType == UserSubscriptionDurationType.Monthly ? "Monthly" : "Yearly";
+		var durationName = durationType == UserSubscriptionDurationType.Monthly ? "Monthly" : "Yearly";
 
 		var options = new SessionCreateOptions
 		{
@@ -90,7 +88,7 @@ public class UserSubscriptionService(
 						Currency = "gbp",
 						ProductData = new SessionLineItemPriceDataProductDataOptions
 						{
-							Name = $"Spendly {subscriptionName} Subscription"
+							Name = $"Spendly {durationName} {subscriptionType.ToString()} Subscription"
 						},
 						UnitAmount = (long) (amount * 100)
 					},
@@ -125,7 +123,7 @@ public class UserSubscriptionService(
 			logger.LogError(ex,
 				"Stripe payment session creation failed. UserId: {UserId}, PlanType: {PlanType}, ClientReferenceId: {ClientReferenceId}",
 				userId,
-				selectedPlanType,
+				durationType,
 				clientReferenceId);
 			return FunctionResponse<CreatePaymentUrlResponseViewModel>.Failure("STRIPE_ERROR");
 		}
@@ -134,10 +132,10 @@ public class UserSubscriptionService(
 
 		var paidUserSubscription = new UserSubscription
 		{
-			SubscriptionType = SubscriptionType.Paid,
+			SubscriptionType = subscriptionType,
 			UserId = userId,
 			State = UserSubscriptionStateType.Waiting,
-			Duration = selectedPlanType
+			Duration = durationType
 		};
 		await userSubscriptionRepository.InsertAsync(paidUserSubscription);
 

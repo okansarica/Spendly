@@ -9,5 +9,6 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=9c965436_002Dec03_002D4f5e_002D8ab4_002D6f0fa93e0770/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;Tests&amp;gt;\&amp;lt;Spendly.Mobile.Api.Test&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Project Location="/Users/okan/Documents/Software/Projects/Spendly/Api/Spendly.Mobile.Api.Test" Presentation="&amp;lt;Tests&amp;gt;\&amp;lt;Spendly.Mobile.Api.Test&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=6f0f8a3f_002Da54c_002D469d_002D8112_002D9779a0838a25_0023Spendly_002EMobile_002EApi_002ETest/@EntryIndexedValue">True</s:Boolean>
 	
 	</wpf:ResourceDictionary>

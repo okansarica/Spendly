@@ -6,7 +6,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../theme/ThemeContext';
 import {HeaderConstants} from '../constants/headerConstants';
-import {subscriptionService} from '../services/subscriptionService';
 import {translate} from '../utils/translations';
 import SubscriptionPlansModal from './SubscriptionPlansModal';
 
@@ -24,26 +23,9 @@ export default function Header({title, showBack}: HeaderProps) {
   const canGoBack = navigation.canGoBack();
   const shouldShowBack = showBack ?? canGoBack;
   const [showWarning, setShowWarning] = useState(false);
-  const [timeUntilExpiration, setTimeUntilExpiration] = useState<{days: number; hours: number} | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
-  const checkSubscription = useCallback(async () => {
-    const isExpiring = await subscriptionService.isSubscriptionExpiring();
-    const time = await subscriptionService.getTimeUntilExpiration();
-    setShowWarning(isExpiring);
-    setTimeUntilExpiration(time);
-  }, []);
-
-  useEffect(() => {
-    checkSubscription();
-  }, [checkSubscription]);
-
-  useEffect(() => {
-    return subscriptionService.subscribeToSubscriptionState(() => {
-      checkSubscription();
-    });
-  }, [checkSubscription]);
-
+  
   const s = useMemo(
     () =>
       StyleSheet.create({
@@ -148,19 +130,14 @@ export default function Header({title, showBack}: HeaderProps) {
           </View>
         </View>
       </SafeAreaView>
-      {showWarning && timeUntilExpiration !== null && (
+      {showWarning && (
         <TouchableOpacity
           style={s.warningBanner}
           onPress={() => setShowSubscriptionModal(true)}
           accessibilityRole="button"
           accessibilityLabel={translate('SubscriptionWarningBannerLabel')}>
           <Text style={s.warningText}>
-            {timeUntilExpiration.days === 0
-              ? translate('SubscriptionExpiringWarningLastDay').replace('{hours}', timeUntilExpiration.hours.toString())
-              : translate('SubscriptionExpiringWarning').replace(
-                  '{days}',
-                  (timeUntilExpiration.hours > 12 ? timeUntilExpiration.days + 1 : timeUntilExpiration.days).toString(),
-                )}
+            {translate('SubscriptionWarningBannerText')}
           </Text>
           <Icon
             name="chevron-right"

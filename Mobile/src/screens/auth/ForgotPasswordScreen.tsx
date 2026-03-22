@@ -1,5 +1,5 @@
 // CHANGED_BY_AI: 2026-03-02 - Add shared header usage
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {forgotPassword, clearError} from '../../store/authStore';
+import {forgotPassword,} from '../../store/authStore';
 import Header from '../../components/Header';
 import {translate} from '../../utils/translations';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -23,25 +23,12 @@ export default function ForgotPasswordScreen() {
   const navigation = useNavigation<ForgotPasswordNavProp>();
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(s => s.auth.isLoading);
-  const error = useAppSelector(s => s.auth.error);
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  useEffect(() => {
-    if (error) {
-      Toast.show({
-        type: 'error',
-        text1: translate('Error'),
-        text2: error,
-      });
-      dispatch(clearError());
-    }
-  }, [error, dispatch]);
+  
 
   const handleSubmit = async () => {
     const result = await dispatch(forgotPassword(email));
-    if (forgotPassword.fulfilled.match(result)) {
-      setSubmitted(true);
+    if (forgotPassword.fulfilled.match(result)) {      
       Toast.show({
         type: 'success',
         text1: translate('SuccessTitle'),

@@ -2,18 +2,16 @@
 // CHANGED_BY_AI: 2026-03-11 - Add startup version check and update gate screen
 // CHANGED_BY_AI: 2026-03-05 - Handle subscription payment push results in app root
 // CHANGED_BY_AI: 2026-03-12 - Redirect to dashboard and refresh after subscription payment success
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {Provider} from 'react-redux';
 import {CommonActions, createNavigationContainerRef, NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import {Alert, AppState, Linking, Platform} from 'react-native';
+import {Alert, Linking, Platform} from 'react-native';
 import {ThemeProvider} from './src/theme/ThemeContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import {store} from './src/store';
-import {subscriptionService, SubscriptionPaymentResultStatus} from './src/services/subscriptionService';
 import {firebaseService} from './src/services/firebaseService';
-import {userService} from './src/services/userService';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 import {versionService} from './src/services/versionService';
 import APP_CONFIG from './src/config/appConfig';
@@ -34,8 +32,9 @@ type VersionGateState = {
   message?: string;
 };
 
+export type SubscriptionPaymentResultStatus = 'success' | 'fail'; //TODO enum
+
 export default function App() {
-  const appState = useRef(AppState.currentState);
   const [versionGate, setVersionGate] = useState<VersionGateState>({visible: false, forceUpdate: false});
 
   const selectedStoreUrl = useMemo(
@@ -93,11 +92,6 @@ export default function App() {
           });
         }
 
-        const isAuthenticated = store.getState().auth.isAuthenticated;
-        if (isAuthenticated) {
-          await subscriptionService.fetchSubscriptionEndDate();
-        }
-
         const handleSubscriptionPaymentResult = async (status: SubscriptionPaymentResultStatus) => {
           if (await InAppBrowser.isAvailable()) {
             InAppBrowser.close();
@@ -107,7 +101,6 @@ export default function App() {
             // Activate pending tokens (from registration payment flow)
             await store.dispatch(activatePendingAuth());
             
-            await subscriptionService.fetchSubscriptionEndDate();
             await delay(300);
             await redirectToDashboardAndRefresh();
             Toast.show({
@@ -135,11 +128,6 @@ export default function App() {
           },
           handleSubscriptionPaymentResult,
         );
-
-        const token = await firebaseService.getToken();
-        if (token && isAuthenticated) {
-          await userService.sendFirebaseToken(token);
-        }
       } catch (error) {
         console.error('App initialization error:', error);
       }
@@ -148,22 +136,6 @@ export default function App() {
     setTimeout(() => {
       initializeApp();
     }, 100);
-
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        if (store.getState().auth.isAuthenticated) {
-          subscriptionService.fetchSubscriptionEndDate();
-        }
-      }
-      appState.current = nextAppState;
-    });
-
-    return () => {
-      subscription.remove();
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
   }, []);
 
   const handleUpdatePress = async () => {

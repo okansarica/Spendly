@@ -131,7 +131,7 @@ var app = AppBootstrapper
 		builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 		{
 			options.Filters.Add<LoggingActionFilter>();
-			options.Filters.Add<CacheControlHeaderFilter>();
+			//options.Filters.Add<CacheControlHeaderFilter>();
 		});
 		// Ensure FluentValidation runs for API models and discover validators in API assembly
 		builder.Services.AddFluentValidationAutoValidation();

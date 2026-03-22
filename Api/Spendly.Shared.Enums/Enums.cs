@@ -10,7 +10,6 @@ public enum LoginProviderType
 
 public enum UserSubscriptionDurationType
 {
-    Trial,
     Monthly,
     Yearly,
 }
@@ -21,12 +20,6 @@ public enum UserSubscriptionPaymentStatusType
     Paid,
     Failed,
     Cancelled,
-}
-
-public enum SubscriptionType
-{
-    Trial,
-    Paid,
 }
 
 public enum SubscriptionPaymentResultStatusType
@@ -40,4 +33,10 @@ public enum UserSubscriptionStateType
 {
     Waiting,
     Active,
+}
+public enum SubscriptionType
+{
+    Free,
+    Plus,
+    Pro
 }

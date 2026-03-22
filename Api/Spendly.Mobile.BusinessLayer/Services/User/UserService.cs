@@ -173,35 +173,35 @@ public class UserService(
         return FunctionResponse.Success();
     }
 
-    [Cacheable(DurationSeconds = 7200)]
-    public async Task<FunctionResponse<DateTime?>> GetSubscriptionEndDateAsync()
-    {
-        var userId = requestContextViewModel.UserId.ToObjectId();
-        var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == userId).ConfigureAwait(false);
-
-        var paidActiveSubscriptions = userSubscriptions.Where(p =>
-            p.SubscriptionType == SubscriptionType.Paid &&
-            p.State == UserSubscriptionStateType.Active &&
-            p.StartDateTime.HasValue &&
-            p.StartDateTime.Value <= DateTime.UtcNow &&
-            ((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow))).ToList();
-
-        if (paidActiveSubscriptions.Count() > 1)
-        {
-            await emailService.SendAlarmEmailAsync($"User has multiple paid subscriptions. UserId: {requestContextViewModel.UserId}");
-        }
-
-        var paidActiveSubscription = paidActiveSubscriptions.FirstOrDefault();
-
-        DateTime? subscriptionEndDate = null;
-        if (paidActiveSubscription == null)
-        {
-            var trialSubscriptions = userSubscriptions.SingleOrDefault(p => p.SubscriptionType == SubscriptionType.Trial);
-            subscriptionEndDate = trialSubscriptions?.EndDateTime ?? trialSubscriptions?.ExpectedEndDateTime;
-        }
-
-        return FunctionResponse.Success(subscriptionEndDate);
-    }
+    // [Cacheable(DurationSeconds = 7200)]
+    // public async Task<FunctionResponse<DateTime?>> GetSubscriptionEndDateAsync()
+    // {
+    //     var userId = requestContextViewModel.UserId.ToObjectId();
+    //     var userSubscriptions = await userSubscriptionRepository.ListAsync(p => p.UserId == userId).ConfigureAwait(false);
+    //
+    //     var paidActiveSubscriptions = userSubscriptions.Where(p =>
+    //         p.SubscriptionType == SubscriptionType.Paid &&
+    //         p.State == UserSubscriptionStateType.Active &&
+    //         p.StartDateTime.HasValue &&
+    //         p.StartDateTime.Value <= DateTime.UtcNow &&
+    //         ((!p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow) || (p.EndDateTime.HasValue && p.ExpectedEndDateTime > DateTime.UtcNow))).ToList();
+    //
+    //     if (paidActiveSubscriptions.Count() > 1)
+    //     {
+    //         await emailService.SendAlarmEmailAsync($"User has multiple paid subscriptions. UserId: {requestContextViewModel.UserId}");
+    //     }
+    //
+    //     var paidActiveSubscription = paidActiveSubscriptions.FirstOrDefault();
+    //
+    //     DateTime? subscriptionEndDate = null;
+    //     if (paidActiveSubscription == null)
+    //     {
+    //         var trialSubscriptions = userSubscriptions.SingleOrDefault(p => p.SubscriptionType == SubscriptionType.Trial);
+    //         subscriptionEndDate = trialSubscriptions?.EndDateTime ?? trialSubscriptions?.ExpectedEndDateTime;
+    //     }
+    //
+    //     return FunctionResponse.Success(subscriptionEndDate);
+    // }
 
     private static UserProfileResponseViewModel ToProfile(User user)
     {

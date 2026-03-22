@@ -35,10 +35,10 @@ public static class Constants
         }
     }
 
-    public static class User
-    {
-        public const int TrialDurationInDays = 7;
-    }
+    // public static class User
+    // {
+    //     public const int TrialDurationInDays = 7;
+    // }
 
     public static class Application
     {

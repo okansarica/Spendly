@@ -1,6 +1,6 @@
 import messaging from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {SubscriptionPaymentResultStatus} from './subscriptionService';
+import { SubscriptionPaymentResultStatus } from "../../App.tsx";
 
 const FIREBASE_TOKEN_KEY = 'firebase_token';
 
